@@ -19,32 +19,33 @@ export const users = pgTable("users", {
 
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
+  userId: integer("user_id").references(() => users.id).notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
-  postId: integer("post_id").references(() => posts.id),
-  userId: integer("user_id").references(() => users.id),
+  postId: integer("post_id").references(() => posts.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const organizations = pgTable("organizations", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
+  userId: integer("user_id").references(() => users.id).notNull(),
   name: text("name").notNull(),
   description: text("description"),
   website: text("website"),
   email: text("email").notNull(),
   verified: boolean("verified").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const events = pgTable("events", {
   id: serial("id").primaryKey(),
-  organizationId: integer("organization_id").references(() => organizations.id),
+  organizationId: integer("organization_id").references(() => organizations.id).notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
   date: timestamp("date").notNull(),
@@ -98,10 +99,26 @@ export const commentsRelations = relations(comments, ({ one }) => ({
   }),
 }));
 
-// Schemas
+export const organizationsRelations = relations(organizations, ({ one, many }) => ({
+  user: one(users, {
+    fields: [organizations.userId],
+    references: [users.id],
+  }),
+  events: many(events),
+}));
+
+export const eventsRelations = relations(events, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [events.organizationId],
+    references: [organizations.id],
+  }),
+}));
+
+// Schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 
+// Types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 
