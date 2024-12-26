@@ -1,0 +1,142 @@
+I want to build a web app for Poets and people interested in Poetry called PoetPortal. The app is intended to be a community where poets and people interested in poetry can connect and share poetry, events, and resources. It is similar to LinkedIn but for the Poetry community.  It will also allow organizations to build a profile and to promote their events like poetry nights, poet readings, promote published poetry and manuscripts.
+
+I want the interface to be a clean design, literature-themed with subtle animations.  The background should be white with cards representing various components that have rounded corners and subtle shading.  If possible, the cards should resemble pages in a book.
+
+The core functionality is the following:
+
+User registration allows for:
+User Registration and Login
+Register or Login if the user already has an account.
+Registration fields:
+First Name and Last Name (required)
+Preferred Pronouns (optional)
+Bio (limited to 100 words)
+Email Address (required for identity validation)
+Location: City, State, Country of current residence (required)
+Select User Type: 'Poet', 'Poetry Lover', 'Business/Organization Representative'
+
+Once registered, the user can develop their User Profile:
+Upload a Photo or Image.
+
+Display user's selected info such as Name, Pronouns, Location (optional), User Type, and a brief Description.
+
+User can discover Poetry Events:
+Continuously updated feed based on user profile and behaviors:
+Local or Regional Poetry Readings (distinguish between poetry and slam competitions)
+Local or Regional Competitions: written and spoken
+Local or Regional Poetry Workshops
+Local, Regional, National, or International Conferences
+Local, Regional, National, or International Retreats
+
+User can discover Points of Interest:
+Enter location to see points of interest or, by default, use the user’s location:
+Museums
+Membership Libraries
+Historical Sites
+Literary Tours
+Poetry Parks and Trails
+
+User can find Resources:
+Links to services, both local, regional, international:
+Links to other Poetry Sites
+Association profiles supporting poets
+Poet Laureate Resources (events, office hours, strategies, highlights, etc.)
+Submittable, Thought Leaders
+
+If the user represents a Business/Organization, they have the following functions:
+Claim and Build a Profile for business or organization.
+Verify identity via email with matching organization's website domain.
+Post Events and/or Promote Events via paid advertising.
+Ecommerce capability for credit card payments.
+
+Technical Requirements:
+Ability to like a place with a thumbs-up icon that looks like a finger snapping.
+User authentication via LinkedIn, Facebook, Instagram, WhatsApp, or mobile/email.
+Localization/Globalization to handle local languages.
+
+Overall Architecture:
+Progressive web application running on any device via a single code base.
+RESTful API architecture.
+Separate microservices for major functionalities using Python.
+Front-end with React, Pyscript-React library, and Flask framework.
+Bootstrap 5.0 framework (such as Olympus Social Network).
+MongoDB for database management.
+
+Please write for me the code that creates and presents the following pages:
+
+Navigation Menu header:  build a sticky (fixed position) menu that includes:  
+PoetPortal logo that when click always navigates users to the home page
+Home: navigates to home page
+Events: navigates to the events page
+Points of Interest: navigates to the Points of Interest page
+Resources: navigates to the Resources page
+Profile: opens the user Profile in a modal window
+Search:  keyword search of site
+
+Use icons and words for navigation menu.
+
+Create a profile (for new users) including all the registration information previously described.  If the user represents an organization or business, they will click on a check box on this page that says “I want to claim an organization or business.”.  If they check this box, another section will appear that allows them to enter the name of the business, address and phone number, business website and an email address matching the business domain.  In this case, the user will be created as an individual person and a new “entity” will be created representing the organization or business.
+
+Home page:  the home page should be oriented with three main sections
+Left margin:  Upcoming Events - a list of events that can be clicked on to see a card with more details.
+Center section: This is the user’s Feed that shows Posts and comments from users and promotions from organizations.  Each post has a “reply” text box and button to allow the user to comment on any post.  Each reply can also be commented on.
+Right margin:  Post a comment card that shows the user’s Profile:  avatar image, name, location, user type and below that is a text box that reads “What’s on your mind?” and below that is a button that says “Post”.  This is where a user can post a comment to the PoetPortal board.  When a user posts a comment it will show up on the main section feed.  
+
+Events page: header should read Upcoming Events and should have a search text box below it.
+Below the header will be a listing of upcoming events using a card style where each event and its information is encompassed in a card with a “learn more” button that will open a model window to show more details about the event.  
+
+Points of Interest page: header should read Points of Interest and should have a search text box below it.
+Below the header will be a listing of points of interest using a card style where each location and its information is encompassed in a card with a “learn more” button that will open a model window to show more details about the location.  
+
+Resources page: header should read Poetry Resources and should have a search text box below it.
+Below the header will be a listing of resources using a card style where each resource and its information is encompassed in a card with a “learn more” button that will open a model window to show more details about the resource.  
+  
+Build a data model that looks like the following:
+
+User→
+UserName
+UserPronoun
+UserEmail
+UserBio
+UserAvatar (image)
+UserLocation (zip code)
+UserType
+
+Post→
+Post_ID
+UserName
+PostContent
+PostTimeStamp
+
+Comment→
+UserName (commenter)
+Post_ID
+CommentContent
+CommentTimeStamp
+
+Entity→
+UserName
+BusinessName
+Email
+Address
+Description
+Type
+
+Event→
+Title
+Date
+Description
+
+Resouces→
+Title
+Type
+Description
+Link
+
+Points of Interest→
+Name
+Location
+Description
+Address
+
+Generate fake data to initially hydrate the database using known Poets from history, events from the past and real points of interest you can discover online associated with poetry.
