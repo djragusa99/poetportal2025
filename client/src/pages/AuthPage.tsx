@@ -12,6 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -25,6 +30,10 @@ export default function AuthPage() {
     userType: "Poetry Lover",
     pronouns: "",
     bio: "",
+    // Organization fields
+    orgName: "",
+    orgWebsite: "",
+    orgEmail: "",
   });
 
   const { login, register } = useUser();
@@ -37,7 +46,24 @@ export default function AuthPage() {
         password: formData.password,
       });
     } else {
-      await register(formData);
+      const registerData = { ...formData };
+      delete registerData.orgName;
+      delete registerData.orgWebsite;
+      delete registerData.orgEmail;
+      await register(registerData);
+
+      // If registering as an organization, create the organization after user registration
+      if (formData.userType === "Organization" && formData.orgName && formData.orgWebsite && formData.orgEmail) {
+        await fetch('/api/organizations/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.orgName,
+            website: formData.orgWebsite,
+            email: formData.orgEmail,
+          }),
+        });
+      }
     }
   };
 
@@ -167,6 +193,48 @@ export default function AuthPage() {
                     placeholder="Tell us about yourself..."
                   />
                 </div>
+
+                {formData.userType === "Organization" && (
+                  <Collapsible open={true}>
+                    <CollapsibleContent className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="orgName">Organization Name</Label>
+                        <Input
+                          id="orgName"
+                          value={formData.orgName}
+                          onChange={(e) =>
+                            setFormData({ ...formData, orgName: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="orgWebsite">Organization Website</Label>
+                        <Input
+                          id="orgWebsite"
+                          type="url"
+                          value={formData.orgWebsite}
+                          onChange={(e) =>
+                            setFormData({ ...formData, orgWebsite: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="orgEmail">Organization Email</Label>
+                        <Input
+                          id="orgEmail"
+                          type="email"
+                          value={formData.orgEmail}
+                          onChange={(e) =>
+                            setFormData({ ...formData, orgEmail: e.target.value })
+                          }
+                          required
+                        />
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )}
               </>
             )}
 
