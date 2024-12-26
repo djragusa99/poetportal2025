@@ -212,7 +212,7 @@ export default function AuthPage() {
                         <Label htmlFor="orgWebsite">Organization Website</Label>
                         <Input
                           id="orgWebsite"
-                          type="url"
+                          placeholder="e.g. www.example.com"
                           value={formData.orgWebsite}
                           onChange={(e) =>
                             setFormData({ ...formData, orgWebsite: e.target.value })

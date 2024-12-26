@@ -71,9 +71,27 @@ export function registerRoutes(app: Express): Server {
     }
 
     const { name, website, email } = req.body;
-    
-    if (!email.includes("@") || !website.includes(".")) {
-      return res.status(400).send("Invalid email or website");
+
+    // Basic validation
+    if (!name || !website || !email) {
+      return res.status(400).send("All fields are required");
+    }
+
+    // Email validation
+    if (!email.includes("@") || !email.includes(".")) {
+      return res.status(400).send("Invalid email format");
+    }
+
+    // Website validation - allow URLs with or without protocol
+    let websiteUrl = website;
+    if (!website.startsWith('http://') && !website.startsWith('https://')) {
+      websiteUrl = `https://${website}`;
+    }
+
+    try {
+      new URL(websiteUrl);
+    } catch {
+      return res.status(400).send("Invalid website URL");
     }
 
     const [org] = await db
@@ -81,7 +99,7 @@ export function registerRoutes(app: Express): Server {
       .values({
         userId: req.user.id,
         name,
-        website,
+        website: websiteUrl,
         email,
         verified: false,
       })
