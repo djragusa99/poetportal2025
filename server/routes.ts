@@ -620,6 +620,35 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Events routes
+  app.get("/api/events", async (_req, res) => {
+    try {
+      const allEvents = await db.query.events.findMany({
+        with: {
+          organizer: true,
+        },
+        orderBy: (events, { asc }) => [asc(events.date)],
+      });
+      res.json(allEvents);
+    } catch (error) {
+      console.error("Failed to fetch events:", error);
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  // Resources routes
+  app.get("/api/resources", async (_req, res) => {
+    try {
+      const allResources = await db.query.resources.findMany({
+        orderBy: (resources, { asc }) => [asc(resources.title)],
+      });
+      res.json(allResources);
+    } catch (error) {
+      console.error("Failed to fetch resources:", error);
+      res.status(500).json({ message: "Failed to fetch resources" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
