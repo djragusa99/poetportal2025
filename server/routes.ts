@@ -241,7 +241,15 @@ export function registerRoutes(app: Express): Server {
     try {
       const allEvents = await db.query.events.findMany({
         with: {
-          organization: true,
+          organization: {
+            columns: {
+              id: true,
+              name: true,
+              website: true,
+              email: true,
+              verified: true,
+            },
+          },
         },
         orderBy: (events, { desc }) => [desc(events.date)],
       });
