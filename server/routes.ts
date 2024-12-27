@@ -10,16 +10,14 @@ import express from "express";
 
 // Middleware to ensure user is authenticated
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  console.log("Checking authentication state:", req.isAuthenticated());
-  console.log("Session ID:", req.sessionID);
-  console.log("User in session:", req.user);
-
   if (!req.isAuthenticated()) {
     console.log("Authentication failed: User not authenticated");
+    console.log("Session ID:", req.sessionID);
+    console.log("Session:", req.session);
     return res.status(401).json({ message: "Unauthorized" });
   }
 
-  console.log("Authentication successful for user:", req.user);
+  console.log("Authentication successful for user:", req.user?.username);
   next();
 };
 
@@ -59,9 +57,9 @@ export function registerRoutes(app: Express): Server {
       }
 
       console.log("Avatar updated successfully for user:", req.user.id);
-      return res.json({ 
+      return res.json({
         avatarUrl,
-        user: updatedUser 
+        user: updatedUser
       });
     } catch (error) {
       console.error("Failed to update avatar:", error);
@@ -166,8 +164,9 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Comments routes
+  // Comments routes with authentication
   app.post("/api/posts/:postId/comments", requireAuth, async (req, res) => {
+    console.log("Comment creation attempt by user:", req.user?.username);
     const { content, parentId } = req.body;
     const postId = parseInt(req.params.postId);
 
@@ -176,31 +175,6 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      // Verify post exists
-      const post = await db.query.posts.findFirst({
-        where: eq(posts.id, postId),
-      });
-
-      if (!post) {
-        return res.status(404).json({ message: "Post not found" });
-      }
-
-      // If parentId is provided, verify parent comment exists
-      if (parentId) {
-        const parentComment = await db.query.comments.findFirst({
-          where: eq(comments.id, parentId),
-        });
-
-        if (!parentComment) {
-          return res.status(404).json({ message: "Parent comment not found" });
-        }
-
-        if (parentComment.postId !== postId) {
-          return res.status(400).json({ message: "Parent comment does not belong to this post" });
-        }
-      }
-
-      console.log("Creating comment for user:", req.user!.id, "on post:", postId);
       const [comment] = await db
         .insert(comments)
         .values({
@@ -226,10 +200,7 @@ export function registerRoutes(app: Express): Server {
       res.json(commentWithUser);
     } catch (error) {
       console.error("Failed to create comment:", error);
-      res.status(500).json({
-        message: "Failed to create comment",
-        details: error instanceof Error ? error.message : "Unknown error"
-      });
+      res.status(500).json({ message: "Failed to create comment" });
     }
   });
 

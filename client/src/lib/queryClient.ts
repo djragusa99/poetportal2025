@@ -6,6 +6,9 @@ export const queryClient = new QueryClient({
       queryFn: async ({ queryKey }) => {
         const res = await fetch(queryKey[0] as string, {
           credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
         });
 
         if (!res.ok) {
