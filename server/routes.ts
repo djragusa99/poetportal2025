@@ -7,6 +7,7 @@ import { posts, events, pointsOfInterest, resources, organizations, comments, us
 import { generateVerificationToken, sendVerificationEmail } from "./email";
 import { upload } from "./upload";
 import express from "express";
+import { users, type User } from "@db/schema";
 
 // TODO: Authentication temporarily disabled to focus on feature development
 // Will be re-enabled once core features are implemented
@@ -367,6 +368,76 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Failed to verify organization:", error);
       res.status(500).json({ message: "Failed to verify organization" });
+    }
+  });
+
+  // Admin routes for user management
+  app.get("/api/admin/users", async (_req, res) => {
+    try {
+      const allUsers = await db.query.users.findMany({
+        orderBy: (users, { asc }) => [asc(users.id)],
+      });
+      res.json(allUsers);
+    } catch (error) {
+      console.error("Failed to fetch users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.put("/api/admin/users/:userId", async (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const updates: Partial<User> = req.body;
+
+    // Remove sensitive fields that shouldn't be updated
+    delete updates.id;
+    delete updates.password;
+    delete updates.createdAt;
+
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set(updates)
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Failed to update user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.delete("/api/admin/users/:userId", async (req, res) => {
+    const userId = parseInt(req.params.userId);
+
+    try {
+      // Check if user exists
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      // Delete the user's content first
+      await db.delete(posts).where(eq(posts.userId, userId));
+      await db.delete(comments).where(eq(comments.userId, userId));
+      await db.delete(organizations).where(eq(organizations.userId, userId));
+
+      // Delete the user
+      await db.delete(users).where(eq(users.id, userId));
+
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Failed to delete user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
     }
   });
 

@@ -8,6 +8,7 @@ import {
   User,
   Search,
   Building2,
+  Settings,
 } from "lucide-react";
 import { useUser } from "../hooks/use-user";
 import UserProfile from "./UserProfile";
@@ -56,6 +57,13 @@ export default function Navigation() {
               <Button variant="ghost" size="sm">
                 <Book className="h-4 w-4 mr-2" />
                 Resources
+              </Button>
+            </Link>
+            {/* Add Admin Dashboard link */}
+            <Link href="/admin">
+              <Button variant="ghost" size="sm">
+                <Settings className="h-4 w-4 mr-2" />
+                Admin
               </Button>
             </Link>
           </nav>
