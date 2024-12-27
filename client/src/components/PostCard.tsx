@@ -79,6 +79,8 @@ function CommentComponent({ comment, onReply, onDelete, currentUserId, depth = 0
               size="sm"
               className="h-8 text-xs"
               onClick={() => likeMutation.mutate()}
+              disabled={comment.userId === currentUserId}
+              title={comment.userId === currentUserId ? "You cannot like your own comment" : ""}
             >
               <Heart 
                 className={`mr-1 h-3 w-3 ${likeStatus?.liked ? 'fill-current text-red-500' : ''}`} 
@@ -348,6 +350,8 @@ export default function PostCard({ post }: PostCardProps) {
               variant="ghost"
               size="sm"
               onClick={() => likeMutation.mutate()}
+              disabled={post.userId === user?.id}
+              title={post.userId === user?.id ? "You cannot like your own post" : ""}
             >
               <Heart 
                 className={`mr-2 h-4 w-4 ${likeStatus?.liked ? 'fill-current text-red-500' : ''}`} 

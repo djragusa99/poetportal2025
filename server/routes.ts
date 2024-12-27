@@ -399,6 +399,30 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Invalid target type" });
       }
 
+      // Check if the target content exists and belongs to the current user
+      let contentOwnerId;
+      if (targetType === 'post') {
+        const post = await db.query.posts.findFirst({
+          where: eq(posts.id, targetId),
+        });
+        if (!post) {
+          return res.status(404).json({ message: "Post not found" });
+        }
+        contentOwnerId = post.userId;
+      } else {
+        const comment = await db.query.comments.findFirst({
+          where: eq(comments.id, targetId),
+        });
+        if (!comment) {
+          return res.status(404).json({ message: "Comment not found" });
+        }
+        contentOwnerId = comment.userId;
+      }
+
+      if (contentOwnerId === userId) {
+        return res.status(400).json({ message: "You cannot like your own content" });
+      }
+
       // Check if like already exists
       const [existingLike] = await db
         .select()
