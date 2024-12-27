@@ -1,14 +1,12 @@
 import passport from "passport";
 import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
 import { type Express } from "express";
-import session from "express-session";
-import createMemoryStore from "memorystore";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
-import { promisify } from "util";
 import { users, insertUserSchema } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
 
 const scryptAsync = promisify(scrypt);
 const crypto = {
@@ -66,28 +64,6 @@ const loginSchema = z.object({
 });
 
 export function setupAuth(app: Express) {
-  const MemoryStore = createMemoryStore(session);
-  const sessionSettings: session.SessionOptions = {
-    secret: process.env.REPL_ID || "social-platform-secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {},
-    store: new MemoryStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
-    }),
-  };
-
-  if (app.get("env") === "production") {
-    app.set("trust proxy", 1);
-    sessionSettings.cookie = {
-      secure: true,
-    };
-  }
-
-  app.use(session(sessionSettings));
-  app.use(passport.initialize());
-  app.use(passport.session());
-
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -102,11 +78,13 @@ export function setupAuth(app: Express) {
           console.log("User not found:", username);
           return done(null, false, { message: "Incorrect username." });
         }
+
         const isMatch = await crypto.compare(password, user.password);
         if (!isMatch) {
           console.log("Password mismatch for user:", username);
           return done(null, false, { message: "Incorrect password." });
         }
+
         console.log("Authentication successful for user:", username);
         return done(null, user);
       } catch (err) {
@@ -139,6 +117,44 @@ export function setupAuth(app: Express) {
       console.error("Deserialization error:", err);
       done(err);
     }
+  });
+
+  app.post("/api/login", (req, res, next) => {
+    console.log("Login attempt:", req.body.username);
+    console.log("Request headers:", req.headers);
+
+    const result = loginSchema.safeParse(req.body);
+    if (!result.success) {
+      return res
+        .status(400)
+        .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
+    }
+
+    passport.authenticate("local", (err: any, user: Express.User | false, info: IVerifyOptions) => {
+      if (err) {
+        console.error("Login error:", err);
+        return next(err);
+      }
+
+      if (!user) {
+        console.log("Login failed:", info.message);
+        return res.status(400).json({ message: info.message ?? "Login failed" });
+      }
+
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error("Login error:", err);
+          return next(err);
+        }
+
+        req.session.currentUserId = user.id;
+
+        console.log("Login successful for user:", user.username);
+        console.log("Session ID:", req.sessionID);
+        console.log("Session data:", req.session);
+        return res.json(user);
+      });
+    })(req, res, next);
   });
 
   app.post("/api/register", async (req, res, next) => {
@@ -190,44 +206,6 @@ export function setupAuth(app: Express) {
       console.error("Registration error:", error);
       next(error);
     }
-  });
-
-  app.post("/api/login", (req, res, next) => {
-    console.log("Login attempt:", req.body.username);
-    console.log("Request headers:", req.headers);
-
-    const result = loginSchema.safeParse(req.body);
-    if (!result.success) {
-      return res
-        .status(400)
-        .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
-    }
-
-    passport.authenticate("local", (err: any, user: Express.User | false, info: IVerifyOptions) => {
-      if (err) {
-        console.error("Login error:", err);
-        return next(err);
-      }
-
-      if (!user) {
-        console.log("Login failed:", info.message);
-        return res.status(400).json({ message: info.message ?? "Login failed" });
-      }
-
-      req.logIn(user, (err) => {
-        if (err) {
-          console.error("Login error:", err);
-          return next(err);
-        }
-
-        req.session.currentUserId = user.id;
-
-        console.log("Login successful for user:", user.username);
-        console.log("Session ID:", req.sessionID);
-        console.log("Session data:", req.session);
-        return res.json(user);
-      });
-    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res) => {

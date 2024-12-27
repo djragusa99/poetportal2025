@@ -41,6 +41,24 @@ export const followsRelations = relations(follows, ({ one }) => ({
   }),
 }));
 
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  date: timestamp("date").notNull(),
+  location: text("location").notNull(),
+  organizerId: integer("organizer_id").references(() => users.id).notNull(),
+  type: text("type").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const eventsRelations = relations(events, ({ one }) => ({
+  organizer: one(users, {
+    fields: [events.organizerId],
+    references: [users.id],
+  }),
+}));
+
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
@@ -95,23 +113,6 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
 export const likesRelations = relations(likes, ({ one }) => ({
   user: one(users, {
     fields: [likes.userId],
-    references: [users.id],
-  }),
-}));
-
-export const events = pgTable("events", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  date: timestamp("date").notNull(),
-  location: text("location").notNull(),
-  organizerId: integer("organizer_id").references(() => users.id).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const eventsRelations = relations(events, ({ one }) => ({
-  organizer: one(users, {
-    fields: [events.organizerId],
     references: [users.id],
   }),
 }));

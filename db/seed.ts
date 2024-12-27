@@ -11,7 +11,7 @@ async function hashPassword(password: string) {
   return `${buf.toString("hex")}.${salt}`;
 }
 
-async function seed() {
+export async function seed() {
   console.log("🌱 Seeding database...");
 
   // Create users (famous poets)
@@ -53,30 +53,6 @@ async function seed() {
       bio: "Poet, artist, and author of 'milk and honey'",
       avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=rupikaur",
     },
-    {
-      username: "oceanvuong",
-      password: await hashPassword("password123"),
-      firstName: "Ocean",
-      lastName: "Vuong",
-      email: "ocean@example.com",
-      location: "Northampton, MA",
-      userType: "Poet",
-      pronouns: "he/him",
-      bio: "Award-winning poet and author of 'Night Sky with Exit Wounds'",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=oceanvuong",
-    },
-    {
-      username: "joyharjo",
-      password: await hashPassword("password123"),
-      firstName: "Joy",
-      lastName: "Harjo",
-      email: "joy@example.com",
-      location: "Tulsa, OK",
-      userType: "Poet",
-      pronouns: "she/her",
-      bio: "23rd United States Poet Laureate and member of the Muscogee Nation",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=joyharjo",
-    },
   ];
 
   const createdUsers = await Promise.all(
@@ -95,6 +71,7 @@ async function seed() {
       date: new Date("2024-04-15"),
       location: "San Francisco, CA",
       organizerId: createdUsers[0].id,
+      type: "Festival",
     },
     {
       title: "Poetry in the Park",
@@ -102,6 +79,7 @@ async function seed() {
       date: new Date("2024-01-20"),
       location: "New York, NY",
       organizerId: createdUsers[1].id,
+      type: "Reading",
     },
     {
       title: "Spoken Word Workshop",
@@ -109,20 +87,7 @@ async function seed() {
       date: new Date("2024-02-10"),
       location: "Los Angeles, CA",
       organizerId: createdUsers[2].id,
-    },
-    {
-      title: "Poetry & Protest",
-      description: "A discussion on the role of poetry in social movements.",
-      date: new Date("2024-02-28"),
-      location: "Virtual Event",
-      organizerId: createdUsers[0].id,
-    },
-    {
-      title: "Youth Poetry Slam",
-      description: "Competition for young poets ages 13-19.",
-      date: new Date("2024-04-01"),
-      location: "Chicago, IL",
-      organizerId: createdUsers[1].id,
+      type: "Workshop",
     },
   ];
 
@@ -145,13 +110,6 @@ async function seed() {
       location: "San Francisco, CA",
       createdById: createdUsers[1].id,
     },
-    {
-      name: "Poets House",
-      description: "Poetry library and literary center with over 70,000 volumes.",
-      type: "Library",
-      location: "New York, NY",
-      createdById: createdUsers[2].id,
-    },
   ];
 
   await db.insert(pointsOfInterest).values(poetryLocations);
@@ -171,24 +129,6 @@ async function seed() {
       type: "Organization",
       url: "https://poets.org",
     },
-    {
-      title: "Poets & Writers",
-      description: "Database of literary magazines, grants, and contests.",
-      type: "Database",
-      url: "https://www.pw.org",
-    },
-    {
-      title: "Poetry Society of America",
-      description: "Oldest poetry organization in the United States.",
-      type: "Organization",
-      url: "https://poetrysociety.org",
-    },
-    {
-      title: "Button Poetry",
-      description: "Contemporary poetry press and digital media company.",
-      type: "Publisher",
-      url: "https://buttonpoetry.com",
-    },
   ];
 
   await db.insert(resources).values(poetryResources);
@@ -204,10 +144,6 @@ async function seed() {
       userId: createdUsers[1].id,
       content: "Just finished writing a new collection. There's something magical about completing a manuscript after months of work.",
     },
-    {
-      userId: createdUsers[2].id,
-      content: "Poetry is healing. It's not just about writing, it's about feeling and connecting with others through words.",
-    },
   ];
 
   const createdPosts = await Promise.all(
@@ -220,18 +156,13 @@ async function seed() {
   const poetryComments = [
     {
       postId: createdPosts[0].id,
-      userId: createdUsers[3].id,
+      userId: createdUsers[1].id,
       content: "Looking forward to learning from you! Your work is incredibly inspiring.",
     },
     {
       postId: createdPosts[1].id,
-      userId: createdUsers[4].id,
-      content: "Congratulations! Can't wait to read it. The world needs more poetry right now.",
-    },
-    {
-      postId: createdPosts[2].id,
       userId: createdUsers[0].id,
-      content: "Couldn't agree more. Poetry has been my sanctuary through challenging times.",
+      content: "Congratulations! Can't wait to read it. The world needs more poetry right now.",
     },
   ];
 
@@ -239,6 +170,8 @@ async function seed() {
 
   console.log("✅ Seeding complete!");
 }
+
+export const hashPasswordForAuth = hashPassword;
 
 seed().catch((error) => {
   console.error("Error seeding database:", error);

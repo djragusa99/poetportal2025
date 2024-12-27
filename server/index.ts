@@ -5,6 +5,9 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import passport from "passport";
 import { createServer } from "http";
+import { seed } from "../db/seed";
+import { db } from "@db";
+import { sql } from "drizzle-orm";
 
 const app = express();
 
@@ -83,53 +86,82 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  const server = registerRoutes(app);
+  try {
+    if (app.get("env") === "development") {
+      // Clear existing data and seed the database in development
+      try {
+        await db.execute(sql`
+          TRUNCATE users, posts, comments, follows, likes, events, resources, points_of_interest CASCADE;
+          ALTER SEQUENCE users_id_seq RESTART WITH 1;
+          ALTER SEQUENCE posts_id_seq RESTART WITH 1;
+          ALTER SEQUENCE comments_id_seq RESTART WITH 1;
+          ALTER SEQUENCE follows_id_seq RESTART WITH 1;
+          ALTER SEQUENCE likes_id_seq RESTART WITH 1;
+          ALTER SEQUENCE events_id_seq RESTART WITH 1;
+          ALTER SEQUENCE resources_id_seq RESTART WITH 1;
+          ALTER SEQUENCE points_of_interest_id_seq RESTART WITH 1;
+        `);
+        log("🗑️ Cleared existing data");
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    console.error("Error:", err);
-    res.status(status).json({ message });
-  });
+        await seed();
+        log("🌱 Database seeded successfully");
+      } catch (error) {
+        console.error("Failed to seed database:", error);
+        // Continue with application startup even if seeding fails
+      }
+    }
 
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
+    const server = registerRoutes(app);
 
-  const PORT = process.env.PORT || 5000;
-
-  // Function to try binding to a port
-  const tryBindPort = (port: number): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const testServer = createServer();
-      testServer.once('error', () => {
-        testServer.close();
-        resolve(false);
-      });
-      testServer.once('listening', () => {
-        testServer.close();
-        resolve(true);
-      });
-      testServer.listen(port);
+    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      const status = err.status || err.statusCode || 500;
+      const message = err.message || "Internal Server Error";
+      console.error("Error:", err);
+      res.status(status).json({ message });
     });
-  };
 
-  // Try ports until we find an available one
-  let port = Number(PORT);
-  let isPortAvailable = await tryBindPort(port);
-  while (!isPortAvailable && port < Number(PORT) + 10) {
-    port++;
-    isPortAvailable = await tryBindPort(port);
-  }
+    if (app.get("env") === "development") {
+      await setupVite(app, server);
+    } else {
+      serveStatic(app);
+    }
 
-  if (!isPortAvailable) {
-    console.error('Could not find an available port. Please check your running processes.');
+    const PORT = process.env.PORT || 5000;
+
+    // Function to try binding to a port
+    const tryBindPort = (port: number): Promise<boolean> => {
+      return new Promise((resolve) => {
+        const testServer = createServer();
+        testServer.once('error', () => {
+          testServer.close();
+          resolve(false);
+        });
+        testServer.once('listening', () => {
+          testServer.close();
+          resolve(true);
+        });
+        testServer.listen(port);
+      });
+    };
+
+    // Try ports until we find an available one
+    let port = Number(PORT);
+    let isPortAvailable = await tryBindPort(port);
+    while (!isPortAvailable && port < Number(PORT) + 10) {
+      port++;
+      isPortAvailable = await tryBindPort(port);
+    }
+
+    if (!isPortAvailable) {
+      console.error('Could not find an available port. Please check your running processes.');
+      process.exit(1);
+    }
+
+    server.listen(port, "0.0.0.0", () => {
+      log(`serving on port ${port}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
     process.exit(1);
   }
-
-  server.listen(port, "0.0.0.0", () => {
-    log(`serving on port ${port}`);
-  });
 })();
