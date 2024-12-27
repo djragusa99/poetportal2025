@@ -49,7 +49,13 @@ export function registerRoutes(app: Express): Server {
           comments: {
             with: {
               user: true,
+              childComments: {
+                with: {
+                  user: true,
+                },
+              },
             },
+            where: (comments, { isNull }) => isNull(comments.parentId),
             orderBy: (comments, { desc }) => [desc(comments.createdAt)],
           },
         },
@@ -84,6 +90,11 @@ export function registerRoutes(app: Express): Server {
           comments: {
             with: {
               user: true,
+              childComments: {
+                with: {
+                  user: true,
+                },
+              },
             },
           },
         },
@@ -145,7 +156,7 @@ export function registerRoutes(app: Express): Server {
         where: eq(comments.id, comment.id),
         with: {
           user: true,
-          replies: {
+          childComments: {
             with: {
               user: true,
             },

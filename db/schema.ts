@@ -1,6 +1,6 @@
-import { pgTable, text, serial, timestamp, integer, boolean, json } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { relations } from "drizzle-orm";
+import { relations, sql } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -97,13 +97,13 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
     fields: [comments.postId],
     references: [posts.id],
   }),
-  parent: one(comments, {
+  parentComment: one(comments, {
     fields: [comments.parentId],
     references: [comments.id],
+    relationName: "comment_parent",
   }),
-  replies: many(comments, {
-    fields: [comments.id],
-    references: [comments.parentId],
+  childComments: many(comments, {
+    relationName: "comment_parent",
   }),
 }));
 
