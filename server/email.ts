@@ -1,7 +1,9 @@
 import nodemailer from "nodemailer";
 import { randomBytes } from "crypto";
 
-// For testing, we'll use Ethereal Email
+// In development, we use Ethereal Email (ethereal.email) which is a fake SMTP service
+// that allows us to test email sending without actually delivering emails.
+// In production, this should be replaced with a real email service provider.
 let testAccount: nodemailer.TestAccount | null = null;
 
 export async function getTransporter() {
@@ -22,9 +24,9 @@ export async function getTransporter() {
 
 export async function sendVerificationEmail(email: string, token: string, organizationName: string) {
   const transporter = await getTransporter();
-  
+
   const verificationLink = `${process.env.APP_URL || 'http://localhost:5000'}/api/organizations/verify/${token}`;
-  
+
   const info = await transporter.sendMail({
     from: '"PoetPortal" <noreply@poetportal.com>',
     to: email,
@@ -41,8 +43,14 @@ export async function sendVerificationEmail(email: string, token: string, organi
     `,
   });
 
-  console.log("Verification email sent. Preview URL: %s", nodemailer.getTestMessageUrl(info));
-  return nodemailer.getTestMessageUrl(info);
+  const previewUrl = nodemailer.getTestMessageUrl(info);
+  console.log("\n=== Test Email Details ===");
+  console.log("This is a development environment using Ethereal Email.");
+  console.log("No real email will be sent. Instead, view the email here:");
+  console.log(previewUrl);
+  console.log("============================\n");
+
+  return previewUrl;
 }
 
 export function generateVerificationToken(): string {
