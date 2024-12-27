@@ -14,6 +14,7 @@ export const users = pgTable("users", {
   location: text("location").notNull(),
   userType: text("user_type").notNull(),
   avatar: text("avatar"),
+  suspended: boolean("suspended").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

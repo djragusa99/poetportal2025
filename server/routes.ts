@@ -441,6 +441,33 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Add suspension endpoint
+  app.post("/api/admin/users/:userId/suspend", async (req, res) => {
+    const userId = parseInt(req.params.userId);
+    const { suspended } = req.body;
+
+    if (typeof suspended !== 'boolean') {
+      return res.status(400).json({ message: "Invalid suspension status" });
+    }
+
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({ suspended })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Failed to update user suspension status:", error);
+      res.status(500).json({ message: "Failed to update user suspension status" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -93,6 +94,39 @@ export default function AdminDashboard() {
     },
   });
 
+  const toggleSuspensionMutation = useMutation({
+    mutationFn: async ({ userId, suspended }: { userId: number; suspended: boolean }) => {
+      const response = await fetch(`/api/admin/users/${userId}/suspend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ suspended }),
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Success",
+        description: `User ${variables.suspended ? "suspended" : "reactivated"} successfully`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return (
     <div className="container py-10">
       <Card>
@@ -108,6 +142,7 @@ export default function AdminDashboard() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -121,6 +156,22 @@ export default function AdminDashboard() {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>{user.userType}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        checked={!user.suspended}
+                        onCheckedChange={(checked) => 
+                          toggleSuspensionMutation.mutate({
+                            userId: user.id,
+                            suspended: !checked,
+                          })
+                        }
+                      />
+                      <span className={user.suspended ? "text-destructive" : "text-muted-foreground"}>
+                        {user.suspended ? "Suspended" : "Active"}
+                      </span>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
                       <Dialog>
