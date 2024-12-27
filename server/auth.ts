@@ -115,6 +115,8 @@ export function setupAuth(app: Express) {
 
   app.post("/api/login", (req, res, next) => {
     console.log("Login attempt:", req.body.username);
+    console.log("Request headers:", req.headers);
+
     const result = loginSchema.safeParse(req.body);
     if (!result.success) {
       return res
@@ -141,6 +143,7 @@ export function setupAuth(app: Express) {
 
         console.log("Login successful for user:", user.username);
         console.log("Session ID:", req.sessionID);
+        console.log("Session data:", req.session);
         return res.json(user);
       });
     })(req, res, next);
@@ -150,6 +153,7 @@ export function setupAuth(app: Express) {
     const username = req.user?.username;
     console.log("Logout attempt for user:", username);
     console.log("Session before logout:", req.session);
+    console.log("Request headers:", req.headers);
 
     req.logout((err) => {
       if (err) {
@@ -166,6 +170,7 @@ export function setupAuth(app: Express) {
     console.log("Checking user authentication");
     console.log("Session ID:", req.sessionID);
     console.log("Session:", req.session);
+    console.log("Request headers:", req.headers);
     console.log("Is Authenticated:", req.isAuthenticated());
 
     if (req.isAuthenticated()) {
@@ -218,6 +223,7 @@ export function setupAuth(app: Express) {
           return next(err);
         }
         console.log("Registration successful for user:", newUser.username);
+        console.log("Session after registration:", req.session);
         return res.json(newUser);
       });
     } catch (error) {
