@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import api from "../lib/api";
+import { Event } from "@db/schema";
 import EventCard from "../components/EventCard";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
@@ -7,15 +7,15 @@ import { Search } from "lucide-react";
 
 export default function Events() {
   const [search, setSearch] = useState("");
-  const { data: events = [] } = useQuery({
+  const { data: events = [] } = useQuery<Event[]>({
     queryKey: ["/api/events"],
-    queryFn: api.events.list,
   });
 
-  const filteredEvents = events.filter((event) =>
-    event.title.toLowerCase().includes(search.toLowerCase()) ||
-    event.description.toLowerCase().includes(search.toLowerCase())
-  );
+  // Handle undefined events array and ensure type safety
+  const filteredEvents = Array.isArray(events) ? events.filter((event) =>
+    event.title?.toLowerCase().includes(search.toLowerCase()) ||
+    event.description?.toLowerCase().includes(search.toLowerCase())
+  ) : [];
 
   return (
     <div className="space-y-6">

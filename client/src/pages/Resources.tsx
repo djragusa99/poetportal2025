@@ -6,17 +6,25 @@ import { Input } from "@/components/ui/input";
 import { ExternalLink, Search } from "lucide-react";
 import { useState } from "react";
 
+interface Resource {
+  id: number;
+  title: string;
+  description: string;
+  type: string;
+  link: string;
+}
+
 export default function Resources() {
   const [search, setSearch] = useState("");
-  const { data: resources = [] } = useQuery({
+  const { data: resources = [] } = useQuery<Resource[]>({
     queryKey: ["/api/resources"],
-    queryFn: api.resources.list,
   });
 
-  const filteredResources = resources.filter((resource) =>
-    resource.title.toLowerCase().includes(search.toLowerCase()) ||
-    resource.description.toLowerCase().includes(search.toLowerCase())
-  );
+  // Handle undefined resources array and ensure type safety
+  const filteredResources = Array.isArray(resources) ? resources.filter((resource) =>
+    resource.title?.toLowerCase().includes(search.toLowerCase()) ||
+    resource.description?.toLowerCase().includes(search.toLowerCase())
+  ) : [];
 
   return (
     <div className="space-y-6">
