@@ -1,6 +1,6 @@
 import { useUser } from "../hooks/use-user";
 import { useQuery } from "@tanstack/react-query";
-import { Post } from "@db/schema";
+import { Post, Event } from "@db/schema";
 import CreatePost from "../components/CreatePost";
 import PostCard from "../components/PostCard";
 import EventCard from "../components/EventCard";
@@ -18,9 +18,10 @@ export default function Home() {
     queryFn: api.posts.list,
   });
 
-  const { data: events = [] } = useQuery({
+  const { data: events = [] } = useQuery<Event[]>({
     queryKey: ["/api/events"],
-    queryFn: api.events.list,
+    queryFn: () => api.events.list(),
+    enabled: !!user, // Only fetch events if user is logged in
   });
 
   return (
@@ -32,9 +33,13 @@ export default function Home() {
             <CardTitle>Upcoming Events</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {events.slice(0, 3).map((event) => (
-              <EventCard key={event.id} event={event} />
-            ))}
+            {Array.isArray(events) && events.length > 0 ? (
+              events.slice(0, 3).map((event) => (
+                <EventCard key={event.id} event={event} />
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No upcoming events</p>
+            )}
           </CardContent>
         </Card>
       </div>
