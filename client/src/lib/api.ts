@@ -29,12 +29,12 @@ const api = {
       }).then(handleResponse) as Promise<Post>,
   },
   comments: {
-    create: (postId: number, content: string) =>
+    create: (postId: number, content: string, parentId?: number | null) =>
       fetch(`/api/posts/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, parentId }),
       }).then(handleResponse) as Promise<Comment>,
   },
   events: {

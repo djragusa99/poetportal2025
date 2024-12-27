@@ -98,7 +98,7 @@ export function registerRoutes(app: Express): Server {
 
   // Comments routes
   app.post("/api/posts/:postId/comments", requireAuth, async (req, res) => {
-    const { content } = req.body;
+    const { content, parentId } = req.body;
     const postId = parseInt(req.params.postId);
 
     if (!content) {
@@ -115,12 +115,28 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Post not found" });
       }
 
+      // If parentId is provided, verify parent comment exists
+      if (parentId) {
+        const parentComment = await db.query.comments.findFirst({
+          where: eq(comments.id, parentId),
+        });
+
+        if (!parentComment) {
+          return res.status(404).json({ message: "Parent comment not found" });
+        }
+
+        if (parentComment.postId !== postId) {
+          return res.status(400).json({ message: "Parent comment does not belong to this post" });
+        }
+      }
+
       console.log("Creating comment for user:", req.user!.id, "on post:", postId);
       const [comment] = await db
         .insert(comments)
         .values({
           postId,
           userId: req.user!.id,
+          parentId: parentId || null,
           content,
         })
         .returning();
@@ -129,6 +145,11 @@ export function registerRoutes(app: Express): Server {
         where: eq(comments.id, comment.id),
         with: {
           user: true,
+          replies: {
+            with: {
+              user: true,
+            },
+          },
         },
       });
 

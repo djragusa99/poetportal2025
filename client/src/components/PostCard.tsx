@@ -1,4 +1,4 @@
-import { Post } from "@db/schema";
+import { Post, Comment } from "@db/schema";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,66 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { Reply } from "lucide-react";
 import api from "../lib/api";
+
+interface CommentProps {
+  comment: Comment;
+  onReply: (parentId: number) => void;
+  depth?: number;
+}
+
+function CommentComponent({ comment, onReply, depth = 0 }: CommentProps) {
+  const maxDepth = 3; // Maximum nesting level
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-start gap-3 pl-6 border-l">
+        <Avatar className="h-6 w-6">
+          <AvatarImage src={comment.user.avatar} />
+          <AvatarFallback>
+            {comment.user.firstName[0]}
+            {comment.user.lastName[0]}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold">
+              {comment.user.firstName} {comment.user.lastName}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {format(new Date(comment.createdAt), "PPp")}
+            </span>
+          </div>
+          <p className="text-sm mt-1">{comment.content}</p>
+          {depth < maxDepth && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="mt-2 h-8 text-xs"
+              onClick={() => onReply(comment.id)}
+            >
+              <Reply className="mr-1 h-3 w-3" />
+              Reply
+            </Button>
+          )}
+        </div>
+      </div>
+      {comment.replies && comment.replies.length > 0 && (
+        <div className={`ml-${Math.min(depth + 1, maxDepth) * 6}`}>
+          {comment.replies.map((reply) => (
+            <CommentComponent
+              key={reply.id}
+              comment={reply}
+              onReply={onReply}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface PostCardProps {
   post: Post;
@@ -16,13 +75,16 @@ interface PostCardProps {
 export default function PostCard({ post }: PostCardProps) {
   const [comment, setComment] = useState("");
   const [isCommenting, setIsCommenting] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const handleComment = async () => {
     try {
-      await api.comments.create(post.id, comment);
+      await api.comments.create(post.id, comment, replyingTo);
       setComment("");
+      setReplyingTo(null);
+      setIsCommenting(false);
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
         title: "Success",
@@ -35,6 +97,11 @@ export default function PostCard({ post }: PostCardProps) {
         variant: "destructive",
       });
     }
+  };
+
+  const handleReply = (parentId: number) => {
+    setReplyingTo(parentId);
+    setIsCommenting(true);
   };
 
   return (
@@ -61,28 +128,15 @@ export default function PostCard({ post }: PostCardProps) {
 
         {post.comments && post.comments.length > 0 && (
           <div className="mt-4 space-y-4">
-            {post.comments.map((comment) => (
-              <div key={comment.id} className="flex items-start gap-3 pl-6 border-l">
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={comment.user.avatar} />
-                  <AvatarFallback>
-                    {comment.user.firstName[0]}
-                    {comment.user.lastName[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">
-                      {comment.user.firstName} {comment.user.lastName}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(comment.createdAt), "PPp")}
-                    </span>
-                  </div>
-                  <p className="text-sm mt-1">{comment.content}</p>
-                </div>
-              </div>
-            ))}
+            {post.comments
+              .filter((comment) => !comment.parentId) // Only show top-level comments
+              .map((comment) => (
+                <CommentComponent
+                  key={comment.id}
+                  comment={comment}
+                  onReply={handleReply}
+                />
+              ))}
           </div>
         )}
       </CardContent>
@@ -90,7 +144,7 @@ export default function PostCard({ post }: PostCardProps) {
         {isCommenting ? (
           <div className="flex w-full gap-2">
             <Input
-              placeholder="Write a comment..."
+              placeholder={replyingTo ? "Write a reply..." : "Write a comment..."}
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               onKeyDown={(e) => {
@@ -101,7 +155,10 @@ export default function PostCard({ post }: PostCardProps) {
             />
             <Button 
               variant="secondary" 
-              onClick={() => setIsCommenting(false)}
+              onClick={() => {
+                setIsCommenting(false);
+                setReplyingTo(null);
+              }}
             >
               Cancel
             </Button>
@@ -109,7 +166,7 @@ export default function PostCard({ post }: PostCardProps) {
               onClick={handleComment}
               disabled={!comment.trim()}
             >
-              Comment
+              {replyingTo ? "Reply" : "Comment"}
             </Button>
           </div>
         ) : (
