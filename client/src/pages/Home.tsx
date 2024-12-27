@@ -6,6 +6,8 @@ import PostCard from "../components/PostCard";
 import EventCard from "../components/EventCard";
 import api from "../lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User } from "lucide-react";
 
 export default function Home() {
   const { user } = useUser();
@@ -43,17 +45,34 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Right Sidebar */}
+      {/* Right Sidebar - User Profile */}
       <div className="md:col-span-3">
         <Card className="sticky top-20">
-          <CardHeader>
-            <CardTitle>Welcome to PoetPortal</CardTitle>
+          <CardHeader className="flex flex-row items-center gap-4 space-y-0">
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={user?.avatar} />
+              <AvatarFallback>
+                {user?.firstName?.[0]}
+                {user?.lastName?.[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <CardTitle className="text-lg">
+                {user?.firstName} {user?.lastName}
+              </CardTitle>
+              <span className="text-sm text-muted-foreground">{user?.userType}</span>
+            </div>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Connect with fellow poets, discover events, and share your passion
-              for poetry.
-            </p>
+          <CardContent className="space-y-2">
+            {user?.location && (
+              <div className="flex items-center text-sm text-muted-foreground">
+                <User className="mr-2 h-4 w-4" />
+                {user.location}
+              </div>
+            )}
+            {user?.bio && (
+              <p className="text-sm text-muted-foreground">{user.bio}</p>
+            )}
           </CardContent>
         </Card>
       </div>
