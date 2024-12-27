@@ -11,7 +11,10 @@ import { Reply } from "lucide-react";
 import api from "../lib/api";
 
 interface CommentProps {
-  comment: Comment;
+  comment: Comment & {
+    user: any;
+    childComments?: (Comment & { user: any })[];
+  };
   onReply: (parentId: number) => void;
   depth?: number;
 }
@@ -21,21 +24,21 @@ function CommentComponent({ comment, onReply, depth = 0 }: CommentProps) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-start gap-3 pl-6 border-l">
+      <div className={`flex items-start gap-3 ${depth > 0 ? 'ml-6 pl-6 border-l' : ''}`}>
         <Avatar className="h-6 w-6">
-          <AvatarImage src={comment.user.avatar} />
+          <AvatarImage src={comment.user?.avatar} />
           <AvatarFallback>
-            {comment.user.firstName[0]}
-            {comment.user.lastName[0]}
+            {comment.user?.firstName?.[0]}
+            {comment.user?.lastName?.[0]}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <span className="text-sm font-semibold">
-              {comment.user.firstName} {comment.user.lastName}
+              {comment.user?.firstName} {comment.user?.lastName}
             </span>
             <span className="text-xs text-muted-foreground">
-              {format(new Date(comment.createdAt), "PPp")}
+              {format(new Date(comment.createdAt || ''), "PPp")}
             </span>
           </div>
           <p className="text-sm mt-1">{comment.content}</p>
@@ -52,9 +55,9 @@ function CommentComponent({ comment, onReply, depth = 0 }: CommentProps) {
           )}
         </div>
       </div>
-      {comment.replies && comment.replies.length > 0 && (
-        <div className={`ml-${Math.min(depth + 1, maxDepth) * 6}`}>
-          {comment.replies.map((reply) => (
+      {comment.childComments && comment.childComments.length > 0 && (
+        <div className="space-y-4">
+          {comment.childComments.map((reply) => (
             <CommentComponent
               key={reply.id}
               comment={reply}
@@ -69,7 +72,13 @@ function CommentComponent({ comment, onReply, depth = 0 }: CommentProps) {
 }
 
 interface PostCardProps {
-  post: Post;
+  post: Post & {
+    user: any;
+    comments?: (Comment & {
+      user: any;
+      childComments?: (Comment & { user: any })[];
+    })[];
+  };
 }
 
 export default function PostCard({ post }: PostCardProps) {
@@ -108,18 +117,18 @@ export default function PostCard({ post }: PostCardProps) {
     <Card className="mb-4">
       <CardHeader className="flex flex-row items-center gap-4">
         <Avatar>
-          <AvatarImage src={post.user.avatar} />
+          <AvatarImage src={post.user?.avatar} />
           <AvatarFallback>
-            {post.user.firstName[0]}
-            {post.user.lastName[0]}
+            {post.user?.firstName?.[0]}
+            {post.user?.lastName?.[0]}
           </AvatarFallback>
         </Avatar>
         <div className="flex flex-col">
           <span className="font-semibold">
-            {post.user.firstName} {post.user.lastName}
+            {post.user?.firstName} {post.user?.lastName}
           </span>
           <span className="text-sm text-muted-foreground">
-            {format(new Date(post.createdAt), "PPp")}
+            {format(new Date(post.createdAt || ''), "PPp")}
           </span>
         </div>
       </CardHeader>
@@ -128,15 +137,13 @@ export default function PostCard({ post }: PostCardProps) {
 
         {post.comments && post.comments.length > 0 && (
           <div className="mt-4 space-y-4">
-            {post.comments
-              .filter((comment) => !comment.parentId) // Only show top-level comments
-              .map((comment) => (
-                <CommentComponent
-                  key={comment.id}
-                  comment={comment}
-                  onReply={handleReply}
-                />
-              ))}
+            {post.comments.map((comment) => (
+              <CommentComponent
+                key={comment.id}
+                comment={comment}
+                onReply={handleReply}
+              />
+            ))}
           </div>
         )}
       </CardContent>
