@@ -30,7 +30,7 @@ export default function Home() {
       <div className="md:col-span-3">
         <Card>
           <CardHeader>
-            <CardTitle>Upcoming Events</CardTitle>
+            <CardTitle className="text-base">Upcoming Events</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {Array.isArray(events) && events.length > 0 ? (

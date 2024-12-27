@@ -35,16 +35,16 @@ export async function seed() {
   console.log("Creating users...");
   const poetUsers = [
     {
-      username: "amandasgorman",
+      username: "sylviaplath",
       password: await hashPassword("password123"),
-      firstName: "Amanda",
-      lastName: "Gorman",
-      email: "amanda@example.com",
-      location: "Los Angeles, CA",
+      firstName: "Sylvia",
+      lastName: "Plath",
+      email: "sylvia@example.com",
+      location: "Boston, MA",
       userType: "Poet",
       pronouns: "she/her",
-      bio: "First National Youth Poet Laureate and the youngest inaugural poet in U.S. history",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=amandasgorman",
+      bio: "Advanced the genre of confessional poetry.",
+      avatar: "https://images.saymedia-content.com/.image/t_share/MTk2OTE0NzA2ODM2MjM1NzAx/sylvia-plaths-mirror.jpg",
     },
     {
       username: "billyc",

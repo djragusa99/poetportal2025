@@ -12,7 +12,7 @@ export default function EventCard({ event }: EventCardProps) {
   return (
     <Card className="transition-all duration-200 hover:shadow-lg">
       <CardHeader>
-        <CardTitle>{event.title}</CardTitle>
+        <CardTitle className="text-lg">{event.title}</CardTitle>
         <div className="flex items-center text-sm text-muted-foreground">
           <CalendarDays className="mr-2 h-4 w-4" />
           {format(new Date(event.date), "PPP")}
