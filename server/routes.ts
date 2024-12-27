@@ -10,33 +10,11 @@ import express from "express";
 
 // Middleware to ensure user is authenticated
 const requireAuth = async (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
-  // Development bypass - automatically authenticate as Amanda Gorman
-  if (process.env.NODE_ENV !== 'production') {
-    if (!req.user) {
-      // Get Amanda Gorman's user record
-      const [testUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, "amandasgorman"))
-        .limit(1);
-
-      if (!testUser) {
-        console.error("Development user not found");
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-
-      req.user = testUser;
-    }
-    console.log("Development bypass: User authenticated as", req.user.username);
-    return next();
-  }
-
-  // Production authentication check
   if (!req.isAuthenticated()) {
     console.log("Authentication failed: User not authenticated");
     return res.status(401).json({ message: "Unauthorized" });
   }
-  console.log("Authentication successful");
+  console.log("Authentication successful for user:", req.user.username);
   next();
 };
 
