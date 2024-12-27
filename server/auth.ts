@@ -1,6 +1,8 @@
 import passport from "passport";
 import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
 import { type Express } from "express";
+import session from "express-session";
+import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { users, insertUserSchema } from "@db/schema";
@@ -51,6 +53,10 @@ declare global {
       bio?: string | null;
       pronouns?: string | null;
     }
+
+    interface Session {
+      currentUserId?: number;
+    }
   }
 }
 
@@ -60,6 +66,28 @@ const loginSchema = z.object({
 });
 
 export function setupAuth(app: Express) {
+  const MemoryStore = createMemoryStore(session);
+  const sessionSettings: session.SessionOptions = {
+    secret: process.env.REPL_ID || "social-platform-secret",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {},
+    store: new MemoryStore({
+      checkPeriod: 86400000, // prune expired entries every 24h
+    }),
+  };
+
+  if (app.get("env") === "production") {
+    app.set("trust proxy", 1);
+    sessionSettings.cookie = {
+      secure: true,
+    };
+  }
+
+  app.use(session(sessionSettings));
+  app.use(passport.initialize());
+  app.use(passport.session());
+
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -110,6 +138,57 @@ export function setupAuth(app: Express) {
     } catch (err) {
       console.error("Deserialization error:", err);
       done(err);
+    }
+  });
+
+  app.post("/api/register", async (req, res, next) => {
+    try {
+      console.log("Registration attempt:", req.body.username);
+      const result = insertUserSchema.safeParse(req.body);
+      if (!result.success) {
+        return res
+          .status(400)
+          .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
+      }
+
+      const { username, password, firstName, lastName, email, location, userType } = result.data;
+
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const hashedPassword = await crypto.hash(password);
+
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          username,
+          password: hashedPassword,
+          firstName,
+          lastName,
+          email,
+          location,
+          userType,
+        })
+        .returning();
+
+      req.login(newUser, (err) => {
+        if (err) {
+          return next(err);
+        }
+        console.log("Registration successful for user:", newUser.username);
+        console.log("Session after registration:", req.session);
+        return res.json(newUser);
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      next(error);
     }
   });
 
@@ -181,56 +260,5 @@ export function setupAuth(app: Express) {
     }
     console.log("User not authenticated");
     res.status(401).json({ message: "Not logged in" });
-  });
-
-  app.post("/api/register", async (req, res, next) => {
-    try {
-      console.log("Registration attempt:", req.body.username);
-      const result = insertUserSchema.safeParse(req.body);
-      if (!result.success) {
-        return res
-          .status(400)
-          .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
-      }
-
-      const { username, password, firstName, lastName, email, location, userType } = result.data;
-
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
-      const hashedPassword = await crypto.hash(password);
-
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          username,
-          password: hashedPassword,
-          firstName,
-          lastName,
-          email,
-          location,
-          userType,
-        })
-        .returning();
-
-      req.login(newUser, (err) => {
-        if (err) {
-          return next(err);
-        }
-        console.log("Registration successful for user:", newUser.username);
-        console.log("Session after registration:", req.session);
-        return res.json(newUser);
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      next(error);
-    }
   });
 }

@@ -186,7 +186,6 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-
   // Posts routes
   app.get("/api/posts", async (req, res) => {
     try {
@@ -314,7 +313,7 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Comments routes (authentication temporarily disabled)
+  // Comments routes
   app.post("/api/posts/:postId/comments", async (req, res) => {
     const { content, parentId } = req.body;
     const postId = parseInt(req.params.postId);
@@ -423,14 +422,13 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Like: create new like
-      const [newLike] = await db
+      await db
         .insert(likes)
         .values({
           userId,
           targetType,
           targetId,
-        })
-        .returning();
+        });
 
       res.json({ liked: true });
     } catch (error) {
@@ -535,7 +533,13 @@ export function registerRoutes(app: Express): Server {
       // Delete the user's content first
       await db.delete(posts).where(eq(posts.userId, userId));
       await db.delete(comments).where(eq(comments.userId, userId));
-      await db.delete(organizations).where(eq(organizations.userId, userId)); //This line remains as organizations table is still referenced in delete operations.
+      await db.delete(likes).where(eq(likes.userId, userId));
+      await db.delete(follows).where(
+        or(
+          eq(follows.followerId, userId),
+          eq(follows.followedId, userId)
+        )
+      );
 
       // Delete the user
       await db.delete(users).where(eq(users.id, userId));
