@@ -5,6 +5,8 @@ import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { posts, events, pointsOfInterest, resources, organizations, comments, users } from "@db/schema";
 import { generateVerificationToken, sendVerificationEmail } from "./email";
+import { upload } from "./upload";
+import express from "express";
 
 // Middleware to ensure user is authenticated
 const requireAuth = async (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
@@ -40,6 +42,30 @@ const requireAuth = async (req: Express.Request, res: Express.Response, next: Ex
 
 export function registerRoutes(app: Express): Server {
   setupAuth(app);
+
+  // Serve uploaded files statically
+  app.use("/uploads", express.static("uploads"));
+
+  // Add avatar upload endpoint
+  app.post("/api/user/avatar", requireAuth, upload.single("avatar"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
+    try {
+      // Update user's avatar in the database
+      const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      await db
+        .update(users)
+        .set({ avatar: avatarUrl })
+        .where(eq(users.id, req.user!.id));
+
+      res.json({ avatarUrl });
+    } catch (error) {
+      console.error("Failed to update avatar:", error);
+      res.status(500).json({ message: "Failed to update avatar" });
+    }
+  });
 
   // Posts routes
   app.get("/api/posts", async (_req, res) => {
