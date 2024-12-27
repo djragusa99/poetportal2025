@@ -7,9 +7,10 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Reply, Trash2 } from "lucide-react";
+import { Reply } from "lucide-react";
 import api from "../lib/api";
 import { useUser } from "../hooks/use-user";
+import DeleteConfirmDialog from "./DeleteConfirmDialog";
 
 interface CommentProps {
   comment: Comment & {
@@ -58,15 +59,12 @@ function CommentComponent({ comment, onReply, onDelete, currentUserId, depth = 0
               </Button>
             )}
             {comment.userId === currentUserId && (
-              <Button
-                variant="ghost"
+              <DeleteConfirmDialog
+                title="Delete Comment"
+                description="Are you sure you want to delete this comment? This action cannot be undone."
+                onDelete={() => onDelete(comment.id)}
                 size="sm"
-                className="h-8 text-xs text-destructive hover:text-destructive"
-                onClick={() => onDelete(comment.id)}
-              >
-                <Trash2 className="mr-1 h-3 w-3" />
-                Delete
-              </Button>
+              />
             )}
           </div>
         </div>
@@ -189,14 +187,11 @@ export default function PostCard({ post }: PostCardProps) {
               </span>
             </div>
             {post.userId === user.id && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:text-destructive"
-                onClick={handleDeletePost}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              <DeleteConfirmDialog
+                title="Delete Post"
+                description="Are you sure you want to delete this post? All comments will also be deleted. This action cannot be undone."
+                onDelete={handleDeletePost}
+              />
             )}
           </div>
         </div>
