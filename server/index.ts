@@ -1,6 +1,9 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import session from "express-session";
+import createMemoryStore from "memorystore";
+import passport from "passport";
 
 const app = express();
 
@@ -21,6 +24,27 @@ if (app.get("env") === "development") {
     next();
   });
 }
+
+// Session configuration
+const MemoryStore = createMemoryStore(session);
+const sessionMiddleware = session({
+  secret: process.env.REPL_ID || "poet-portal-secret",
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: 'lax',
+    httpOnly: true,
+  },
+  store: new MemoryStore({
+    checkPeriod: 86400000,
+  }),
+});
+
+app.use(sessionMiddleware);
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Logging middleware
 app.use((req, res, next) => {
