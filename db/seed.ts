@@ -1,5 +1,5 @@
 import { db } from "@db";
-import { users, posts, comments, events, pointsOfInterest, resources } from "@db/schema";
+import { users, posts, comments, events, pointsOfInterest, resources, follows, likes } from "@db/schema";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
@@ -13,6 +13,22 @@ async function hashPassword(password: string) {
 
 export async function seed() {
   console.log("🌱 Seeding database...");
+
+  // Clear existing data
+  try {
+    console.log("🗑️ Clearing existing data");
+    await db.delete(likes);
+    await db.delete(comments);
+    await db.delete(posts);
+    await db.delete(follows);
+    await db.delete(resources);
+    await db.delete(pointsOfInterest);
+    await db.delete(events);
+    await db.delete(users);
+  } catch (error) {
+    console.error("Failed to clear data:", error);
+    throw error;
+  }
 
   // Create users (famous poets)
   console.log("Creating users...");
@@ -167,6 +183,25 @@ export async function seed() {
   ];
 
   await db.insert(comments).values(poetryComments);
+
+  // Create some follow relationships
+  console.log("Creating follow relationships...");
+  const followRelationships = [
+    {
+      followerId: createdUsers[1].id,
+      followedId: createdUsers[0].id,
+    },
+    {
+      followerId: createdUsers[2].id,
+      followedId: createdUsers[0].id,
+    },
+    {
+      followerId: createdUsers[0].id,
+      followedId: createdUsers[1].id,
+    },
+  ];
+
+  await db.insert(follows).values(followRelationships);
 
   console.log("✅ Seeding complete!");
 }

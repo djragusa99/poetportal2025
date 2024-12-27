@@ -3,7 +3,7 @@ import { User } from "@db/schema";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useUser } from "../hooks/use-user";
 import { Button } from "@/components/ui/button";
-import { LogOut, Upload } from "lucide-react";
+import { LogOut, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useRef } from "react";
@@ -14,17 +14,25 @@ interface UserProfileProps {
   user: User;
 }
 
+interface FollowUser {
+  id: number;
+  firstName: string;
+  lastName: string;
+  username: string;
+  avatar: string | null;
+}
+
 export default function UserProfile({ user }: UserProfileProps) {
   const { logout } = useUser();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: followers = [] } = useQuery({
+  const { data: followers = [], isLoading: isLoadingFollowers } = useQuery<FollowUser[]>({
     queryKey: [`/api/users/${user.id}/followers`],
   });
 
-  const { data: following = [] } = useQuery({
+  const { data: following = [], isLoading: isLoadingFollowing } = useQuery<FollowUser[]>({
     queryKey: [`/api/users/${user.id}/following-list`],
   });
 
@@ -108,8 +116,8 @@ export default function UserProfile({ user }: UserProfileProps) {
             <Avatar className="h-20 w-20">
               <AvatarImage src={user.avatar ?? undefined} className="object-cover" />
               <AvatarFallback>
-                {user.firstName[0]}
-                {user.lastName[0]}
+                {user.firstName?.[0]}
+                {user.lastName?.[0]}
               </AvatarFallback>
             </Avatar>
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
@@ -152,32 +160,38 @@ export default function UserProfile({ user }: UserProfileProps) {
             <Card>
               <CardContent className="p-4">
                 <ScrollArea className="h-[200px] w-full">
-                  <div className="space-y-4">
-                    {followers.map((follower: any) => (
-                      <div key={follower.id} className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={follower.avatar} />
-                          <AvatarFallback>
-                            {follower.firstName?.[0]}
-                            {follower.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">
-                            {follower.firstName} {follower.lastName}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            @{follower.username}
-                          </p>
+                  {isLoadingFollowers ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {followers.map((follower) => (
+                        <div key={follower.id} className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={follower.avatar ?? undefined} />
+                            <AvatarFallback>
+                              {follower.firstName?.[0]}
+                              {follower.lastName?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">
+                              {follower.firstName} {follower.lastName}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              @{follower.username}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    {followers.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        No followers yet
-                      </p>
-                    )}
-                  </div>
+                      ))}
+                      {followers.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No followers yet
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </ScrollArea>
               </CardContent>
             </Card>
@@ -186,32 +200,38 @@ export default function UserProfile({ user }: UserProfileProps) {
             <Card>
               <CardContent className="p-4">
                 <ScrollArea className="h-[200px] w-full">
-                  <div className="space-y-4">
-                    {following.map((followed: any) => (
-                      <div key={followed.id} className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={followed.avatar} />
-                          <AvatarFallback>
-                            {followed.firstName?.[0]}
-                            {followed.lastName?.[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">
-                            {followed.firstName} {followed.lastName}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            @{followed.username}
-                          </p>
+                  {isLoadingFollowing ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {following.map((followed) => (
+                        <div key={followed.id} className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={followed.avatar ?? undefined} />
+                            <AvatarFallback>
+                              {followed.firstName?.[0]}
+                              {followed.lastName?.[0]}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">
+                              {followed.firstName} {followed.lastName}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              @{followed.username}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    {following.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        Not following anyone yet
-                      </p>
-                    )}
-                  </div>
+                      ))}
+                      {following.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          Not following anyone yet
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </ScrollArea>
               </CardContent>
             </Card>
