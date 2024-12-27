@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { User } from "@db/schema";
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
 
 type LoginData = {
   username: string;
@@ -79,6 +80,7 @@ async function logout(): Promise<void> {
 export function useUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
 
   const { data: user, isLoading } = useQuery<User | null>({
     queryKey: ['user'],
@@ -97,18 +99,23 @@ export function useUser() {
       });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Login Failed",
-        description: error.message,
-        variant: "destructive",
-        action: error.message.includes("Account not found") ? {
-          label: "Register",
-          onClick: () => {
-            // You can add navigation to registration page here if needed
-            window.location.href = "/register";
-          }
-        } : undefined
-      });
+      if (error.message.includes("Account not found")) {
+        toast({
+          title: "Login Failed",
+          description: "Would you like to create an account?",
+          variant: "destructive",
+          action: {
+            label: "Register",
+            onClick: () => setLocation("/register")
+          },
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
     },
   });
 

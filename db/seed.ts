@@ -14,17 +14,18 @@ async function hashPassword(password: string) {
 export async function seed() {
   console.log("🌱 Seeding database...");
 
-  // Clear existing data
+  // Clear existing data in reverse order of dependencies
   try {
     console.log("🗑️ Clearing existing data");
-    await db.delete(likes);
-    await db.delete(comments);
-    await db.delete(posts);
-    await db.delete(follows);
-    await db.delete(resources);
-    await db.delete(pointsOfInterest);
-    await db.delete(events);
-    await db.delete(users);
+    await db.delete(likes).execute();
+    await db.delete(comments).execute();
+    await db.delete(posts).execute();
+    await db.delete(follows).execute();
+    await db.delete(resources).execute();
+    await db.delete(pointsOfInterest).execute();
+    await db.delete(events).execute();
+    await db.delete(users).execute();
+    console.log("🗑️ Cleared existing data");
   } catch (error) {
     console.error("Failed to clear data:", error);
     throw error;
@@ -71,12 +72,11 @@ export async function seed() {
     },
   ];
 
-  const createdUsers = await Promise.all(
-    poetUsers.map(async (user) => {
-      const [created] = await db.insert(users).values(user).returning();
-      return created;
-    })
-  );
+  const createdUsers = [];
+  for (const user of poetUsers) {
+    const [created] = await db.insert(users).values(user).returning();
+    createdUsers.push(created);
+  }
 
   // Create events
   console.log("Creating events...");
@@ -162,12 +162,11 @@ export async function seed() {
     },
   ];
 
-  const createdPosts = await Promise.all(
-    poetryPosts.map(async (post) => {
-      const [created] = await db.insert(posts).values(post).returning();
-      return created;
-    })
-  );
+  const createdPosts = [];
+  for (const post of poetryPosts) {
+    const [created] = await db.insert(posts).values(post).returning();
+    createdPosts.push(created);
+  }
 
   const poetryComments = [
     {
@@ -208,6 +207,7 @@ export async function seed() {
 
 export const hashPasswordForAuth = hashPassword;
 
+// Only run seed() when imported and used, not when run directly
 seed().catch((error) => {
   console.error("Error seeding database:", error);
   process.exit(1);
