@@ -103,6 +103,8 @@ app.use((req, res, next) => {
         `);
         log("🗑️ Cleared existing data");
 
+        // Always seed in development
+        process.env.SEED_DB = 'true';
         await seed();
         log("🌱 Database seeded successfully");
       } catch (error) {
@@ -126,39 +128,10 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    const PORT = process.env.PORT || 5000;
-
-    // Function to try binding to a port
-    const tryBindPort = (port: number): Promise<boolean> => {
-      return new Promise((resolve) => {
-        const testServer = createServer();
-        testServer.once('error', () => {
-          testServer.close();
-          resolve(false);
-        });
-        testServer.once('listening', () => {
-          testServer.close();
-          resolve(true);
-        });
-        testServer.listen(port);
-      });
-    };
-
-    // Try ports until we find an available one
-    let port = Number(PORT);
-    let isPortAvailable = await tryBindPort(port);
-    while (!isPortAvailable && port < Number(PORT) + 10) {
-      port++;
-      isPortAvailable = await tryBindPort(port);
-    }
-
-    if (!isPortAvailable) {
-      console.error('Could not find an available port. Please check your running processes.');
-      process.exit(1);
-    }
-
-    server.listen(port, "0.0.0.0", () => {
-      log(`serving on port ${port}`);
+    // ALWAYS serve the app on port 5000
+    const PORT = 5000;
+    server.listen(PORT, "0.0.0.0", () => {
+      log(`serving on port ${PORT}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);
