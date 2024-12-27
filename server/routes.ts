@@ -623,12 +623,10 @@ export function registerRoutes(app: Express): Server {
   // Events routes
   app.get("/api/events", async (_req, res) => {
     try {
-      const allEvents = await db.query.events.findMany({
-        with: {
-          organizer: true,
-        },
-        orderBy: (events, { asc }) => [asc(events.date)],
-      });
+      const allEvents = await db
+        .select()
+        .from(events)
+        .orderBy(events.date);
       res.json(allEvents);
     } catch (error) {
       console.error("Failed to fetch events:", error);
@@ -639,9 +637,10 @@ export function registerRoutes(app: Express): Server {
   // Resources routes
   app.get("/api/resources", async (_req, res) => {
     try {
-      const allResources = await db.query.resources.findMany({
-        orderBy: (resources, { asc }) => [asc(resources.title)],
-      });
+      const allResources = await db
+        .select()
+        .from(resources)
+        .orderBy(resources.title);
       res.json(allResources);
     } catch (error) {
       console.error("Failed to fetch resources:", error);
