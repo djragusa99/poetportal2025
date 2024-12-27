@@ -1,3 +1,4 @@
+import { StrictMode } from "react";
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -12,9 +13,26 @@ import PointsOfInterest from "./pages/PointsOfInterest";
 import Resources from "./pages/Resources";
 import Organizations from "./pages/Organizations";
 import AdminDashboard from "./pages/AdminDashboard";
+import { useState, useEffect } from "react";
+import Splash from "./components/Splash";
 
 function App() {
   const { user, isLoading } = useUser();
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Hide splash screen after delay
+  useEffect(() => {
+    if (!isLoading) {
+      const timer = setTimeout(() => {
+        setShowSplash(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
+
+  if (showSplash) {
+    return <Splash onComplete={() => setShowSplash(false)} />;
+  }
 
   if (isLoading) {
     return (
@@ -47,5 +65,11 @@ function App() {
 }
 
 export default function WrappedApp() {
-  return <App />;
+  return (
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </StrictMode>
+  );
 }
