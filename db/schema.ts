@@ -133,12 +133,23 @@ export const pointsOfInterestRelations = relations(pointsOfInterest, ({ one }) =
   }),
 }));
 
+export const resources = pgTable("resources", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  type: text("type").notNull(),
+  url: text("url").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertEventSchema = createInsertSchema(events);
 export const selectEventSchema = createSelectSchema(events);
 export const insertPointOfInterestSchema = createInsertSchema(pointsOfInterest);
 export const selectPointOfInterestSchema = createSelectSchema(pointsOfInterest);
+export const insertResourceSchema = createInsertSchema(resources);
+export const selectResourceSchema = createSelectSchema(resources);
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -152,3 +163,5 @@ export type Event = typeof events.$inferSelect;
 export type NewEvent = typeof events.$inferInsert;
 export type PointOfInterest = typeof pointsOfInterest.$inferSelect;
 export type NewPointOfInterest = typeof pointsOfInterest.$inferInsert;
+export type Resource = typeof resources.$inferSelect;
+export type NewResource = typeof resources.$inferInsert;
