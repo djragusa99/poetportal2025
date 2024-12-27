@@ -1,18 +1,18 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { posts, comments, users, follows, likes } from "@db/schema";
+import { posts, comments, users, follows, likes, events, resources } from "@db/schema";
 import { generateVerificationToken, sendVerificationEmail } from "./email";
 import { upload } from "./upload";
 import express from "express";
 import { type User } from "@db/schema";
-import { desc, sql, and, eq, or, exists } from "drizzle-orm";
+import { desc, sql, and, eq, or, exists, asc } from "drizzle-orm";
 import { pointsOfInterest } from "@db/schema";
 
 // TODO: Authentication temporarily disabled to focus on feature development
 // Will be re-enabled once core features are implemented
-const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   // Store the current user's ID in the session if they're logged in
   if (req.user?.id) {
     req.session.currentUserId = req.user.id;
@@ -21,7 +21,7 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 };
 
 // Helper to get the current user ID from session or fall back to mock ID
-const getCurrentUserId = (req: Request): number => {
+const getCurrentUserId = (req: express.Request): number => {
   return req.session.currentUserId || 1; // Fallback to mock user ID if no session
 };
 
@@ -623,10 +623,9 @@ export function registerRoutes(app: Express): Server {
   // Events routes
   app.get("/api/events", async (_req, res) => {
     try {
-      const allEvents = await db
-        .select()
-        .from(events)
-        .orderBy(events.date);
+      const allEvents = await db.query.events.findMany({
+        orderBy: (events, { asc }) => [asc(events.date)],
+      });
       res.json(allEvents);
     } catch (error) {
       console.error("Failed to fetch events:", error);
@@ -637,10 +636,9 @@ export function registerRoutes(app: Express): Server {
   // Resources routes
   app.get("/api/resources", async (_req, res) => {
     try {
-      const allResources = await db
-        .select()
-        .from(resources)
-        .orderBy(resources.title);
+      const allResources = await db.query.resources.findMany({
+        orderBy: (resources, { asc }) => [asc(resources.title)],
+      });
       res.json(allResources);
     } catch (error) {
       console.error("Failed to fetch resources:", error);
