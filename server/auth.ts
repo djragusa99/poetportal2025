@@ -46,7 +46,12 @@ export function setupAuth(app: Express) {
     secret: process.env.REPL_ID || "poet-portal-secret",
     resave: false,
     saveUninitialized: false,
-    cookie: {},
+    cookie: {
+      secure: false, // Set to false for development
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'lax',
+      httpOnly: true,
+    },
     store: new MemoryStore({
       checkPeriod: 86400000,
     }),
@@ -55,6 +60,7 @@ export function setupAuth(app: Express) {
   if (app.get("env") === "production") {
     app.set("trust proxy", 1);
     sessionSettings.cookie = {
+      ...sessionSettings.cookie,
       secure: true,
     };
   }
@@ -109,10 +115,10 @@ export function setupAuth(app: Express) {
       if (!result.success) {
         return res
           .status(400)
-          .send("Invalid input: " + result.error.issues.map(i => i.message).join(", "));
+          .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
       }
 
-      const { username, password, firstName, lastName, email, location, userType, pronouns, bio } = result.data;
+      const { username, password } = result.data;
 
       const [existingUser] = await db
         .select()
@@ -121,7 +127,7 @@ export function setupAuth(app: Express) {
         .limit(1);
 
       if (existingUser) {
-        return res.status(400).send("Username already exists");
+        return res.status(400).json({ message: "Username already exists" });
       }
 
       const hashedPassword = await crypto.hash(password);
@@ -131,13 +137,6 @@ export function setupAuth(app: Express) {
         .values({
           username,
           password: hashedPassword,
-          firstName,
-          lastName,
-          email,
-          location,
-          userType,
-          pronouns,
-          bio,
         })
         .returning();
 
@@ -157,16 +156,16 @@ export function setupAuth(app: Express) {
     if (!result.success) {
       return res
         .status(400)
-        .send("Invalid input: " + result.error.issues.map(i => i.message).join(", "));
+        .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
     }
 
-    const cb = (err: any, user: Express.User, info: IVerifyOptions) => {
+    passport.authenticate("local", (err: any, user: Express.User | false, info: IVerifyOptions) => {
       if (err) {
         return next(err);
       }
 
       if (!user) {
-        return res.status(400).send(info.message ?? "Login failed");
+        return res.status(400).json({ message: info.message ?? "Login failed" });
       }
 
       req.logIn(user, (err) => {
@@ -176,14 +175,13 @@ export function setupAuth(app: Express) {
 
         return res.json(user);
       });
-    };
-    passport.authenticate("local", cb)(req, res, next);
+    })(req, res, next);
   });
 
   app.post("/api/logout", (req, res) => {
     req.logout((err) => {
       if (err) {
-        return res.status(500).send("Logout failed");
+        return res.status(500).json({ message: "Logout failed" });
       }
 
       res.json({ message: "Logout successful" });
@@ -195,6 +193,6 @@ export function setupAuth(app: Express) {
       return res.json(req.user);
     }
 
-    res.status(401).send("Not logged in");
+    res.status(401).json({ message: "Not logged in" });
   });
 }
