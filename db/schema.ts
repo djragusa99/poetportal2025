@@ -25,6 +25,13 @@ export const posts = pgTable("posts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const follows = pgTable("follows", {
+  id: serial("id").primaryKey(),
+  followerId: integer("follower_id").references(() => users.id).notNull(),
+  followedId: integer("followed_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
   postId: integer("post_id").references(() => posts.id).notNull(),
@@ -81,6 +88,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts),
   comments: many(comments),
   organizations: many(organizations),
+  following: many(follows, { relationName: "user_following", references: [follows.followerId] }),
+  followers: many(follows, { relationName: "user_followers", references: [follows.followedId] }),
 }));
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
@@ -139,3 +148,5 @@ export type Organization = typeof organizations.$inferSelect;
 export type NewOrganization = typeof organizations.$inferInsert;
 export type PointOfInterest = typeof pointsOfInterest.$inferSelect;
 export type Resource = typeof resources.$inferSelect;
+export type Follow = typeof follows.$inferSelect;
+export type NewFollow = typeof follows.$inferInsert;

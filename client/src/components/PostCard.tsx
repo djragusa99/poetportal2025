@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Reply } from "lucide-react";
+import { Reply, UserPlus, UserMinus } from "lucide-react";
 import api from "../lib/api";
 import { useUser } from "../hooks/use-user";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
@@ -105,6 +105,71 @@ export default function PostCard({ post }: PostCardProps) {
   const { toast } = useToast();
   const { user } = useUser();
 
+  const { data: followStatus } = useQuery({
+    queryKey: [`/api/users/${post.userId}/following`],
+    enabled: post.userId !== user?.id,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/users/${post.userId}/follow`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      toast({
+        title: "Success",
+        description: `Now following ${post.user?.firstName} ${post.user?.lastName}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const unfollowMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/users/${post.userId}/follow`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      toast({
+        title: "Success",
+        description: `Unfollowed ${post.user?.firstName} ${post.user?.lastName}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleComment = async () => {
     try {
       await api.comments.create(post.id, comment, replyingTo);
@@ -178,11 +243,28 @@ export default function PostCard({ post }: PostCardProps) {
         </Avatar>
         <div className="flex flex-col flex-1">
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex items-center gap-2">
               <span className="font-semibold">
                 {post.user?.firstName} {post.user?.lastName}
               </span>
-              <span className="text-sm text-muted-foreground ml-2">
+              {post.userId !== user?.id && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    followStatus?.following
+                      ? unfollowMutation.mutate()
+                      : followMutation.mutate()
+                  }
+                >
+                  {followStatus?.following ? (
+                    <UserMinus className="h-4 w-4" />
+                  ) : (
+                    <UserPlus className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+              <span className="text-sm text-muted-foreground">
                 {format(new Date(post.createdAt || ''), "PPp")}
               </span>
             </div>

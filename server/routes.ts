@@ -3,11 +3,12 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-import { posts, events, pointsOfInterest, resources, organizations, comments, users } from "@db/schema";
+import { posts, events, pointsOfInterest, resources, organizations, comments, users, follows } from "@db/schema";
 import { generateVerificationToken, sendVerificationEmail } from "./email";
 import { upload } from "./upload";
 import express from "express";
 import { users, type User } from "@db/schema";
+import { desc, sql, and, eq, or, exists } from "drizzle-orm";
 
 // TODO: Authentication temporarily disabled to focus on feature development
 // Will be re-enabled once core features are implemented
@@ -60,9 +61,88 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-  // Posts routes
-  app.get("/api/posts", async (_req, res) => {
+  // Follow a user
+  app.post("/api/users/:userId/follow", async (req, res) => {
     try {
+      const followedId = parseInt(req.params.userId);
+      const followerId = getCurrentUserId(req);
+
+      if (followerId === followedId) {
+        return res.status(400).json({ message: "Cannot follow yourself" });
+      }
+
+      const [follow] = await db
+        .insert(follows)
+        .values({
+          followerId,
+          followedId,
+        })
+        .onConflictDoNothing()
+        .returning();
+
+      if (!follow) {
+        return res.status(400).json({ message: "Already following this user" });
+      }
+
+      res.json(follow);
+    } catch (error) {
+      console.error("Failed to follow user:", error);
+      res.status(500).json({ message: "Failed to follow user" });
+    }
+  });
+
+  // Unfollow a user
+  app.delete("/api/users/:userId/follow", async (req, res) => {
+    try {
+      const followedId = parseInt(req.params.userId);
+      const followerId = getCurrentUserId(req);
+
+      await db
+        .delete(follows)
+        .where(
+          and(
+            eq(follows.followerId, followerId),
+            eq(follows.followedId, followedId)
+          )
+        );
+
+      res.json({ message: "Unfollowed successfully" });
+    } catch (error) {
+      console.error("Failed to unfollow user:", error);
+      res.status(500).json({ message: "Failed to unfollow user" });
+    }
+  });
+
+  // Check if following a user
+  app.get("/api/users/:userId/following", async (req, res) => {
+    try {
+      const followedId = parseInt(req.params.userId);
+      const followerId = getCurrentUserId(req);
+
+      const [follow] = await db
+        .select()
+        .from(follows)
+        .where(
+          and(
+            eq(follows.followerId, followerId),
+            eq(follows.followedId, followedId)
+          )
+        )
+        .limit(1);
+
+      res.json({ following: !!follow });
+    } catch (error) {
+      console.error("Failed to check following status:", error);
+      res.status(500).json({ message: "Failed to check following status" });
+    }
+  });
+
+
+  // Posts routes
+  app.get("/api/posts", async (req, res) => {
+    try {
+      const userId = getCurrentUserId(req);
+
       const allPosts = await db.query.posts.findMany({
         with: {
           user: true,
@@ -79,7 +159,22 @@ export function registerRoutes(app: Express): Server {
             orderBy: (comments, { desc }) => [desc(comments.createdAt)],
           },
         },
-        orderBy: (posts, { desc }) => [desc(posts.createdAt)],
+        orderBy: [
+          // Order by whether the post is from a followed user (higher priority)
+          {
+            value: exists(
+              db.select()
+                .from(follows)
+                .where(and(
+                  eq(follows.followerId, userId),
+                  eq(follows.followedId, sql.raw("posts.user_id"))
+                ))
+            ),
+            direction: "desc"
+          },
+          // Then by creation date
+          { value: posts.createdAt, direction: "desc" }
+        ],
       });
       res.json(allPosts);
     } catch (error) {
