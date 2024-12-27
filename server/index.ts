@@ -4,6 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 import passport from "passport";
+import { createServer } from "http";
 
 const app = express();
 
@@ -49,14 +50,6 @@ app.use(session({
 // Initialize Passport and restore authentication state from session
 app.use(passport.initialize());
 app.use(passport.session());
-
-// Debug middleware to log session and auth state
-app.use((req, res, next) => {
-  console.log("Request URL:", req.url);
-  console.log("Session ID:", req.sessionID);
-  console.log("Is Authenticated:", req.isAuthenticated());
-  next();
-});
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -105,8 +98,38 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  const PORT = 5000;
-  server.listen(PORT, "0.0.0.0", () => {
-    log(`serving on port ${PORT}`);
+  const PORT = process.env.PORT || 5000;
+
+  // Function to try binding to a port
+  const tryBindPort = (port: number): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const testServer = createServer();
+      testServer.once('error', () => {
+        testServer.close();
+        resolve(false);
+      });
+      testServer.once('listening', () => {
+        testServer.close();
+        resolve(true);
+      });
+      testServer.listen(port);
+    });
+  };
+
+  // Try ports until we find an available one
+  let port = Number(PORT);
+  let isPortAvailable = await tryBindPort(port);
+  while (!isPortAvailable && port < Number(PORT) + 10) {
+    port++;
+    isPortAvailable = await tryBindPort(port);
+  }
+
+  if (!isPortAvailable) {
+    console.error('Could not find an available port. Please check your running processes.');
+    process.exit(1);
+  }
+
+  server.listen(port, "0.0.0.0", () => {
+    log(`serving on port ${port}`);
   });
 })();
