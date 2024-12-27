@@ -8,7 +8,7 @@ import { posts, events, pointsOfInterest, resources, organizations, comments } f
 // Middleware to ensure user is authenticated
 const requireAuth = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
   if (!req.isAuthenticated()) {
-    return res.status(401).send("Unauthorized");
+    return res.status(401).json({ message: "Unauthorized" });
   }
   next();
 };
@@ -18,25 +18,30 @@ export function registerRoutes(app: Express): Server {
 
   // Posts routes
   app.get("/api/posts", async (_req, res) => {
-    const allPosts = await db.query.posts.findMany({
-      with: {
-        user: true,
-        comments: {
-          with: {
-            user: true,
+    try {
+      const allPosts = await db.query.posts.findMany({
+        with: {
+          user: true,
+          comments: {
+            with: {
+              user: true,
+            },
+            orderBy: (comments, { desc }) => [desc(comments.createdAt)],
           },
-          orderBy: (comments, { desc }) => [desc(comments.createdAt)],
         },
-      },
-      orderBy: (posts, { desc }) => [desc(posts.createdAt)],
-    });
-    res.json(allPosts);
+        orderBy: (posts, { desc }) => [desc(posts.createdAt)],
+      });
+      res.json(allPosts);
+    } catch (error) {
+      console.error("Failed to fetch posts:", error);
+      res.status(500).json({ message: "Failed to fetch posts" });
+    }
   });
 
   app.post("/api/posts", requireAuth, async (req, res) => {
     const { content } = req.body;
     if (!content) {
-      return res.status(400).send("Content is required");
+      return res.status(400).json({ message: "Content is required" });
     }
 
     try {
@@ -63,7 +68,7 @@ export function registerRoutes(app: Express): Server {
       res.json(postWithUser);
     } catch (error) {
       console.error("Failed to create post:", error);
-      res.status(500).send("Failed to create post");
+      res.status(500).json({ message: "Failed to create post" });
     }
   });
 
@@ -73,7 +78,7 @@ export function registerRoutes(app: Express): Server {
     const postId = parseInt(req.params.postId);
 
     if (!content) {
-      return res.status(400).send("Content is required");
+      return res.status(400).json({ message: "Content is required" });
     }
 
     try {
@@ -83,7 +88,7 @@ export function registerRoutes(app: Express): Server {
       });
 
       if (!post) {
-        return res.status(404).send("Post not found");
+        return res.status(404).json({ message: "Post not found" });
       }
 
       const [comment] = await db
@@ -105,31 +110,46 @@ export function registerRoutes(app: Express): Server {
       res.json(commentWithUser);
     } catch (error) {
       console.error("Failed to create comment:", error);
-      res.status(500).send("Failed to create comment");
+      res.status(500).json({ message: "Failed to create comment" });
     }
   });
 
   // Events routes
   app.get("/api/events", async (_req, res) => {
-    const allEvents = await db.query.events.findMany({
-      with: {
-        organization: true,
-      },
-      orderBy: (events, { desc }) => [desc(events.date)],
-    });
-    res.json(allEvents);
+    try {
+      const allEvents = await db.query.events.findMany({
+        with: {
+          organization: true,
+        },
+        orderBy: (events, { desc }) => [desc(events.date)],
+      });
+      res.json(allEvents);
+    } catch (error) {
+      console.error("Failed to fetch events:", error);
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
   });
 
   // Points of Interest routes
   app.get("/api/points-of-interest", async (_req, res) => {
-    const pois = await db.query.pointsOfInterest.findMany();
-    res.json(pois);
+    try {
+      const pois = await db.query.pointsOfInterest.findMany();
+      res.json(pois);
+    } catch (error) {
+      console.error("Failed to fetch points of interest:", error);
+      res.status(500).json({ message: "Failed to fetch points of interest" });
+    }
   });
 
   // Resources routes
   app.get("/api/resources", async (_req, res) => {
-    const allResources = await db.query.resources.findMany();
-    res.json(allResources);
+    try {
+      const allResources = await db.query.resources.findMany();
+      res.json(allResources);
+    } catch (error) {
+      console.error("Failed to fetch resources:", error);
+      res.status(500).json({ message: "Failed to fetch resources" });
+    }
   });
 
   // Organizations routes
@@ -137,11 +157,11 @@ export function registerRoutes(app: Express): Server {
     const { name, website, email } = req.body;
 
     if (!name || !website || !email) {
-      return res.status(400).send("All fields are required");
+      return res.status(400).json({ message: "All fields are required" });
     }
 
     if (!email.includes("@") || !email.includes(".")) {
-      return res.status(400).send("Invalid email format");
+      return res.status(400).json({ message: "Invalid email format" });
     }
 
     let websiteUrl = website;
@@ -152,7 +172,7 @@ export function registerRoutes(app: Express): Server {
     try {
       new URL(websiteUrl);
     } catch {
-      return res.status(400).send("Invalid website URL");
+      return res.status(400).json({ message: "Invalid website URL" });
     }
 
     try {
@@ -170,7 +190,7 @@ export function registerRoutes(app: Express): Server {
       res.json(org);
     } catch (error) {
       console.error("Failed to create organization:", error);
-      res.status(500).send("Failed to create organization");
+      res.status(500).json({ message: "Failed to create organization" });
     }
   });
 

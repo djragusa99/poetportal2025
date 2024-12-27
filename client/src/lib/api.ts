@@ -1,15 +1,32 @@
 import { Post, Event, PointOfInterest, Resource, Comment } from "@db/schema";
 
+async function handleResponse(response: Response) {
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || response.statusText);
+    }
+    return data;
+  } else {
+    const text = await response.text();
+    if (!response.ok) {
+      throw new Error(text || response.statusText);
+    }
+    return text;
+  }
+}
+
 const api = {
   posts: {
-    list: () => fetch("/api/posts").then((r) => r.json() as Promise<Post[]>),
+    list: () => fetch("/api/posts").then(handleResponse) as Promise<Post[]>,
     create: (content: string) =>
       fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ content }),
-      }).then((r) => r.json() as Promise<Post>),
+      }).then(handleResponse) as Promise<Post>,
   },
   comments: {
     create: (postId: number, content: string) =>
@@ -18,20 +35,18 @@ const api = {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({ content }),
-      }).then((r) => r.json() as Promise<Comment>),
+      }).then(handleResponse) as Promise<Comment>,
   },
   events: {
-    list: () => fetch("/api/events").then((r) => r.json() as Promise<Event[]>),
+    list: () => fetch("/api/events").then(handleResponse) as Promise<Event[]>,
   },
   pointsOfInterest: {
     list: () =>
-      fetch("/api/points-of-interest").then(
-        (r) => r.json() as Promise<PointOfInterest[]>
-      ),
+      fetch("/api/points-of-interest").then(handleResponse) as Promise<PointOfInterest[]>,
   },
   resources: {
     list: () =>
-      fetch("/api/resources").then((r) => r.json() as Promise<Resource[]>),
+      fetch("/api/resources").then(handleResponse) as Promise<Resource[]>,
   },
 };
 
