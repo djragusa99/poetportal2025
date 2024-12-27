@@ -38,7 +38,13 @@ async function login(data: LoginData): Promise<User> {
   });
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    const errorText = await response.text();
+    if (errorText.includes("Incorrect username")) {
+      throw new Error("Account not found. Please register first or check your username.");
+    } else if (errorText.includes("Incorrect password")) {
+      throw new Error("Incorrect password. Please try again.");
+    }
+    throw new Error(errorText);
   }
 
   return response.json();
@@ -92,9 +98,16 @@ export function useUser() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
+        title: "Login Failed",
         description: error.message,
         variant: "destructive",
+        action: error.message.includes("Account not found") ? {
+          label: "Register",
+          onClick: () => {
+            // You can add navigation to registration page here if needed
+            window.location.href = "/register";
+          }
+        } : undefined
       });
     },
   });
