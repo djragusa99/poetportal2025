@@ -7,8 +7,9 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Reply } from "lucide-react";
+import { Reply, Trash2 } from "lucide-react";
 import api from "../lib/api";
+import { useUser } from "../hooks/use-user";
 
 interface CommentProps {
   comment: Comment & {
@@ -16,10 +17,12 @@ interface CommentProps {
     childComments?: (Comment & { user: any })[];
   };
   onReply: (parentId: number) => void;
+  onDelete: (commentId: number) => void;
+  currentUserId: number;
   depth?: number;
 }
 
-function CommentComponent({ comment, onReply, depth = 0 }: CommentProps) {
+function CommentComponent({ comment, onReply, onDelete, currentUserId, depth = 0 }: CommentProps) {
   const maxDepth = 3; // Maximum nesting level
 
   return (
@@ -42,17 +45,30 @@ function CommentComponent({ comment, onReply, depth = 0 }: CommentProps) {
             </span>
           </div>
           <p className="text-sm mt-1">{comment.content}</p>
-          {depth < maxDepth && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2 h-8 text-xs"
-              onClick={() => onReply(comment.id)}
-            >
-              <Reply className="mr-1 h-3 w-3" />
-              Reply
-            </Button>
-          )}
+          <div className="flex gap-2 mt-2">
+            {depth < maxDepth && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => onReply(comment.id)}
+              >
+                <Reply className="mr-1 h-3 w-3" />
+                Reply
+              </Button>
+            )}
+            {comment.userId === currentUserId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs text-destructive hover:text-destructive"
+                onClick={() => onDelete(comment.id)}
+              >
+                <Trash2 className="mr-1 h-3 w-3" />
+                Delete
+              </Button>
+            )}
+          </div>
         </div>
       </div>
       {comment.childComments && comment.childComments.length > 0 && (
@@ -62,6 +78,8 @@ function CommentComponent({ comment, onReply, depth = 0 }: CommentProps) {
               key={reply.id}
               comment={reply}
               onReply={onReply}
+              onDelete={onDelete}
+              currentUserId={currentUserId}
               depth={depth + 1}
             />
           ))}
@@ -87,6 +105,7 @@ export default function PostCard({ post }: PostCardProps) {
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useUser();
 
   const handleComment = async () => {
     try {
@@ -108,10 +127,46 @@ export default function PostCard({ post }: PostCardProps) {
     }
   };
 
+  const handleDeletePost = async () => {
+    try {
+      await api.posts.delete(post.id);
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      toast({
+        title: "Success",
+        description: "Post deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete post",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    try {
+      await api.comments.delete(commentId);
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      toast({
+        title: "Success",
+        description: "Comment deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete comment",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleReply = (parentId: number) => {
     setReplyingTo(parentId);
     setIsCommenting(true);
   };
+
+  if (!user) return null;
 
   return (
     <Card className="mb-4">
@@ -123,13 +178,27 @@ export default function PostCard({ post }: PostCardProps) {
             {post.user?.lastName?.[0]}
           </AvatarFallback>
         </Avatar>
-        <div className="flex flex-col">
-          <span className="font-semibold">
-            {post.user?.firstName} {post.user?.lastName}
-          </span>
-          <span className="text-sm text-muted-foreground">
-            {format(new Date(post.createdAt || ''), "PPp")}
-          </span>
+        <div className="flex flex-col flex-1">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="font-semibold">
+                {post.user?.firstName} {post.user?.lastName}
+              </span>
+              <span className="text-sm text-muted-foreground ml-2">
+                {format(new Date(post.createdAt || ''), "PPp")}
+              </span>
+            </div>
+            {post.userId === user.id && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                onClick={handleDeletePost}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
@@ -142,6 +211,8 @@ export default function PostCard({ post }: PostCardProps) {
                 key={comment.id}
                 comment={comment}
                 onReply={handleReply}
+                onDelete={handleDeleteComment}
+                currentUserId={user.id}
               />
             ))}
           </div>

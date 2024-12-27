@@ -107,6 +107,36 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.delete("/api/posts/:postId", requireAuth, async (req, res) => {
+    const postId = parseInt(req.params.postId);
+
+    try {
+      // Check if post exists and belongs to user
+      const post = await db.query.posts.findFirst({
+        where: eq(posts.id, postId),
+      });
+
+      if (!post) {
+        return res.status(404).json({ message: "Post not found" });
+      }
+
+      if (post.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Not authorized to delete this post" });
+      }
+
+      // Delete all comments first
+      await db.delete(comments).where(eq(comments.postId, postId));
+
+      // Delete the post
+      await db.delete(posts).where(eq(posts.id, postId));
+
+      res.json({ message: "Post deleted successfully" });
+    } catch (error) {
+      console.error("Failed to delete post:", error);
+      res.status(500).json({ message: "Failed to delete post" });
+    }
+  });
+
   // Comments routes
   app.post("/api/posts/:postId/comments", requireAuth, async (req, res) => {
     const { content, parentId } = req.body;
@@ -167,12 +197,43 @@ export function registerRoutes(app: Express): Server {
       res.json(commentWithUser);
     } catch (error) {
       console.error("Failed to create comment:", error);
-      res.status(500).json({ 
+      res.status(500).json({
         message: "Failed to create comment",
         details: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
+
+  app.delete("/api/comments/:commentId", requireAuth, async (req, res) => {
+    const commentId = parseInt(req.params.commentId);
+
+    try {
+      // Check if comment exists and belongs to user
+      const comment = await db.query.comments.findFirst({
+        where: eq(comments.id, commentId),
+      });
+
+      if (!comment) {
+        return res.status(404).json({ message: "Comment not found" });
+      }
+
+      if (comment.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Not authorized to delete this comment" });
+      }
+
+      // Delete child comments first
+      await db.delete(comments).where(eq(comments.parentId, commentId));
+
+      // Delete the comment itself
+      await db.delete(comments).where(eq(comments.id, commentId));
+
+      res.json({ message: "Comment deleted successfully" });
+    } catch (error) {
+      console.error("Failed to delete comment:", error);
+      res.status(500).json({ message: "Failed to delete comment" });
+    }
+  });
+
 
   // Events routes
   app.get("/api/events", async (_req, res) => {

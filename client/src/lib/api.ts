@@ -27,6 +27,11 @@ const api = {
         credentials: "include",
         body: JSON.stringify({ content }),
       }).then(handleResponse) as Promise<Post>,
+    delete: (postId: number) =>
+      fetch(`/api/posts/${postId}`, {
+        method: "DELETE",
+        credentials: "include",
+      }).then(handleResponse),
   },
   comments: {
     create: (postId: number, content: string, parentId?: number | null) =>
@@ -36,6 +41,11 @@ const api = {
         credentials: "include",
         body: JSON.stringify({ content, parentId }),
       }).then(handleResponse) as Promise<Comment>,
+    delete: (commentId: number) =>
+      fetch(`/api/comments/${commentId}`, {
+        method: "DELETE",
+        credentials: "include",
+      }).then(handleResponse),
   },
   events: {
     list: () => fetch("/api/events").then(handleResponse) as Promise<Event[]>,
