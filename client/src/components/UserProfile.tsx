@@ -62,11 +62,16 @@ export default function UserProfile({ user }: UserProfileProps) {
 
       const data = await response.json();
 
-      // Update the user data in the cache with the new avatar URL
-      queryClient.setQueryData(['user'], (oldData: any) => ({
-        ...oldData,
-        avatar: data.avatarUrl
-      }));
+      // Only update the current user's avatar in the cache
+      queryClient.setQueryData(['user'], (oldData: any) => {
+        if (oldData?.id === user.id) {
+          return {
+            ...oldData,
+            avatar: data.avatarUrl
+          };
+        }
+        return oldData;
+      });
 
       toast({
         title: "Success",
@@ -91,7 +96,7 @@ export default function UserProfile({ user }: UserProfileProps) {
         <div className="flex items-center space-x-4">
           <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
             <Avatar className="h-20 w-20">
-              <AvatarImage src={user.avatar ?? undefined} />
+              <AvatarImage src={user.avatar ?? undefined} className="object-cover" />
               <AvatarFallback>
                 {user.firstName[0]}
                 {user.lastName[0]}

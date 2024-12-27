@@ -44,7 +44,7 @@ export default function CreatePost({ user }: CreatePostProps) {
     <Card>
       <CardHeader className="flex flex-row items-center gap-4">
         <Avatar>
-          <AvatarImage src={user.avatar} />
+          <AvatarImage src={user.avatar} className="object-cover" />
           <AvatarFallback>
             {user.firstName[0]}
             {user.lastName[0]}

@@ -30,7 +30,7 @@ function CommentComponent({ comment, onReply, onDelete, currentUserId, depth = 0
     <div className="flex flex-col gap-4">
       <div className={`flex items-start gap-3 ${depth > 0 ? 'ml-6 pl-6 border-l' : ''}`}>
         <Avatar className="h-6 w-6">
-          <AvatarImage src={comment.user?.avatar} />
+          <AvatarImage src={comment.user?.avatar} className="object-cover" />
           <AvatarFallback>
             {comment.user?.firstName?.[0]}
             {comment.user?.lastName?.[0]}
@@ -170,7 +170,7 @@ export default function PostCard({ post }: PostCardProps) {
     <Card className="mb-4">
       <CardHeader className="flex flex-row items-center gap-4">
         <Avatar>
-          <AvatarImage src={post.user?.avatar} />
+          <AvatarImage src={post.user?.avatar} className="object-cover" />
           <AvatarFallback>
             {post.user?.firstName?.[0]}
             {post.user?.lastName?.[0]}
@@ -194,11 +194,11 @@ export default function PostCard({ post }: PostCardProps) {
               />
             )}
           </div>
+          <p className="mt-2 text-lg font-medium">{post.title}</p>
+          <p className="mt-2 whitespace-pre-wrap">{post.content}</p>
         </div>
       </CardHeader>
       <CardContent>
-        <p className="whitespace-pre-wrap">{post.content}</p>
-
         {post.comments && post.comments.length > 0 && (
           <div className="mt-4 space-y-4">
             {post.comments.map((comment) => (
@@ -226,8 +226,8 @@ export default function PostCard({ post }: PostCardProps) {
                 }
               }}
             />
-            <Button 
-              variant="secondary" 
+            <Button
+              variant="secondary"
               onClick={() => {
                 setIsCommenting(false);
                 setReplyingTo(null);
@@ -235,17 +235,14 @@ export default function PostCard({ post }: PostCardProps) {
             >
               Cancel
             </Button>
-            <Button 
-              onClick={handleComment}
-              disabled={!comment.trim()}
-            >
+            <Button onClick={handleComment} disabled={!comment.trim()}>
               {replyingTo ? "Reply" : "Comment"}
             </Button>
           </div>
         ) : (
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start" 
+          <Button
+            variant="ghost"
+            className="w-full justify-start"
             onClick={() => setIsCommenting(true)}
           >
             Write a comment...
