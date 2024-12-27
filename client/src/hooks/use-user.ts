@@ -101,19 +101,17 @@ export function useUser() {
     onError: (error: Error) => {
       if (error.message.includes("Account not found")) {
         toast({
-          title: "Login Failed",
-          description: "Would you like to create an account?",
           variant: "destructive",
-          action: {
-            label: "Register",
-            onClick: () => setLocation("/register")
-          },
+          title: "Account Not Found",
+          description: "Would you like to create an account?",
         });
+        // Navigate to register page after a short delay
+        setTimeout(() => setLocation("/register"), 2000);
       } else {
         toast({
-          title: "Error",
-          description: error.message,
           variant: "destructive",
+          title: "Login Failed",
+          description: error.message,
         });
       }
     },
