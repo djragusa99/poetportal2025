@@ -1,5 +1,5 @@
 import { db } from "@db";
-import { users, posts, comments, events, pointsOfInterest, resources, organizations } from "@db/schema";
+import { users, posts, comments, events, pointsOfInterest, resources } from "@db/schema";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
@@ -86,100 +86,43 @@ async function seed() {
     })
   );
 
-  // Create organizations
-  console.log("Creating organizations...");
-  const poetryOrgs = [
-    {
-      userId: createdUsers[0].id,
-      name: "Poetry Society of America",
-      description: "The nation's oldest poetry organization, founded in 1910.",
-      website: "https://poetrysociety.org",
-      email: "info@poetrysociety.org",
-      verified: true,
-    },
-    {
-      userId: createdUsers[1].id,
-      name: "Academy of American Poets",
-      description: "The largest membership-based nonprofit organization fostering an appreciation for poetry.",
-      website: "https://poets.org",
-      email: "academy@poets.org",
-      verified: true,
-    },
-  ];
-
-  const createdOrgs = await Promise.all(
-    poetryOrgs.map(async (org) => {
-      const [created] = await db.insert(organizations).values(org).returning();
-      return created;
-    })
-  );
-
   // Create events
   console.log("Creating events...");
   const poetryEvents = [
     {
-      organizationId: createdOrgs[0].id,
       title: "SF Poetry Festival 2024",
       description: "Annual gathering of poets from across the Bay Area featuring readings, workshops, and open mics.",
       date: new Date("2024-04-15"),
       location: "San Francisco, CA",
-      type: "Festival",
+      organizerId: createdUsers[0].id,
     },
     {
-      organizationId: createdOrgs[1].id,
       title: "Poetry in the Park",
       description: "Monthly outdoor poetry reading series in Central Park.",
       date: new Date("2024-01-20"),
       location: "New York, NY",
-      type: "Reading",
+      organizerId: createdUsers[1].id,
     },
     {
-      organizationId: createdOrgs[0].id,
-      title: "Spoken Word Workshop with Amanda Gorman",
+      title: "Spoken Word Workshop",
       description: "Interactive workshop on performance poetry and public speaking.",
       date: new Date("2024-02-10"),
       location: "Los Angeles, CA",
-      type: "Workshop",
+      organizerId: createdUsers[2].id,
     },
     {
-      organizationId: createdOrgs[1].id,
-      title: "Indigenous Voices Poetry Night",
-      description: "Featuring Joy Harjo and other Native American poets.",
-      date: new Date("2024-03-05"),
-      location: "Tulsa, OK",
-      type: "Reading",
-    },
-    {
-      organizationId: createdOrgs[0].id,
       title: "Poetry & Protest",
       description: "A discussion on the role of poetry in social movements.",
       date: new Date("2024-02-28"),
       location: "Virtual Event",
-      type: "Discussion",
+      organizerId: createdUsers[0].id,
     },
     {
-      organizationId: createdOrgs[1].id,
-      title: "Asian American Poetry Symposium",
-      description: "Featuring Ocean Vuong and other contemporary Asian American poets.",
-      date: new Date("2024-05-15"),
-      location: "San Francisco, CA",
-      type: "Conference",
-    },
-    {
-      organizationId: createdOrgs[0].id,
       title: "Youth Poetry Slam",
       description: "Competition for young poets ages 13-19.",
       date: new Date("2024-04-01"),
       location: "Chicago, IL",
-      type: "Competition",
-    },
-    {
-      organizationId: createdOrgs[1].id,
-      title: "Poetry & Music Festival",
-      description: "Exploring the intersection of poetry and musical performance.",
-      date: new Date("2024-06-20"),
-      location: "Austin, TX",
-      type: "Festival",
+      organizerId: createdUsers[1].id,
     },
   ];
 
@@ -193,35 +136,21 @@ async function seed() {
       description: "The poet's home and gardens, offering tours and educational programs.",
       type: "Museum",
       location: "Amherst, MA",
-      address: "280 Main St, Amherst, MA 01002",
+      createdById: createdUsers[0].id,
     },
     {
       name: "City Lights Bookstore",
       description: "Historic bookstore and publisher founded by Lawrence Ferlinghetti.",
       type: "Bookstore",
       location: "San Francisco, CA",
-      address: "261 Columbus Ave, San Francisco, CA 94133",
-    },
-    {
-      name: "Walt Whitman Birthplace State Historic Site",
-      description: "Preserved home and interpretive center dedicated to Walt Whitman.",
-      type: "Historic Site",
-      location: "Huntington, NY",
-      address: "246 Old Walt Whitman Rd, Huntington Station, NY 11746",
+      createdById: createdUsers[1].id,
     },
     {
       name: "Poets House",
       description: "Poetry library and literary center with over 70,000 volumes.",
       type: "Library",
       location: "New York, NY",
-      address: "10 River Terrace, New York, NY 10282",
-    },
-    {
-      name: "Robert Frost Stone House Museum",
-      description: "Historic home where Frost wrote some of his most famous poems.",
-      type: "Museum",
-      location: "Shaftsbury, VT",
-      address: "121 Historic Route 7A, Shaftsbury, VT 05262",
+      createdById: createdUsers[2].id,
     },
   ];
 
@@ -234,31 +163,31 @@ async function seed() {
       title: "Poetry Foundation",
       description: "Comprehensive poetry archive and publisher of Poetry magazine.",
       type: "Website",
-      link: "https://www.poetryfoundation.org",
+      url: "https://www.poetryfoundation.org",
     },
     {
       title: "Academy of American Poets",
       description: "Largest membership-based nonprofit organization fostering poetry.",
       type: "Organization",
-      link: "https://poets.org",
+      url: "https://poets.org",
     },
     {
       title: "Poets & Writers",
       description: "Database of literary magazines, grants, and contests.",
       type: "Database",
-      link: "https://www.pw.org",
+      url: "https://www.pw.org",
     },
     {
       title: "Poetry Society of America",
       description: "Oldest poetry organization in the United States.",
       type: "Organization",
-      link: "https://poetrysociety.org",
+      url: "https://poetrysociety.org",
     },
     {
       title: "Button Poetry",
       description: "Contemporary poetry press and digital media company.",
       type: "Publisher",
-      link: "https://buttonpoetry.com",
+      url: "https://buttonpoetry.com",
     },
   ];
 
@@ -268,19 +197,16 @@ async function seed() {
   console.log("Creating posts and comments...");
   const poetryPosts = [
     {
-      userId: createdUsers[0].id, // Amanda Gorman
+      userId: createdUsers[0].id,
       content: "Excited to announce my upcoming workshop on spoken word poetry! Can't wait to share techniques and inspiration with fellow poets.",
-      createdAt: new Date("2024-01-15"),
     },
     {
-      userId: createdUsers[1].id, // Billy Collins
+      userId: createdUsers[1].id,
       content: "Just finished writing a new collection. There's something magical about completing a manuscript after months of work.",
-      createdAt: new Date("2024-01-14"),
     },
     {
-      userId: createdUsers[2].id, // Rupi Kaur
+      userId: createdUsers[2].id,
       content: "Poetry is healing. It's not just about writing, it's about feeling and connecting with others through words.",
-      createdAt: new Date("2024-01-13"),
     },
   ];
 
@@ -294,21 +220,18 @@ async function seed() {
   const poetryComments = [
     {
       postId: createdPosts[0].id,
-      userId: createdUsers[3].id, // Ocean Vuong
-      content: "Looking forward to learning from you, Amanda! Your inaugural poem was incredibly inspiring.",
-      createdAt: new Date("2024-01-15T01:00:00"),
+      userId: createdUsers[3].id,
+      content: "Looking forward to learning from you! Your work is incredibly inspiring.",
     },
     {
       postId: createdPosts[1].id,
-      userId: createdUsers[4].id, // Joy Harjo
-      content: "Congratulations, Billy! Can't wait to read it. The world needs more poetry right now.",
-      createdAt: new Date("2024-01-14T02:00:00"),
+      userId: createdUsers[4].id,
+      content: "Congratulations! Can't wait to read it. The world needs more poetry right now.",
     },
     {
       postId: createdPosts[2].id,
-      userId: createdUsers[0].id, // Amanda Gorman
-      content: "Couldn't agree more, Rupi. Poetry has been my sanctuary through challenging times.",
-      createdAt: new Date("2024-01-13T03:00:00"),
+      userId: createdUsers[0].id,
+      content: "Couldn't agree more. Poetry has been my sanctuary through challenging times.",
     },
   ];
 
