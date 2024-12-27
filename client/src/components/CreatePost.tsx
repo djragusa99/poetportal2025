@@ -18,6 +18,10 @@ export default function CreatePost({ user }: CreatePostProps) {
   const queryClient = useQueryClient();
 
   const handleSubmit = async () => {
+    if (!content.trim()) {
+      return;
+    }
+
     try {
       await api.posts.create(content);
       setContent("");
@@ -26,10 +30,11 @@ export default function CreatePost({ user }: CreatePostProps) {
         title: "Success",
         description: "Your post has been created",
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Post creation error:", error);
       toast({
         title: "Error",
-        description: "Failed to create post",
+        description: error.message || "Failed to create post",
         variant: "destructive",
       });
     }
