@@ -1,16 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
-import api from "../lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, Search } from "lucide-react";
 import { useState } from "react";
+import { PointOfInterest } from "@db/schema";
 
 export default function PointsOfInterest() {
   const [search, setSearch] = useState("");
-  const { data: points = [] } = useQuery({
+  const { data: points = [] } = useQuery<PointOfInterest[]>({
     queryKey: ["/api/points-of-interest"],
-    queryFn: api.pointsOfInterest.list,
   });
 
   const filteredPoints = points.filter((point) =>

@@ -8,6 +8,7 @@ import { upload } from "./upload";
 import express from "express";
 import { type User } from "@db/schema";
 import { desc, sql, and, eq, or, exists } from "drizzle-orm";
+import { pointsOfInterest } from "@db/schema";
 
 // TODO: Authentication temporarily disabled to focus on feature development
 // Will be re-enabled once core features are implemented
@@ -599,6 +600,23 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Failed to update user suspension status:", error);
       res.status(500).json({ message: "Failed to update user suspension status" });
+    }
+  });
+
+  // Points of Interest routes
+  app.get("/api/points-of-interest", async (_req, res) => {
+    try {
+      const points = await db.query.pointsOfInterest.findMany({
+        with: {
+          createdBy: true,
+        },
+        orderBy: (pointsOfInterest, { desc }) => [desc(pointsOfInterest.createdAt)],
+      });
+
+      res.json(points);
+    } catch (error) {
+      console.error("Failed to fetch points of interest:", error);
+      res.status(500).json({ message: "Failed to fetch points of interest" });
     }
   });
 

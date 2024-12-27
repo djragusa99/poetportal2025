@@ -116,10 +116,29 @@ export const eventsRelations = relations(events, ({ one }) => ({
   }),
 }));
 
+export const pointsOfInterest = pgTable("points_of_interest", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  location: text("location").notNull(),
+  type: text("type").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  createdById: integer("created_by_id").references(() => users.id).notNull(),
+});
+
+export const pointsOfInterestRelations = relations(pointsOfInterest, ({ one }) => ({
+  createdBy: one(users, {
+    fields: [pointsOfInterest.createdById],
+    references: [users.id],
+  }),
+}));
+
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertEventSchema = createInsertSchema(events);
 export const selectEventSchema = createSelectSchema(events);
+export const insertPointOfInterestSchema = createInsertSchema(pointsOfInterest);
+export const selectPointOfInterestSchema = createSelectSchema(pointsOfInterest);
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
@@ -131,3 +150,5 @@ export type Like = typeof likes.$inferSelect;
 export type NewLike = typeof likes.$inferInsert;
 export type Event = typeof events.$inferSelect;
 export type NewEvent = typeof events.$inferInsert;
+export type PointOfInterest = typeof pointsOfInterest.$inferSelect;
+export type NewPointOfInterest = typeof pointsOfInterest.$inferInsert;
