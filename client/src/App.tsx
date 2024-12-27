@@ -10,6 +10,7 @@ import Home from "./pages/Home";
 import Events from "./pages/Events";
 import PointsOfInterest from "./pages/PointsOfInterest";
 import Resources from "./pages/Resources";
+import Organizations from "./pages/Organizations";
 
 function App() {
   const { user, isLoading } = useUser();
@@ -35,6 +36,7 @@ function App() {
           <Route path="/events" component={Events} />
           <Route path="/points-of-interest" component={PointsOfInterest} />
           <Route path="/resources" component={Resources} />
+          <Route path="/organizations" component={Organizations} />
         </Switch>
       </main>
       <Toaster />

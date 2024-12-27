@@ -7,6 +7,7 @@ import {
   Book,
   User,
   Search,
+  Building2,
 } from "lucide-react";
 import { useUser } from "../hooks/use-user";
 import UserProfile from "./UserProfile";
@@ -37,6 +38,12 @@ export default function Navigation() {
               <Button variant="ghost" size="sm">
                 <Calendar className="h-4 w-4 mr-2" />
                 Events
+              </Button>
+            </Link>
+            <Link href="/organizations">
+              <Button variant="ghost" size="sm">
+                <Building2 className="h-4 w-4 mr-2" />
+                Organizations
               </Button>
             </Link>
             <Link href="/points-of-interest">
