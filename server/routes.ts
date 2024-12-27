@@ -11,8 +11,16 @@ import express from "express";
 // TODO: Authentication temporarily disabled to focus on feature development
 // Will be re-enabled once core features are implemented
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
-  // Temporarily bypass authentication
+  // Store the current user's ID in the session if they're logged in
+  if (req.user?.id) {
+    req.session.currentUserId = req.user.id;
+  }
   next();
+};
+
+// Helper to get the current user ID from session or fall back to mock ID
+const getCurrentUserId = (req: Request): number => {
+  return req.session.currentUserId || 1; // Fallback to mock user ID if no session
 };
 
 export function registerRoutes(app: Express): Server {
@@ -28,15 +36,13 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "No file uploaded" });
       }
 
-      // For development, we'll use a mock user ID
-      const mockUserId = 1;
-
+      const userId = getCurrentUserId(req);
       const avatarUrl = `/uploads/avatars/${req.file.filename}`;
 
       const [updatedUser] = await db
         .update(users)
         .set({ avatar: avatarUrl })
-        .where(eq(users.id, mockUserId))
+        .where(eq(users.id, userId))
         .returning();
 
       if (!updatedUser) {
@@ -88,13 +94,12 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      // For development, we'll use a mock user ID
-      const mockUserId = 1;
+      const userId = getCurrentUserId(req);
 
       const [post] = await db
         .insert(posts)
         .values({
-          userId: mockUserId,
+          userId,
           content,
         })
         .returning();
@@ -136,10 +141,10 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Post not found" });
       }
 
-      // For development, we'll bypass authorization check
-      // if (post.userId !== req.user!.id) {
-      //   return res.status(403).json({ message: "Not authorized to delete this post" });
-      // }
+      const userId = getCurrentUserId(req);
+      if (post.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized to delete this post" });
+      }
 
       // Delete all comments first
       await db.delete(comments).where(eq(comments.postId, postId));
@@ -164,14 +169,13 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      // For development, we'll use a mock user ID
-      const mockUserId = 1;
+      const userId = getCurrentUserId(req);
 
       const [comment] = await db
         .insert(comments)
         .values({
           postId,
-          userId: mockUserId,
+          userId,
           parentId: parentId || null,
           content,
         })
@@ -209,10 +213,10 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Comment not found" });
       }
 
-      // For development, we'll bypass authorization check
-      // if (comment.userId !== req.user!.id) {
-      //   return res.status(403).json({ message: "Not authorized to delete this comment" });
-      // }
+      const userId = getCurrentUserId(req);
+      if (comment.userId !== userId) {
+        return res.status(403).json({ message: "Not authorized to delete this comment" });
+      }
 
       // Delete child comments first
       await db.delete(comments).where(eq(comments.parentId, commentId));
@@ -304,10 +308,11 @@ export function registerRoutes(app: Express): Server {
       verificationTokenExpiry.setHours(verificationTokenExpiry.getHours() + 24); // Token expires in 24 hours
 
       // Create organization with verification token
+      const userId = getCurrentUserId(req); //use current user ID
       const [org] = await db
         .insert(organizations)
         .values({
-          userId: 1, //Using mock user ID for development
+          userId,
           name,
           website: websiteUrl,
           email,

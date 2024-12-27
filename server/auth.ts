@@ -141,6 +141,8 @@ export function setupAuth(app: Express) {
           return next(err);
         }
 
+        req.session.currentUserId = user.id;
+
         console.log("Login successful for user:", user.username);
         console.log("Session ID:", req.sessionID);
         console.log("Session data:", req.session);
