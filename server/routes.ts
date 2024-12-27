@@ -137,6 +137,62 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Get user's followers
+  app.get("/api/users/:userId/followers", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+
+      const followers = await db.query.follows.findMany({
+        where: eq(follows.followedId, userId),
+        with: {
+          follower: {
+            columns: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              username: true,
+              avatar: true,
+            },
+          },
+        },
+        orderBy: [desc(follows.createdAt)],
+      });
+
+      res.json(followers.map(f => f.follower));
+    } catch (error) {
+      console.error("Failed to fetch followers:", error);
+      res.status(500).json({ message: "Failed to fetch followers" });
+    }
+  });
+
+  // Get users that a user is following
+  app.get("/api/users/:userId/following-list", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+
+      const following = await db.query.follows.findMany({
+        where: eq(follows.followerId, userId),
+        with: {
+          followed: {
+            columns: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              username: true,
+              avatar: true,
+            },
+          },
+        },
+        orderBy: [desc(follows.createdAt)],
+      });
+
+      res.json(following.map(f => f.followed));
+    } catch (error) {
+      console.error("Failed to fetch following list:", error);
+      res.status(500).json({ message: "Failed to fetch following list" });
+    }
+  });
+
 
   // Posts routes
   app.get("/api/posts", async (req, res) => {

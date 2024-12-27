@@ -5,8 +5,10 @@ import { useUser } from "../hooks/use-user";
 import { Button } from "@/components/ui/button";
 import { LogOut, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import { useRef } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface UserProfileProps {
   user: User;
@@ -17,6 +19,14 @@ export default function UserProfile({ user }: UserProfileProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: followers = [] } = useQuery({
+    queryKey: [`/api/users/${user.id}/followers`],
+  });
+
+  const { data: following = [] } = useQuery({
+    queryKey: [`/api/users/${user.id}/following-list`],
+  });
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
@@ -128,6 +138,86 @@ export default function UserProfile({ user }: UserProfileProps) {
           <h4 className="text-sm font-semibold">Bio</h4>
           <p className="mt-2 text-sm text-muted-foreground">{user.bio}</p>
         </div>
+
+        <Tabs defaultValue="followers" className="mt-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="followers">
+              Followers ({followers.length})
+            </TabsTrigger>
+            <TabsTrigger value="following">
+              Following ({following.length})
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="followers">
+            <Card>
+              <CardContent className="p-4">
+                <ScrollArea className="h-[200px] w-full">
+                  <div className="space-y-4">
+                    {followers.map((follower: any) => (
+                      <div key={follower.id} className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={follower.avatar} />
+                          <AvatarFallback>
+                            {follower.firstName?.[0]}
+                            {follower.lastName?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">
+                            {follower.firstName} {follower.lastName}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            @{follower.username}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {followers.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        No followers yet
+                      </p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="following">
+            <Card>
+              <CardContent className="p-4">
+                <ScrollArea className="h-[200px] w-full">
+                  <div className="space-y-4">
+                    {following.map((followed: any) => (
+                      <div key={followed.id} className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={followed.avatar} />
+                          <AvatarFallback>
+                            {followed.firstName?.[0]}
+                            {followed.lastName?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">
+                            {followed.firstName} {followed.lastName}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            @{followed.username}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                    {following.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Not following anyone yet
+                      </p>
+                    )}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+
         <Button
           variant="destructive"
           className="mt-6 w-full"
