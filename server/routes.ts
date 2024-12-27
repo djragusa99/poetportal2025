@@ -3,27 +3,28 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-import { posts, events, pointsOfInterest, resources, organizations, comments } from "@db/schema";
+import { posts, events, pointsOfInterest, resources, organizations, comments, users } from "@db/schema";
 
 // Middleware to ensure user is authenticated
-const requireAuth = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
-  // Development bypass - automatically authenticate as test user
+const requireAuth = async (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+  // Development bypass - automatically authenticate as Amanda Gorman
   if (process.env.NODE_ENV !== 'production') {
     if (!req.user) {
-      // Mock user for development
-      req.user = {
-        id: 1,
-        username: "testuser",
-        firstName: "Test",
-        lastName: "User",
-        email: "test@example.com",
-        location: "San Francisco, CA",
-        userType: "Poet",
-        bio: "This is a test user for development",
-        createdAt: new Date(),
-      };
+      // Get Amanda Gorman's user record
+      const [testUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, "amandasgorman"))
+        .limit(1);
+
+      if (!testUser) {
+        console.error("Development user not found");
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+
+      req.user = testUser;
     }
-    console.log("Development bypass: User authenticated as testuser");
+    console.log("Development bypass: User authenticated as", req.user.username);
     return next();
   }
 
@@ -114,6 +115,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "Post not found" });
       }
 
+      console.log("Creating comment for user:", req.user!.id, "on post:", postId);
       const [comment] = await db
         .insert(comments)
         .values({
@@ -133,7 +135,10 @@ export function registerRoutes(app: Express): Server {
       res.json(commentWithUser);
     } catch (error) {
       console.error("Failed to create comment:", error);
-      res.status(500).json({ message: "Failed to create comment" });
+      res.status(500).json({ 
+        message: "Failed to create comment",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
