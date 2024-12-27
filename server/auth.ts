@@ -5,7 +5,7 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { users, insertUserSchema, type SelectUser } from "@db/schema";
+import { users, insertUserSchema, type User } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -40,7 +40,7 @@ const crypto = {
 
 declare global {
   namespace Express {
-    interface User extends SelectUser {}
+    interface User extends User {}
   }
 }
 
@@ -128,7 +128,7 @@ export function setupAuth(app: Express) {
           .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
       }
 
-      const { username, password, firstName, lastName, email, location, userType, pronouns, bio } = result.data;
+      const { username, password, firstName, lastName, email, location, userType } = result.data;
 
       const [existingUser] = await db
         .select()
@@ -152,8 +152,6 @@ export function setupAuth(app: Express) {
           email,
           location,
           userType,
-          pronouns,
-          bio,
         })
         .returning();
 
