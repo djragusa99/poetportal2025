@@ -47,9 +47,5 @@ function App() {
 }
 
 export default function WrappedApp() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  );
+  return <App />;
 }
