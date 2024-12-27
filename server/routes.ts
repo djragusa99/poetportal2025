@@ -159,24 +159,34 @@ export function registerRoutes(app: Express): Server {
             orderBy: (comments, { desc }) => [desc(comments.createdAt)],
           },
         },
-        orderBy: [
-          // Order by whether the post is from a followed user (higher priority)
-          {
-            value: exists(
-              db.select()
-                .from(follows)
-                .where(and(
-                  eq(follows.followerId, userId),
-                  eq(follows.followedId, sql.raw("posts.user_id"))
-                ))
-            ),
-            direction: "desc"
-          },
-          // Then by creation date
-          { value: posts.createdAt, direction: "desc" }
-        ],
+        orderBy: [desc(posts.createdAt)],
       });
-      res.json(allPosts);
+
+      // Sort posts to prioritize those from followed users
+      const sortedPosts = await Promise.all(
+        allPosts.map(async (post) => {
+          const [follow] = await db
+            .select()
+            .from(follows)
+            .where(
+              and(
+                eq(follows.followerId, userId),
+                eq(follows.followedId, post.userId)
+              )
+            )
+            .limit(1);
+          return { ...post, isFollowed: !!follow };
+        })
+      );
+
+      sortedPosts.sort((a, b) => {
+        if (a.isFollowed === b.isFollowed) {
+          return new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
+        }
+        return a.isFollowed ? -1 : 1;
+      });
+
+      res.json(sortedPosts);
     } catch (error) {
       console.error("Failed to fetch posts:", error);
       res.status(500).json({ message: "Failed to fetch posts" });
