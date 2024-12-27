@@ -47,7 +47,7 @@ export function setupAuth(app: Express) {
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false, // Set to false for development
+      secure: false,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax',
       httpOnly: true,
@@ -118,7 +118,7 @@ export function setupAuth(app: Express) {
           .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
       }
 
-      const { username, password } = result.data;
+      const { username, password, firstName, lastName, email, location, userType, pronouns, bio } = result.data;
 
       const [existingUser] = await db
         .select()
@@ -137,6 +137,13 @@ export function setupAuth(app: Express) {
         .values({
           username,
           password: hashedPassword,
+          firstName,
+          lastName,
+          email,
+          location,
+          userType,
+          pronouns,
+          bio,
         })
         .returning();
 
