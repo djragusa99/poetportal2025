@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
@@ -9,12 +9,17 @@ import { upload } from "./upload";
 import express from "express";
 
 // Middleware to ensure user is authenticated
-const requireAuth = async (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+const requireAuth = (req: Request, res: Response, next: NextFunction) => {
+  console.log("Checking authentication state:", req.isAuthenticated());
+  console.log("Session ID:", req.sessionID);
+  console.log("User in session:", req.user);
+
   if (!req.isAuthenticated()) {
     console.log("Authentication failed: User not authenticated");
     return res.status(401).json({ message: "Unauthorized" });
   }
-  console.log("Authentication successful for user:", req.user.username);
+
+  console.log("Authentication successful for user:", req.user);
   next();
 };
 
@@ -26,18 +31,22 @@ export function registerRoutes(app: Express): Server {
 
   // Add avatar upload endpoint
   app.post("/api/user/avatar", requireAuth, upload.single("avatar"), async (req, res) => {
+    console.log("Processing avatar upload for user:", req.user);
+
     if (!req.file) {
+      console.log("No file uploaded");
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    if (!req.user) {
+    if (!req.user?.id) {
       console.error("User session lost during upload");
       return res.status(401).json({ message: "Authentication required" });
     }
 
     try {
-      // Update user's avatar in the database
       const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      console.log("Updating avatar URL for user:", req.user.id, "to:", avatarUrl);
+
       const [updatedUser] = await db
         .update(users)
         .set({ avatar: avatarUrl })

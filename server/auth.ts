@@ -81,6 +81,7 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
+        console.log("Attempting authentication for user:", username);
         const [user] = await db
           .select()
           .from(users)
@@ -88,12 +89,15 @@ export function setupAuth(app: Express) {
           .limit(1);
 
         if (!user) {
+          console.log("User not found:", username);
           return done(null, false, { message: "Incorrect username." });
         }
         const isMatch = await crypto.compare(password, user.password);
         if (!isMatch) {
+          console.log("Password mismatch for user:", username);
           return done(null, false, { message: "Incorrect password." });
         }
+        console.log("Authentication successful for user:", username);
         return done(null, user);
       } catch (err) {
         console.error("Authentication error:", err);
@@ -103,11 +107,13 @@ export function setupAuth(app: Express) {
   );
 
   passport.serializeUser((user, done) => {
+    console.log("Serializing user:", user.id);
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log("Deserializing user:", id);
       const [user] = await db
         .select()
         .from(users)
@@ -115,10 +121,57 @@ export function setupAuth(app: Express) {
         .limit(1);
       done(null, user);
     } catch (err) {
+      console.error("Deserialization error:", err);
       done(err);
     }
   });
 
+  app.post("/api/login", (req, res, next) => {
+    const result = loginSchema.safeParse(req.body);
+    if (!result.success) {
+      return res
+        .status(400)
+        .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
+    }
+
+    passport.authenticate("local", (err: any, user: Express.User | false, info: IVerifyOptions) => {
+      if (err) {
+        console.error("Login error:", err);
+        return next(err);
+      }
+
+      if (!user) {
+        return res.status(400).json({ message: info.message ?? "Login failed" });
+      }
+
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(err);
+        }
+
+        console.log("Login successful for user:", user.username);
+        return res.json(user);
+      });
+    })(req, res, next);
+  });
+
+  app.post("/api/logout", (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+
+      res.json({ message: "Logout successful" });
+    });
+  });
+
+  app.get("/api/user", (req, res) => {
+    if (req.isAuthenticated()) {
+      return res.json(req.user);
+    }
+
+    res.status(401).json({ message: "Not logged in" });
+  });
   app.post("/api/register", async (req, res, next) => {
     try {
       const result = insertUserSchema.safeParse(req.body);
@@ -165,51 +218,5 @@ export function setupAuth(app: Express) {
       console.error("Registration error:", error);
       next(error);
     }
-  });
-
-  app.post("/api/login", (req, res, next) => {
-    const result = loginSchema.safeParse(req.body);
-    if (!result.success) {
-      return res
-        .status(400)
-        .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
-    }
-
-    passport.authenticate("local", (err: any, user: Express.User | false, info: IVerifyOptions) => {
-      if (err) {
-        console.error("Login error:", err);
-        return next(err);
-      }
-
-      if (!user) {
-        return res.status(400).json({ message: info.message ?? "Login failed" });
-      }
-
-      req.logIn(user, (err) => {
-        if (err) {
-          return next(err);
-        }
-
-        return res.json(user);
-      });
-    })(req, res, next);
-  });
-
-  app.post("/api/logout", (req, res) => {
-    req.logout((err) => {
-      if (err) {
-        return res.status(500).json({ message: "Logout failed" });
-      }
-
-      res.json({ message: "Logout successful" });
-    });
-  });
-
-  app.get("/api/user", (req, res) => {
-    if (req.isAuthenticated()) {
-      return res.json(req.user);
-    }
-
-    res.status(401).json({ message: "Not logged in" });
   });
 }
