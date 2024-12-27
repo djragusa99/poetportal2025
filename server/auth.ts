@@ -101,6 +101,11 @@ export function setupAuth(app: Express) {
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
+      if (!user) {
+        console.log("User not found during deserialization:", id);
+        return done(null, false);
+      }
+      console.log("User deserialized successfully:", user.username);
       done(null, user);
     } catch (err) {
       console.error("Deserialization error:", err);
@@ -109,6 +114,7 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/login", (req, res, next) => {
+    console.log("Login attempt:", req.body.username);
     const result = loginSchema.safeParse(req.body);
     if (!result.success) {
       return res
@@ -123,15 +129,18 @@ export function setupAuth(app: Express) {
       }
 
       if (!user) {
+        console.log("Login failed:", info.message);
         return res.status(400).json({ message: info.message ?? "Login failed" });
       }
 
       req.logIn(user, (err) => {
         if (err) {
+          console.error("Login error:", err);
           return next(err);
         }
 
         console.log("Login successful for user:", user.username);
+        console.log("Session ID:", req.sessionID);
         return res.json(user);
       });
     })(req, res, next);
@@ -139,17 +148,26 @@ export function setupAuth(app: Express) {
 
   app.post("/api/logout", (req, res) => {
     const username = req.user?.username;
+    console.log("Logout attempt for user:", username);
+    console.log("Session before logout:", req.session);
+
     req.logout((err) => {
       if (err) {
-        console.error("Logout failed for user:", username);
+        console.error("Logout failed for user:", username, err);
         return res.status(500).json({ message: "Logout failed" });
       }
       console.log("Logout successful for user:", username);
+      console.log("Session after logout:", req.session);
       res.json({ message: "Logout successful" });
     });
   });
 
   app.get("/api/user", (req, res) => {
+    console.log("Checking user authentication");
+    console.log("Session ID:", req.sessionID);
+    console.log("Session:", req.session);
+    console.log("Is Authenticated:", req.isAuthenticated());
+
     if (req.isAuthenticated()) {
       console.log("User authenticated:", req.user.username);
       return res.json(req.user);
@@ -160,6 +178,7 @@ export function setupAuth(app: Express) {
 
   app.post("/api/register", async (req, res, next) => {
     try {
+      console.log("Registration attempt:", req.body.username);
       const result = insertUserSchema.safeParse(req.body);
       if (!result.success) {
         return res
@@ -198,6 +217,7 @@ export function setupAuth(app: Express) {
         if (err) {
           return next(err);
         }
+        console.log("Registration successful for user:", newUser.username);
         return res.json(newUser);
       });
     } catch (error) {

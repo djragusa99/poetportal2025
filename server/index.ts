@@ -13,10 +13,13 @@ app.use(express.urlencoded({ extended: false }));
 
 // CORS configuration
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "http://localhost:5000");
-  res.header("Access-Control-Allow-Credentials", "true");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  const origin = req.headers.origin;
+  if (origin === "http://localhost:5000") {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  }
 
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
@@ -28,6 +31,7 @@ app.use((req, res, next) => {
 const MemoryStore = createMemoryStore(session);
 app.use(session({
   secret: process.env.REPL_ID || "poet-portal-secret",
+  name: "poet.sid",
   resave: false,
   saveUninitialized: false,
   store: new MemoryStore({
@@ -42,9 +46,17 @@ app.use(session({
   },
 }));
 
-// Initialize Passport after session middleware
+// Initialize Passport and restore authentication state from session
 app.use(passport.initialize());
 app.use(passport.session());
+
+// Debug middleware to log session and auth state
+app.use((req, res, next) => {
+  console.log("Request URL:", req.url);
+  console.log("Session ID:", req.sessionID);
+  console.log("Is Authenticated:", req.isAuthenticated());
+  next();
+});
 
 // Logging middleware
 app.use((req, res, next) => {
