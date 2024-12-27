@@ -2,12 +2,11 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { eq } from "drizzle-orm";
 import { posts, events, pointsOfInterest, resources, organizations, comments, users, follows } from "@db/schema";
 import { generateVerificationToken, sendVerificationEmail } from "./email";
 import { upload } from "./upload";
 import express from "express";
-import { users, type User } from "@db/schema";
+import { type User } from "@db/schema";
 import { desc, sql, and, eq, or, exists } from "drizzle-orm";
 
 // TODO: Authentication temporarily disabled to focus on feature development
