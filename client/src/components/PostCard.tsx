@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Reply, UserPlus, UserMinus } from "lucide-react";
+import { Reply, UserPlus, UserMinus, Heart } from "lucide-react";
 import api from "../lib/api";
 import { useUser } from "../hooks/use-user";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
@@ -24,7 +24,34 @@ interface CommentProps {
 }
 
 function CommentComponent({ comment, onReply, onDelete, currentUserId, depth = 0 }: CommentProps) {
-  const maxDepth = 3; // Maximum nesting level
+  const maxDepth = 3;
+  const { data: likeStatus } = useQuery({
+    queryKey: [`/api/likes/comment/${comment.id}`],
+  });
+
+  const queryClient = useQueryClient();
+  const likeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/likes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          targetType: 'comment',
+          targetId: comment.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/likes/comment/${comment.id}`] });
+    },
+  });
 
   return (
     <div className="flex flex-col gap-4">
@@ -47,6 +74,17 @@ function CommentComponent({ comment, onReply, onDelete, currentUserId, depth = 0
           </div>
           <p className="text-sm mt-1">{comment.content}</p>
           <div className="flex gap-2 mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => likeMutation.mutate()}
+            >
+              <Heart 
+                className={`mr-1 h-3 w-3 ${likeStatus?.liked ? 'fill-current text-red-500' : ''}`} 
+              />
+              {likeStatus?.count || 0}
+            </Button>
             {depth < maxDepth && (
               <Button
                 variant="ghost"
@@ -170,6 +208,33 @@ export default function PostCard({ post }: PostCardProps) {
     },
   });
 
+  const { data: likeStatus } = useQuery({
+    queryKey: [`/api/likes/post/${post.id}`],
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/likes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          targetType: 'post',
+          targetId: post.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/likes/post/${post.id}`] });
+    },
+  });
+
   const handleComment = async () => {
     try {
       await api.comments.create(post.id, comment, replyingTo);
@@ -278,6 +343,18 @@ export default function PostCard({ post }: PostCardProps) {
           </div>
           <p className="mt-2 text-lg font-medium">{post.title}</p>
           <p className="mt-2 whitespace-pre-wrap">{post.content}</p>
+          <div className="flex gap-2 mt-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => likeMutation.mutate()}
+            >
+              <Heart 
+                className={`mr-2 h-4 w-4 ${likeStatus?.liked ? 'fill-current text-red-500' : ''}`} 
+              />
+              {likeStatus?.count || 0} likes
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>

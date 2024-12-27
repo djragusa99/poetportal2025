@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { posts, events, pointsOfInterest, resources, organizations, comments, users, follows } from "@db/schema";
+import { posts, comments, users, follows, likes } from "@db/schema";
 import { generateVerificationToken, sendVerificationEmail } from "./email";
 import { upload } from "./upload";
 import express from "express";
@@ -386,142 +386,94 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
-
-  // Events routes
-  app.get("/api/events", async (_req, res) => {
+  // Like/unlike a post or comment
+  app.post("/api/likes", async (req, res) => {
     try {
-      const allEvents = await db.query.events.findMany({
-        with: {
-          organization: {
-            columns: {
-              id: true,
-              name: true,
-              website: true,
-              email: true,
-              verified: true,
-            },
-          },
-        },
-        orderBy: (events, { desc }) => [desc(events.date)],
-      });
-      res.json(allEvents);
-    } catch (error) {
-      console.error("Failed to fetch events:", error);
-      res.status(500).json({ message: "Failed to fetch events" });
-    }
-  });
+      const { targetType, targetId } = req.body;
+      const userId = getCurrentUserId(req);
 
-  // Points of Interest routes
-  app.get("/api/points-of-interest", async (_req, res) => {
-    try {
-      const pois = await db.query.pointsOfInterest.findMany();
-      res.json(pois);
-    } catch (error) {
-      console.error("Failed to fetch points of interest:", error);
-      res.status(500).json({ message: "Failed to fetch points of interest" });
-    }
-  });
+      if (!targetType || !targetId) {
+        return res.status(400).json({ message: "Missing target type or ID" });
+      }
 
-  // Resources routes
-  app.get("/api/resources", async (_req, res) => {
-    try {
-      const allResources = await db.query.resources.findMany();
-      res.json(allResources);
-    } catch (error) {
-      console.error("Failed to fetch resources:", error);
-      res.status(500).json({ message: "Failed to fetch resources" });
-    }
-  });
+      if (!["post", "comment"].includes(targetType)) {
+        return res.status(400).json({ message: "Invalid target type" });
+      }
 
-  // Organizations routes
-  app.post("/api/organizations/verify", async (req, res) => {
-    const { name, website, email } = req.body;
+      // Check if like already exists
+      const [existingLike] = await db
+        .select()
+        .from(likes)
+        .where(
+          and(
+            eq(likes.userId, userId),
+            eq(likes.targetType, targetType),
+            eq(likes.targetId, targetId)
+          )
+        )
+        .limit(1);
 
-    if (!name || !website || !email) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
+      if (existingLike) {
+        // Unlike: remove the like
+        await db
+          .delete(likes)
+          .where(eq(likes.id, existingLike.id));
 
-    if (!email.includes("@") || !email.includes(".")) {
-      return res.status(400).json({ message: "Invalid email format" });
-    }
+        return res.json({ liked: false });
+      }
 
-    let websiteUrl = website;
-    if (!website.startsWith('http://') && !website.startsWith('https://')) {
-      websiteUrl = `https://${website}`;
-    }
-
-    try {
-      new URL(websiteUrl);
-    } catch {
-      return res.status(400).json({ message: "Invalid website URL" });
-    }
-
-    try {
-      // Generate verification token
-      const verificationToken = generateVerificationToken();
-      const verificationTokenExpiry = new Date();
-      verificationTokenExpiry.setHours(verificationTokenExpiry.getHours() + 24); // Token expires in 24 hours
-
-      // Create organization with verification token
-      const userId = getCurrentUserId(req); //use current user ID
-      const [org] = await db
-        .insert(organizations)
+      // Like: create new like
+      const [newLike] = await db
+        .insert(likes)
         .values({
           userId,
-          name,
-          website: websiteUrl,
-          email,
-          verified: false,
-          verificationToken,
-          verificationTokenExpiry,
+          targetType,
+          targetId,
         })
         .returning();
 
-      // Send verification email
-      await sendVerificationEmail(email, verificationToken, name);
-
-      res.json(org);
+      res.json({ liked: true });
     } catch (error) {
-      console.error("Failed to create organization:", error);
-      res.status(500).json({ message: "Failed to create organization" });
+      console.error("Failed to toggle like:", error);
+      res.status(500).json({ message: "Failed to toggle like" });
     }
   });
 
-  app.get("/api/organizations/verify/:token", async (req, res) => {
-    const { token } = req.params;
-
+  // Get like status and count for a post or comment
+  app.get("/api/likes/:targetType/:targetId", async (req, res) => {
     try {
-      const [org] = await db
+      const { targetType, targetId } = req.params;
+      const userId = getCurrentUserId(req);
+
+      const count = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(likes)
+        .where(
+          and(
+            eq(likes.targetType, targetType),
+            eq(likes.targetId, parseInt(targetId))
+          )
+        );
+
+      const [userLike] = await db
         .select()
-        .from(organizations)
-        .where(eq(organizations.verificationToken, token))
+        .from(likes)
+        .where(
+          and(
+            eq(likes.userId, userId),
+            eq(likes.targetType, targetType),
+            eq(likes.targetId, parseInt(targetId))
+          )
+        )
         .limit(1);
 
-      if (!org) {
-        return res.status(404).json({ message: "Invalid verification token" });
-      }
-
-      if (org.verified) {
-        return res.status(400).json({ message: "Organization is already verified" });
-      }
-
-      if (org.verificationTokenExpiry && new Date(org.verificationTokenExpiry) < new Date()) {
-        return res.status(400).json({ message: "Verification token has expired" });
-      }
-
-      await db
-        .update(organizations)
-        .set({
-          verified: true,
-          verificationToken: null,
-          verificationTokenExpiry: null,
-        })
-        .where(eq(organizations.id, org.id));
-
-      res.json({ message: "Organization verified successfully" });
+      res.json({
+        count: count[0].count,
+        liked: !!userLike,
+      });
     } catch (error) {
-      console.error("Failed to verify organization:", error);
-      res.status(500).json({ message: "Failed to verify organization" });
+      console.error("Failed to get like status:", error);
+      res.status(500).json({ message: "Failed to get like status" });
     }
   });
 
@@ -583,7 +535,7 @@ export function registerRoutes(app: Express): Server {
       // Delete the user's content first
       await db.delete(posts).where(eq(posts.userId, userId));
       await db.delete(comments).where(eq(comments.userId, userId));
-      await db.delete(organizations).where(eq(organizations.userId, userId));
+      await db.delete(organizations).where(eq(organizations.userId, userId)); //This line remains as organizations table is still referenced in delete operations.
 
       // Delete the user
       await db.delete(users).where(eq(users.id, userId));
