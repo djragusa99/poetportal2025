@@ -62,14 +62,18 @@ export default function UserProfile({ user }: UserProfileProps) {
 
       const data = await response.json();
 
-      // Invalidate user query to update avatar
-      queryClient.invalidateQueries({ queryKey: ['user'] });
+      // Update the user data in the cache with the new avatar URL
+      queryClient.setQueryData(['user'], (oldData: any) => ({
+        ...oldData,
+        avatar: data.avatarUrl
+      }));
 
       toast({
         title: "Success",
         description: "Avatar updated successfully",
       });
     } catch (error) {
+      console.error('Avatar upload error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to update avatar",

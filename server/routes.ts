@@ -52,16 +52,30 @@ export function registerRoutes(app: Express): Server {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
+    if (!req.user) {
+      console.error("User session lost during upload");
+      return res.status(401).json({ message: "Authentication required" });
+    }
+
     try {
       // Update user's avatar in the database
       const avatarUrl = `/uploads/avatars/${req.file.filename}`;
-      await db
+      const [updatedUser] = await db
         .update(users)
         .set({ avatar: avatarUrl })
-        .where(eq(users.id, req.user!.id));
+        .where(eq(users.id, req.user.id))
+        .returning();
 
-      // Return JSON response with the new avatar URL
-      return res.json({ avatarUrl });
+      if (!updatedUser) {
+        console.error("Failed to update user avatar in database");
+        return res.status(500).json({ message: "Failed to update avatar" });
+      }
+
+      console.log("Avatar updated successfully for user:", req.user.id);
+      return res.json({ 
+        avatarUrl,
+        user: updatedUser 
+      });
     } catch (error) {
       console.error("Failed to update avatar:", error);
       return res.status(500).json({ message: "Failed to update avatar" });
