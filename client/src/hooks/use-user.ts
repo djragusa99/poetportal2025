@@ -38,13 +38,12 @@ async function login(data: LoginData): Promise<User> {
     body: JSON.stringify(data),
   });
 
-  const result = await response.json();
-
   if (!response.ok) {
-    throw new Error(result.message || 'Login failed');
+    const errorText = await response.text();
+    throw new Error(errorText);
   }
 
-  return result.user;
+  return response.json();
 }
 
 async function register(data: LoginData): Promise<User> {
@@ -95,27 +94,11 @@ export function useUser() {
       });
     },
     onError: (error: Error) => {
-      if (error.message.includes("Account not found")) {
-        toast({
-          variant: "destructive",
-          title: "Account Not Found",
-          description: "Would you like to register first?",
-          action: (
-            <button 
-              onClick={() => setLocation("/register")} 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 px-3 py-2 rounded"
-            >
-              Register
-            </button>
-          )
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: error.message,
-        });
-      }
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message,
+      });
     },
   });
 

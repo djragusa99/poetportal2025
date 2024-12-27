@@ -23,16 +23,11 @@ export default function Navigation() {
 
   return (
     <nav className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center justify-between">
-        {/* Left section with logo */}
-        <div className="flex items-center md:w-1/4">
+      <div className="container flex h-14 items-center">
+        <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
             <span className="hidden font-bold sm:inline-block">PoetPortal</span>
           </Link>
-        </div>
-
-        {/* Center section with navigation items */}
-        <div className="hidden md:flex md:w-2/4 justify-center">
           <nav className="flex items-center space-x-6 text-sm font-medium">
             <Link href="/">
               <Button variant="ghost" size="sm">
@@ -64,6 +59,7 @@ export default function Navigation() {
                 Resources
               </Button>
             </Link>
+            {/* Add Admin Dashboard link */}
             <Link href="/admin">
               <Button variant="ghost" size="sm">
                 <Settings className="h-4 w-4 mr-2" />
@@ -72,9 +68,7 @@ export default function Navigation() {
             </Link>
           </nav>
         </div>
-
-        {/* Right section with search and profile */}
-        <div className="flex items-center justify-end md:w-1/4">
+        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
           <div className="w-full flex-1 md:w-auto md:flex-none">
             <Button variant="outline" className="w-full justify-start">
               <Search className="mr-2 h-4 w-4" />
