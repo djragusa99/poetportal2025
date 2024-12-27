@@ -7,9 +7,32 @@ import { posts, events, pointsOfInterest, resources, organizations, comments } f
 
 // Middleware to ensure user is authenticated
 const requireAuth = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
+  // Development bypass - automatically authenticate as test user
+  if (process.env.NODE_ENV !== 'production') {
+    if (!req.user) {
+      // Mock user for development
+      req.user = {
+        id: 1,
+        username: "testuser",
+        firstName: "Test",
+        lastName: "User",
+        email: "test@example.com",
+        location: "San Francisco, CA",
+        userType: "Poet",
+        bio: "This is a test user for development",
+        createdAt: new Date(),
+      };
+    }
+    console.log("Development bypass: User authenticated as testuser");
+    return next();
+  }
+
+  // Production authentication check
   if (!req.isAuthenticated()) {
+    console.log("Authentication failed: User not authenticated");
     return res.status(401).json({ message: "Unauthorized" });
   }
+  console.log("Authentication successful");
   next();
 };
 
