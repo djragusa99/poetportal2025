@@ -41,6 +41,8 @@ export const organizations = pgTable("organizations", {
   website: text("website"),
   email: text("email").notNull(),
   verified: boolean("verified").default(false),
+  verificationToken: text("verification_token"),
+  verificationTokenExpiry: timestamp("verification_token_expiry"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -124,13 +126,15 @@ export const eventsRelations = relations(events, ({ one }) => ({
 
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
+export const insertOrganizationSchema = createInsertSchema(organizations);
+export const selectOrganizationSchema = createSelectSchema(organizations);
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-
 export type Post = typeof posts.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Event = typeof events.$inferSelect;
 export type Organization = typeof organizations.$inferSelect;
+export type NewOrganization = typeof organizations.$inferInsert;
 export type PointOfInterest = typeof pointsOfInterest.$inferSelect;
 export type Resource = typeof resources.$inferSelect;

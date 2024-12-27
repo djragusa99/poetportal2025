@@ -4,6 +4,7 @@ import { setupAuth } from "./auth";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { posts, events, pointsOfInterest, resources, organizations, comments, users } from "@db/schema";
+import { generateVerificationToken, sendVerificationEmail } from "./email";
 
 // Middleware to ensure user is authenticated
 const requireAuth = async (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
@@ -297,6 +298,12 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
+      // Generate verification token
+      const verificationToken = generateVerificationToken();
+      const verificationTokenExpiry = new Date();
+      verificationTokenExpiry.setHours(verificationTokenExpiry.getHours() + 24); // Token expires in 24 hours
+
+      // Create organization with verification token
       const [org] = await db
         .insert(organizations)
         .values({
@@ -305,13 +312,56 @@ export function registerRoutes(app: Express): Server {
           website: websiteUrl,
           email,
           verified: false,
+          verificationToken,
+          verificationTokenExpiry,
         })
         .returning();
+
+      // Send verification email
+      await sendVerificationEmail(email, verificationToken, name);
 
       res.json(org);
     } catch (error) {
       console.error("Failed to create organization:", error);
       res.status(500).json({ message: "Failed to create organization" });
+    }
+  });
+
+  app.get("/api/organizations/verify/:token", async (req, res) => {
+    const { token } = req.params;
+
+    try {
+      const [org] = await db
+        .select()
+        .from(organizations)
+        .where(eq(organizations.verificationToken, token))
+        .limit(1);
+
+      if (!org) {
+        return res.status(404).json({ message: "Invalid verification token" });
+      }
+
+      if (org.verified) {
+        return res.status(400).json({ message: "Organization is already verified" });
+      }
+
+      if (org.verificationTokenExpiry && new Date(org.verificationTokenExpiry) < new Date()) {
+        return res.status(400).json({ message: "Verification token has expired" });
+      }
+
+      await db
+        .update(organizations)
+        .set({
+          verified: true,
+          verificationToken: null,
+          verificationTokenExpiry: null,
+        })
+        .where(eq(organizations.id, org.id));
+
+      res.json({ message: "Organization verified successfully" });
+    } catch (error) {
+      console.error("Failed to verify organization:", error);
+      res.status(500).json({ message: "Failed to verify organization" });
     }
   });
 
