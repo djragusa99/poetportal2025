@@ -76,13 +76,13 @@ export function setupAuth(app: Express) {
 
         if (!user) {
           console.log("User not found:", username);
-          return done(null, false, { message: "Incorrect username." });
+          return done(null, false, { message: "Account not found. Please register first or check your username." });
         }
 
         const isMatch = await crypto.compare(password, user.password);
         if (!isMatch) {
           console.log("Password mismatch for user:", username);
-          return done(null, false, { message: "Incorrect password." });
+          return done(null, false, { message: "Incorrect password. Please try again." });
         }
 
         console.log("Authentication successful for user:", username);

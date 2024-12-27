@@ -24,7 +24,7 @@ async function fetchUser(): Promise<User | null> {
     if (response.status === 401) {
       return null;
     }
-    throw new Error(await response.text());
+    return null; 
   }
 
   return response.json();
@@ -40,11 +40,6 @@ async function login(data: LoginData): Promise<User> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    if (errorText.includes("Incorrect username")) {
-      throw new Error("Account not found. Please register first or check your username.");
-    } else if (errorText.includes("Incorrect password")) {
-      throw new Error("Incorrect password. Please try again.");
-    }
     throw new Error(errorText);
   }
 
@@ -99,21 +94,11 @@ export function useUser() {
       });
     },
     onError: (error: Error) => {
-      if (error.message.includes("Account not found")) {
-        toast({
-          variant: "destructive",
-          title: "Account Not Found",
-          description: "Would you like to create an account?",
-        });
-        // Navigate to register page after a short delay
-        setTimeout(() => setLocation("/register"), 2000);
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: error.message,
-        });
-      }
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message,
+      });
     },
   });
 
