@@ -1,4 +1,4 @@
-import { Post, Event, PointOfInterest, Resource } from "@db/schema";
+import { Post, Event, PointOfInterest, Resource, Comment } from "@db/schema";
 
 const api = {
   posts: {
@@ -10,6 +10,15 @@ const api = {
         credentials: "include",
         body: JSON.stringify({ content }),
       }).then((r) => r.json() as Promise<Post>),
+  },
+  comments: {
+    create: (postId: number, content: string) =>
+      fetch(`/api/posts/${postId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ content }),
+      }).then((r) => r.json() as Promise<Comment>),
   },
   events: {
     list: () => fetch("/api/events").then((r) => r.json() as Promise<Event[]>),

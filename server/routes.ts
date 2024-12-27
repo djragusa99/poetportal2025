@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-import { posts, events, pointsOfInterest, resources, organizations } from "@db/schema";
+import { posts, events, pointsOfInterest, resources, organizations, comments } from "@db/schema";
 
 // Middleware to ensure user is authenticated
 const requireAuth = (req: Express.Request, res: Express.Response, next: Express.NextFunction) => {
@@ -25,6 +25,7 @@ export function registerRoutes(app: Express): Server {
           with: {
             user: true,
           },
+          orderBy: (comments, { desc }) => [desc(comments.createdAt)],
         },
       },
       orderBy: (posts, { desc }) => [desc(posts.createdAt)],
@@ -66,6 +67,48 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Comments routes
+  app.post("/api/posts/:postId/comments", requireAuth, async (req, res) => {
+    const { content } = req.body;
+    const postId = parseInt(req.params.postId);
+
+    if (!content) {
+      return res.status(400).send("Content is required");
+    }
+
+    try {
+      // Verify post exists
+      const post = await db.query.posts.findFirst({
+        where: eq(posts.id, postId),
+      });
+
+      if (!post) {
+        return res.status(404).send("Post not found");
+      }
+
+      const [comment] = await db
+        .insert(comments)
+        .values({
+          postId,
+          userId: req.user!.id,
+          content,
+        })
+        .returning();
+
+      const commentWithUser = await db.query.comments.findFirst({
+        where: eq(comments.id, comment.id),
+        with: {
+          user: true,
+        },
+      });
+
+      res.json(commentWithUser);
+    } catch (error) {
+      console.error("Failed to create comment:", error);
+      res.status(500).send("Failed to create comment");
+    }
+  });
+
   // Events routes
   app.get("/api/events", async (_req, res) => {
     const allEvents = await db.query.events.findMany({
@@ -93,17 +136,14 @@ export function registerRoutes(app: Express): Server {
   app.post("/api/organizations/verify", requireAuth, async (req, res) => {
     const { name, website, email } = req.body;
 
-    // Basic validation
     if (!name || !website || !email) {
       return res.status(400).send("All fields are required");
     }
 
-    // Email validation
     if (!email.includes("@") || !email.includes(".")) {
       return res.status(400).send("Invalid email format");
     }
 
-    // Website validation - allow URLs with or without protocol
     let websiteUrl = website;
     if (!website.startsWith('http://') && !website.startsWith('https://')) {
       websiteUrl = `https://${website}`;
