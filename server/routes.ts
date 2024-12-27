@@ -141,23 +141,20 @@ export function registerRoutes(app: Express): Server {
     try {
       const userId = parseInt(req.params.userId);
 
-      const followers = await db.query.follows.findMany({
-        where: eq(follows.followedId, userId),
-        with: {
-          follower: {
-            columns: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              username: true,
-              avatar: true,
-            },
-          },
-        },
-        orderBy: [desc(follows.createdAt)],
-      });
+      const followers = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username,
+          avatar: users.avatar,
+        })
+        .from(follows)
+        .innerJoin(users, eq(users.id, follows.followerId))
+        .where(eq(follows.followedId, userId))
+        .orderBy(desc(follows.createdAt));
 
-      res.json(followers.map(f => f.follower));
+      res.json(followers);
     } catch (error) {
       console.error("Failed to fetch followers:", error);
       res.status(500).json({ message: "Failed to fetch followers" });
@@ -169,23 +166,20 @@ export function registerRoutes(app: Express): Server {
     try {
       const userId = parseInt(req.params.userId);
 
-      const following = await db.query.follows.findMany({
-        where: eq(follows.followerId, userId),
-        with: {
-          followed: {
-            columns: {
-              id: true,
-              firstName: true,
-              lastName: true,
-              username: true,
-              avatar: true,
-            },
-          },
-        },
-        orderBy: [desc(follows.createdAt)],
-      });
+      const following = await db
+        .select({
+          id: users.id,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          username: users.username,
+          avatar: users.avatar,
+        })
+        .from(follows)
+        .innerJoin(users, eq(users.id, follows.followedId))
+        .where(eq(follows.followerId, userId))
+        .orderBy(desc(follows.createdAt));
 
-      res.json(following.map(f => f.followed));
+      res.json(following);
     } catch (error) {
       console.error("Failed to fetch following list:", error);
       res.status(500).json({ message: "Failed to fetch following list" });

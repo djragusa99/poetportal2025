@@ -18,17 +18,44 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const posts = pgTable("posts", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
 export const follows = pgTable("follows", {
   id: serial("id").primaryKey(),
   followerId: integer("follower_id").references(() => users.id).notNull(),
   followedId: integer("followed_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Define relations after table definitions
+export const usersFollowsRelations = relations(users, ({ many }) => ({
+  followedBy: many(follows, {
+    relationName: "user_followers",
+    fields: [users.id],
+    references: [follows.followedId],
+  }),
+  following: many(follows, {
+    relationName: "user_following",
+    fields: [users.id],
+    references: [follows.followerId],
+  }),
+}));
+
+export const followsRelations = relations(follows, ({ one }) => ({
+  follower: one(users, {
+    fields: [follows.followerId],
+    references: [users.id],
+    relationName: "user_following",
+  }),
+  followed: one(users, {
+    fields: [follows.followedId],
+    references: [users.id],
+    relationName: "user_followers",
+  }),
+}));
+
+export const posts = pgTable("posts", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -83,14 +110,6 @@ export const resources = pgTable("resources", {
   link: text("link").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
-
-export const usersRelations = relations(users, ({ many }) => ({
-  posts: many(posts),
-  comments: many(comments),
-  organizations: many(organizations),
-  following: many(follows, { relationName: "user_following", references: [follows.followerId] }),
-  followers: many(follows, { relationName: "user_followers", references: [follows.followedId] }),
-}));
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
   user: one(users, {
