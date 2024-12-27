@@ -60,10 +60,11 @@ export function registerRoutes(app: Express): Server {
         .set({ avatar: avatarUrl })
         .where(eq(users.id, req.user!.id));
 
-      res.json({ avatarUrl });
+      // Return JSON response with the new avatar URL
+      return res.json({ avatarUrl });
     } catch (error) {
       console.error("Failed to update avatar:", error);
-      res.status(500).json({ message: "Failed to update avatar" });
+      return res.status(500).json({ message: "Failed to update avatar" });
     }
   });
 
