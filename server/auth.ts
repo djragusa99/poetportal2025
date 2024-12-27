@@ -1,11 +1,9 @@
 import passport from "passport";
 import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
 import { type Express } from "express";
-import session from "express-session";
-import createMemoryStore from "memorystore";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import { users, insertUserSchema, type User } from "@db/schema";
+import { users, insertUserSchema } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -40,7 +38,19 @@ const crypto = {
 
 declare global {
   namespace Express {
-    interface User extends User {}
+    interface User {
+      id: number;
+      username: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      location: string;
+      userType: string;
+      avatar?: string | null;
+      bio?: string | null;
+      pronouns?: string | null;
+    }
   }
 }
 
@@ -50,34 +60,6 @@ const loginSchema = z.object({
 });
 
 export function setupAuth(app: Express) {
-  const MemoryStore = createMemoryStore(session);
-  const sessionSettings: session.SessionOptions = {
-    secret: process.env.REPL_ID || "poet-portal-secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax',
-      httpOnly: true,
-    },
-    store: new MemoryStore({
-      checkPeriod: 86400000,
-    }),
-  };
-
-  if (app.get("env") === "production") {
-    app.set("trust proxy", 1);
-    sessionSettings.cookie = {
-      ...sessionSettings.cookie,
-      secure: true,
-    };
-  }
-
-  app.use(session(sessionSettings));
-  app.use(passport.initialize());
-  app.use(passport.session());
-
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -156,22 +138,26 @@ export function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res) => {
+    const username = req.user?.username;
     req.logout((err) => {
       if (err) {
+        console.error("Logout failed for user:", username);
         return res.status(500).json({ message: "Logout failed" });
       }
-
+      console.log("Logout successful for user:", username);
       res.json({ message: "Logout successful" });
     });
   });
 
   app.get("/api/user", (req, res) => {
     if (req.isAuthenticated()) {
+      console.log("User authenticated:", req.user.username);
       return res.json(req.user);
     }
-
+    console.log("User not authenticated");
     res.status(401).json({ message: "Not logged in" });
   });
+
   app.post("/api/register", async (req, res, next) => {
     try {
       const result = insertUserSchema.safeParse(req.body);
