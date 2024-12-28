@@ -10,15 +10,11 @@ import { type User } from "@db/schema";
 import { desc, sql, and, eq, or, exists, asc } from "drizzle-orm";
 import { pointsOfInterest } from "@db/schema";
 
-// TODO: Authentication temporarily disabled to focus on feature development
-// Will be re-enabled once core features are implemented
-const requireAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  // Store the current user's ID in the session if they're logged in
-  if (req.user?.id) {
-    req.session.currentUserId = req.user.id;
+declare module 'express-session' {
+  interface SessionData {
+    currentUserId?: number;
   }
-  next();
-};
+}
 
 // Helper to get the current user ID from session or fall back to mock ID
 const getCurrentUserId = (req: express.Request): number => {
