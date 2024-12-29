@@ -1,7 +1,8 @@
 import { db } from "@db";
-import { users } from "@db/schema";
+import { users, posts, comments, events, pointsOfInterest, resources, follows, likes } from "@db/schema";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
+import { eq } from 'drizzle-orm';
 
 const scryptAsync = promisify(scrypt);
 
@@ -19,43 +20,195 @@ export async function seed() {
     await db.select().from(users).limit(1);
     console.log("✓ Database connection verified");
 
-    // Create test accounts
-    const testUsers = [
+    // Create users (famous poets)
+    console.log("Creating users...");
+    const poetUsers = [
       {
-        username: "testuser",
-        password: await hashPassword("testpass123"),
-        first_name: "Test",
-        last_name: "User",
-        email: "test@example.com",
-        location: "San Francisco, CA",
-        user_type: "User",
-        bio: "A test user account",
+        username: "sylviaplath",
+        password: await hashPassword("password123"),
+        firstName: "Sylvia",
+        lastName: "Plath",
+        email: "sylvia@example.com",
+        location: "Boston, MA",
+        userType: "Poet",
+        pronouns: "she/her",
+        bio: "Advanced the genre of confessional poetry.",
+        avatar: "https://images.saymedia-content.com/.image/t_share/MTk2OTE0NzA2ODM2MjM1NzAx/sylvia-plaths-mirror.jpg",
       },
       {
-        username: "admin",
-        password: await hashPassword("admin123"),
-        first_name: "Admin",
-        last_name: "User",
-        email: "admin@example.com",
+        username: "billyc",
+        password: await hashPassword("password123"),
+        firstName: "Billy",
+        lastName: "Collins",
+        email: "billy@example.com",
         location: "New York, NY",
-        user_type: "Admin",
-        bio: "An admin test account",
-      }
+        userType: "Poet",
+        pronouns: "he/him",
+        bio: "Former U.S. Poet Laureate known for accessible, witty poetry",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=billycollins",
+      },
+      {
+        username: "rupikaur",
+        password: await hashPassword("password123"),
+        firstName: "Rupi",
+        lastName: "Kaur",
+        email: "rupi@example.com",
+        location: "Toronto, Canada",
+        userType: "Poet",
+        pronouns: "she/her",
+        bio: "Poet, artist, and author of 'milk and honey'",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=rupikaur",
+      },
     ];
 
-    // Create test user accounts
-    for (const user of testUsers) {
+    const createdUsers = [];
+    for (const user of poetUsers) {
       try {
-        await db.insert(users).values(user);
-        console.log(`✓ Created test user: ${user.username}`);
+        const [created] = await db.insert(users).values(user).returning();
+        createdUsers.push(created);
+        console.log(`✓ Created user: ${user.username}`);
       } catch (error: any) {
         if (error.code === '23505') { // Unique constraint violation
           console.log(`User ${user.username} already exists, skipping...`);
+          const [existing] = await db.select().from(users).where(eq(users.username, user.username));
+          createdUsers.push(existing);
         } else {
           throw error;
         }
       }
     }
+
+    // Create events
+    console.log("Creating events...");
+    const poetryEvents = [
+      {
+        title: "SF Poetry Festival 2024",
+        description: "Annual gathering of poets from across the Bay Area featuring readings, workshops, and open mics.",
+        date: new Date("2024-04-15"),
+        location: "San Francisco, CA",
+        organizerId: createdUsers[0].id,
+        type: "Festival",
+      },
+      {
+        title: "Poetry in the Park",
+        description: "Monthly outdoor poetry reading series in Central Park.",
+        date: new Date("2024-01-20"),
+        location: "New York, NY",
+        organizerId: createdUsers[1].id,
+        type: "Reading",
+      },
+      {
+        title: "Spoken Word Workshop",
+        description: "Interactive workshop on performance poetry and public speaking.",
+        date: new Date("2024-02-10"),
+        location: "Los Angeles, CA",
+        organizerId: createdUsers[2].id,
+        type: "Workshop",
+      },
+    ];
+
+    await db.insert(events).values(poetryEvents);
+    console.log("✓ Created events");
+
+    // Create points of interest
+    console.log("Creating points of interest...");
+    const poetryLocations = [
+      {
+        name: "Emily Dickinson Museum",
+        description: "The poet's home and gardens, offering tours and educational programs.",
+        type: "Museum",
+        location: "Amherst, MA",
+        createdById: createdUsers[0].id,
+      },
+      {
+        name: "City Lights Bookstore",
+        description: "Historic bookstore and publisher founded by Lawrence Ferlinghetti.",
+        type: "Bookstore",
+        location: "San Francisco, CA",
+        createdById: createdUsers[1].id,
+      },
+    ];
+
+    await db.insert(pointsOfInterest).values(poetryLocations);
+    console.log("✓ Created points of interest");
+
+    // Create resources
+    console.log("Creating resources...");
+    const poetryResources = [
+      {
+        title: "Poetry Foundation",
+        description: "Comprehensive poetry archive and publisher of Poetry magazine.",
+        type: "Website",
+        url: "https://www.poetryfoundation.org",
+      },
+      {
+        title: "Academy of American Poets",
+        description: "Largest membership-based nonprofit organization fostering poetry.",
+        type: "Organization",
+        url: "https://poets.org",
+      },
+    ];
+
+    await db.insert(resources).values(poetryResources);
+    console.log("✓ Created resources");
+
+    // Create posts
+    console.log("Creating posts...");
+    const poetryPosts = [
+      {
+        userId: createdUsers[0].id,
+        content: "Excited to announce my upcoming workshop on spoken word poetry! Can't wait to share techniques and inspiration with fellow poets.",
+      },
+      {
+        userId: createdUsers[1].id,
+        content: "Just finished writing a new collection. There's something magical about completing a manuscript after months of work.",
+      },
+    ];
+
+    const createdPosts = [];
+    for (const post of poetryPosts) {
+      const [created] = await db.insert(posts).values(post).returning();
+      createdPosts.push(created);
+    }
+    console.log("✓ Created posts");
+
+    // Create comments
+    console.log("Creating comments...");
+    const poetryComments = [
+      {
+        postId: createdPosts[0].id,
+        userId: createdUsers[1].id,
+        content: "Looking forward to learning from you! Your work is incredibly inspiring.",
+      },
+      {
+        postId: createdPosts[1].id,
+        userId: createdUsers[0].id,
+        content: "Congratulations! Can't wait to read it. The world needs more poetry right now.",
+      },
+    ];
+
+    await db.insert(comments).values(poetryComments);
+    console.log("✓ Created comments");
+
+    // Create follows
+    console.log("Creating follow relationships...");
+    const followRelationships = [
+      {
+        followerId: createdUsers[1].id,
+        followedId: createdUsers[0].id,
+      },
+      {
+        followerId: createdUsers[2].id,
+        followedId: createdUsers[0].id,
+      },
+      {
+        followerId: createdUsers[0].id,
+        followedId: createdUsers[1].id,
+      },
+    ];
+
+    await db.insert(follows).values(followRelationships);
+    console.log("✓ Created follow relationships");
 
     console.log("✅ Database seeding completed successfully!");
   } catch (error) {
@@ -64,8 +217,10 @@ export async function seed() {
   }
 }
 
-// Run seeding if called directly
-if (import.meta.url === new URL(import.meta.url).href) {
+export const hashPasswordForAuth = hashPassword;
+
+// Only seed when this file is imported and used
+if (process.env.SEED_DB === 'true') {
   seed().catch((error) => {
     console.error("Error seeding database:", error);
     process.exit(1);

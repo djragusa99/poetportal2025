@@ -1,9 +1,10 @@
 import passport from "passport";
 import { IVerifyOptions, Strategy as LocalStrategy } from "passport-local";
 import { type Express } from "express";
-import { users, insertUserSchema, type User } from "@db/schema";
+import { users, insertUserSchema } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 
@@ -34,6 +35,33 @@ const crypto = {
     }
   },
 };
+
+declare global {
+  namespace Express {
+    interface User {
+      id: number;
+      username: string;
+      password: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      location: string;
+      userType: string;
+      avatar?: string | null;
+      bio?: string | null;
+      pronouns?: string | null;
+    }
+
+    interface Session {
+      currentUserId?: number;
+    }
+  }
+}
+
+const loginSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
+});
 
 export function setupAuth(app: Express) {
   passport.use(
@@ -66,7 +94,7 @@ export function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((user: User, done) => {
+  passport.serializeUser((user, done) => {
     console.log("Serializing user:", user.id);
     done(null, user.id);
   });
@@ -91,9 +119,47 @@ export function setupAuth(app: Express) {
     }
   });
 
+  app.post("/api/login", (req, res, next) => {
+    console.log("Login attempt:", req.body.username);
+    console.log("Request headers:", req.headers);
+
+    const result = loginSchema.safeParse(req.body);
+    if (!result.success) {
+      return res
+        .status(400)
+        .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
+    }
+
+    passport.authenticate("local", (err: any, user: Express.User | false, info: IVerifyOptions) => {
+      if (err) {
+        console.error("Login error:", err);
+        return next(err);
+      }
+
+      if (!user) {
+        console.log("Login failed:", info.message);
+        return res.status(400).json({ message: info.message ?? "Login failed" });
+      }
+
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error("Login error:", err);
+          return next(err);
+        }
+
+        req.session.currentUserId = user.id;
+
+        console.log("Login successful for user:", user.username);
+        console.log("Session ID:", req.sessionID);
+        console.log("Session data:", req.session);
+        return res.json(user);
+      });
+    })(req, res, next);
+  });
+
   app.post("/api/register", async (req, res, next) => {
     try {
-      console.log("Registration attempt:", req.body);
+      console.log("Registration attempt:", req.body.username);
       const result = insertUserSchema.safeParse(req.body);
       if (!result.success) {
         return res
@@ -101,9 +167,8 @@ export function setupAuth(app: Express) {
           .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
       }
 
-      const { username, password, ...userData } = result.data;
+      const { username, password, firstName, lastName, email, location, userType } = result.data;
 
-      // Check if user already exists
       const [existingUser] = await db
         .select()
         .from(users)
@@ -121,7 +186,11 @@ export function setupAuth(app: Express) {
         .values({
           username,
           password: hashedPassword,
-          ...userData,
+          firstName,
+          lastName,
+          email,
+          location,
+          userType,
         })
         .returning();
 
@@ -130,6 +199,7 @@ export function setupAuth(app: Express) {
           return next(err);
         }
         console.log("Registration successful for user:", newUser.username);
+        console.log("Session after registration:", req.session);
         return res.json(newUser);
       });
     } catch (error) {
@@ -138,49 +208,11 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/login", (req, res, next) => {
-    console.log("Login attempt:", req.body.username);
-
-    passport.authenticate("local", (err: any, user: User | false, info: IVerifyOptions) => {
-      if (err) {
-        console.error("Login error:", err);
-        return next(err);
-      }
-
-      if (!user) {
-        console.log("Login failed:", info.message);
-        return res.status(400).json({ message: info.message ?? "Login failed" });
-      }
-
-      req.logIn(user, (err) => {
-        if (err) {
-          console.error("Login error:", err);
-          return next(err);
-        }
-
-        console.log("Login successful for user:", user.username);
-        console.log("Session ID:", req.sessionID);
-        return res.json(user);
-      });
-    })(req, res, next);
-  });
-
-  app.get("/api/user", (req, res) => {
-    console.log("Checking user authentication");
-    console.log("Session ID:", req.sessionID);
-    console.log("Is Authenticated:", req.isAuthenticated());
-
-    if (req.isAuthenticated()) {
-      console.log("User authenticated:", (req.user as User).username);
-      return res.json(req.user);
-    }
-    console.log("User not authenticated");
-    res.status(401).json({ message: "Not logged in" });
-  });
-
   app.post("/api/logout", (req, res) => {
-    const username = (req.user as User)?.username;
+    const username = req.user?.username;
     console.log("Logout attempt for user:", username);
+    console.log("Session before logout:", req.session);
+    console.log("Request headers:", req.headers);
 
     req.logout((err) => {
       if (err) {
@@ -188,7 +220,23 @@ export function setupAuth(app: Express) {
         return res.status(500).json({ message: "Logout failed" });
       }
       console.log("Logout successful for user:", username);
+      console.log("Session after logout:", req.session);
       res.json({ message: "Logout successful" });
     });
+  });
+
+  app.get("/api/user", (req, res) => {
+    console.log("Checking user authentication");
+    console.log("Session ID:", req.sessionID);
+    console.log("Session:", req.session);
+    console.log("Request headers:", req.headers);
+    console.log("Is Authenticated:", req.isAuthenticated());
+
+    if (req.isAuthenticated()) {
+      console.log("User authenticated:", req.user.username);
+      return res.json(req.user);
+    }
+    console.log("User not authenticated");
+    res.status(401).json({ message: "Not logged in" });
   });
 }
