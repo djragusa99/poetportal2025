@@ -21,9 +21,16 @@ export default function AuthPage() {
     e.preventDefault();
     try {
       if (isLogin) {
-        await login(formData);
+        await login({
+          username: formData.username,
+          password: formData.password
+        });
       } else {
-        await register(formData);
+        await register({
+          username: formData.username,
+          password: formData.password,
+          display_name: formData.display_name
+        });
       }
     } catch (error: any) {
       toast({

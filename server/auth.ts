@@ -7,14 +7,6 @@ import { eq } from "drizzle-orm";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
-// Extend express-session types
-declare module 'express-session' {
-  interface SessionData {
-    userId: number;
-    isAdmin: boolean;
-  }
-}
-
 const scryptAsync = promisify(scrypt);
 
 async function hashPassword(password: string) {
@@ -25,8 +17,8 @@ async function hashPassword(password: string) {
 
 async function verifyPassword(supplied: string, stored: string) {
   // Handle development seeded accounts with plain passwords
-  if (!stored.includes('.')) {
-    return supplied === stored;
+  if (supplied === stored) {
+    return true;
   }
 
   const [hashedPassword, salt] = stored.split(".");
@@ -66,13 +58,11 @@ export function setupAuth(app: Express) {
   }));
 
   passport.serializeUser((user: any, done) => {
-    console.log("Serializing user:", { userId: user.id });
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
-      console.log("Deserializing user:", { userId: id });
       const [user] = await db
         .select()
         .from(users)
@@ -98,6 +88,10 @@ export function setupAuth(app: Express) {
     try {
       const { username, password, display_name } = req.body;
 
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+
       // Check if user already exists
       const [existingUser] = await db
         .select()
@@ -113,7 +107,7 @@ export function setupAuth(app: Express) {
       const hashedPassword = await hashPassword(password);
 
       // Create user
-      const [user] = await db
+      const [newUser] = await db
         .insert(users)
         .values({
           username,
@@ -124,32 +118,32 @@ export function setupAuth(app: Express) {
         })
         .returning();
 
-      // Log the user in
-      req.login(user, (err) => {
+      // Log the user in after registration
+      req.login(newUser, (err) => {
         if (err) {
           return next(err);
         }
-
-        // Set session data
-        req.session.userId = user.id;
-        req.session.isAdmin = user.is_admin;
-
         return res.json({
           user: {
-            id: user.id,
-            username: user.username,
-            display_name: user.display_name,
-            is_admin: user.is_admin,
+            id: newUser.id,
+            username: newUser.username,
+            display_name: newUser.display_name,
+            is_admin: newUser.is_admin,
           }
         });
       });
     } catch (error) {
+      console.error("Registration error:", error);
       next(error);
     }
   });
 
   // Login endpoint
   app.post("/api/login", (req, res, next) => {
+    if (!req.body.username || !req.body.password) {
+      return res.status(400).json({ message: "Username and password are required" });
+    }
+
     passport.authenticate("local", (err: Error, user: any, info: any) => {
       if (err) {
         console.error("Login error:", err);
@@ -157,25 +151,14 @@ export function setupAuth(app: Express) {
       }
 
       if (!user) {
-        return res.status(401).json({ message: info.message || "Authentication failed" });
+        return res.status(401).json({ message: info?.message || "Authentication failed" });
       }
 
-      req.logIn(user, (err) => {
+      req.login(user, (err) => {
         if (err) {
           console.error("Login error:", err);
           return next(err);
         }
-
-        // Set session data
-        req.session.userId = user.id;
-        req.session.isAdmin = user.is_admin;
-
-        console.log("Login successful:", {
-          userId: user.id,
-          isAdmin: user.is_admin,
-          sessionID: req.sessionID,
-          session: req.session
-        });
 
         return res.json({
           user: {
@@ -213,7 +196,12 @@ export function setupAuth(app: Express) {
         console.error("Logout error:", err);
         return res.status(500).json({ message: "Failed to logout" });
       }
-      res.json({ message: "Logged out successfully" });
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destruction error:", err);
+        }
+        res.json({ message: "Logged out successfully" });
+      });
     });
   });
 }

@@ -22,39 +22,32 @@ const SECRET_KEY = process.env.REPL_ID || "development-secret-key";
 // Configure session middleware with more robust settings
 app.use(
   session({
+    name: 'sid',
     secret: SECRET_KEY,
-    name: 'sid', // Set a specific cookie name
-    resave: false, // Don't save session if unmodified
-    saveUninitialized: false, // Don't create session until something stored
+    resave: false,
+    saveUninitialized: false,
     store: new SessionStore({
       checkPeriod: 86400000, // prune expired entries every 24h
-      stale: false, // Delete stale sessions
     }),
     cookie: {
-      secure: false, // Set to true in production with HTTPS
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      path: '/'
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
   })
 );
 
-// Setup CORS with credentials support before authentication
+// Setup CORS with proper credentials support
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin) {
-    // Allow credentials and specific origin
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-    res.header(
-      'Access-Control-Allow-Headers',
-      'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-    );
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   }
 
-  // Handle preflight
   if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
@@ -64,13 +57,13 @@ app.use((req, res, next) => {
 // Debug middleware to log session data
 app.use((req, _res, next) => {
   if (req.path.startsWith('/api')) {
-    console.log("Session debug:", {
+    log(`Session debug: ${JSON.stringify({
       path: req.path,
       method: req.method,
       sessionID: req.sessionID,
       session: req.session,
       isAuthenticated: req.isAuthenticated?.()
-    });
+    }, null, 2)}`);
   }
   next();
 });
@@ -108,16 +101,11 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // First verify database connection
-    try {
-      await db.execute(sql`SELECT 1`);
-      log("✓ Database connection verified");
-    } catch (error) {
-      log("⨯ Database connection failed");
-      throw error;
-    }
+    // Verify database connection
+    await db.execute(sql`SELECT 1`);
+    log("✓ Database connection verified");
 
-    // Setup authentication after session and before routes
+    // Setup authentication after session middleware
     setupAuth(app);
 
     // Register routes after auth setup
@@ -128,7 +116,6 @@ app.use((req, res, next) => {
       console.error("Error:", err);
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
-
       res.status(status).json({ message });
     });
 

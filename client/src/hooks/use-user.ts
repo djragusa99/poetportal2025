@@ -14,6 +14,59 @@ type LoginData = {
   display_name?: string;
 };
 
+async function login(data: LoginData) {
+  const response = await fetch('/api/login', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  const result = await response.json();
+  return result.user;
+}
+
+async function register(data: LoginData) {
+  const response = await fetch('/api/register', {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+
+  const result = await response.json();
+  return result.user;
+}
+
+async function logout() {
+  const response = await fetch('/api/logout', {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(await response.text());
+  }
+}
+
 async function fetchUser(): Promise<User | null> {
   try {
     const response = await fetch('/api/user', {
@@ -38,62 +91,6 @@ async function fetchUser(): Promise<User | null> {
   }
 }
 
-async function login(data: LoginData): Promise<User> {
-  const response = await fetch('/api/login', {
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    credentials: 'include',
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message);
-  }
-
-  const result = await response.json();
-  return result.user;
-}
-
-async function register(data: LoginData): Promise<User> {
-  const response = await fetch('/api/register', {
-    method: 'POST',
-    headers: { 
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    credentials: 'include',
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message);
-  }
-
-  const result = await response.json();
-  return result.user;
-}
-
-async function logout(): Promise<void> {
-  const response = await fetch('/api/logout', {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    }
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.message);
-  }
-}
-
 export function useUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -101,13 +98,15 @@ export function useUser() {
   const { data: user, isLoading } = useQuery<User | null>({
     queryKey: ['/api/user'],
     queryFn: fetchUser,
-    retry: false
+    retry: false,
+    refetchInterval: false,
+    refetchOnWindowFocus: false
   });
 
   const loginMutation = useMutation({
     mutationFn: login,
-    onSuccess: (user) => {
-      queryClient.setQueryData(['/api/user'], user);
+    onSuccess: (userData) => {
+      queryClient.setQueryData(['/api/user'], userData);
       toast({
         title: "Success",
         description: "Logged in successfully",
@@ -124,8 +123,8 @@ export function useUser() {
 
   const registerMutation = useMutation({
     mutationFn: register,
-    onSuccess: (user) => {
-      queryClient.setQueryData(['/api/user'], user);
+    onSuccess: (userData) => {
+      queryClient.setQueryData(['/api/user'], userData);
       toast({
         title: "Success",
         description: "Account created successfully",
@@ -144,7 +143,7 @@ export function useUser() {
     mutationFn: logout,
     onSuccess: () => {
       queryClient.setQueryData(['/api/user'], null);
-      queryClient.invalidateQueries();
+      queryClient.clear();
       toast({
         title: "Success",
         description: "Logged out successfully",
