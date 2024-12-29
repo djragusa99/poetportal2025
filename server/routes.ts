@@ -7,18 +7,22 @@ import { eq } from "drizzle-orm";
 
 // Middleware to check if user is admin
 const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
-  const userId = (req.session as any).userId;
-  if (!userId) {
+  if (!req.session.userId || !req.session.isAdmin) {
+    console.log("Admin check failed: No valid session", { 
+      userId: req.session.userId, 
+      isAdmin: req.session.isAdmin 
+    });
     return res.status(401).json({ message: "Not authenticated" });
   }
 
   const [user] = await db
     .select()
     .from(users)
-    .where(eq(users.id, userId))
+    .where(eq(users.id, req.session.userId))
     .limit(1);
 
   if (!user?.is_admin) {
+    console.log("Admin check failed: User not admin", { userId: req.session.userId });
     return res.status(403).json({ message: "Not authorized" });
   }
 
@@ -33,14 +37,19 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/admin/users", isAdmin, async (_req, res) => {
     try {
       const allUsers = await db
-        .select()
+        .select({
+          id: users.id,
+          username: users.username,
+          display_name: users.display_name,
+          bio: users.bio,
+          is_admin: users.is_admin,
+          is_suspended: users.is_suspended,
+          created_at: users.created_at
+        })
         .from(users)
         .orderBy(users.created_at);
 
-      res.json(allUsers.map(user => ({
-        ...user,
-        password: undefined // Remove password from response
-      })));
+      res.json(allUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
@@ -49,14 +58,15 @@ export function registerRoutes(app: Express): Server {
 
   app.put("/api/admin/users/:id", isAdmin, async (req, res) => {
     const userId = parseInt(req.params.id);
-    const { username, display_name } = req.body;
+    const { username, display_name, bio } = req.body;
 
     try {
       const [updatedUser] = await db
         .update(users)
         .set({ 
           username: username || undefined,
-          display_name: display_name || undefined
+          display_name: display_name || undefined,
+          bio: bio || undefined
         })
         .where(eq(users.id, userId))
         .returning();

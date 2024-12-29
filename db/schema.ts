@@ -26,6 +26,33 @@ export const events = pgTable("events", {
   created_by: integer("created_by").references(() => users.id),
 });
 
+// Conversations table
+export const conversations = pgTable("conversations", {
+  id: serial("id").primaryKey(),
+  title: text("title"), // Optional, for group conversations
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Conversation participants table
+export const conversationParticipants = pgTable("conversation_participants", {
+  id: serial("id").primaryKey(),
+  conversation_id: integer("conversation_id").references(() => conversations.id).notNull(),
+  user_id: integer("user_id").references(() => users.id).notNull(),
+  last_read_at: timestamp("last_read_at"),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Messages table
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  conversation_id: integer("conversation_id").references(() => conversations.id).notNull(),
+  sender_id: integer("sender_id").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Points of Interest table
 export const pointsOfInterest = pgTable("points_of_interest", {
   id: serial("id").primaryKey(),
@@ -67,6 +94,16 @@ export const insertUserSchema = createInsertSchema(users, {
   is_suspended: z.boolean().optional(),
 });
 
+// Message-related schemas
+export const insertConversationSchema = createInsertSchema(conversations);
+export const insertMessageSchema = createInsertSchema(messages);
+export const insertConversationParticipantSchema = createInsertSchema(conversationParticipants);
+
+export const selectConversationSchema = createSelectSchema(conversations);
+export const selectMessageSchema = createSelectSchema(messages);
+export const selectConversationParticipantSchema = createSelectSchema(conversationParticipants);
+
+// Other schemas
 export const insertEventSchema = createInsertSchema(events);
 export const insertPointOfInterestSchema = createInsertSchema(pointsOfInterest);
 export const insertResourceSchema = createInsertSchema(resources);
@@ -83,6 +120,12 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type Event = typeof events.$inferSelect;
 export type InsertEvent = typeof events.$inferInsert;
+export type Conversation = typeof conversations.$inferSelect;
+export type InsertConversation = typeof conversations.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type InsertMessage = typeof messages.$inferInsert;
+export type ConversationParticipant = typeof conversationParticipants.$inferSelect;
+export type InsertConversationParticipant = typeof conversationParticipants.$inferInsert;
 export type PointOfInterest = typeof pointsOfInterest.$inferSelect;
 export type InsertPointOfInterest = typeof pointsOfInterest.$inferInsert;
 export type Resource = typeof resources.$inferSelect;
@@ -96,6 +139,35 @@ export const usersRelations = relations(users, ({ many }) => ({
   events: many(events),
   pointsOfInterest: many(pointsOfInterest),
   resources: many(resources),
+  sentMessages: many(messages, { relationName: "sender" }),
+  participatedConversations: many(conversationParticipants),
+}));
+
+export const conversationsRelations = relations(conversations, ({ many }) => ({
+  participants: many(conversationParticipants),
+  messages: many(messages),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversation_id],
+    references: [conversations.id],
+  }),
+  sender: one(users, {
+    fields: [messages.sender_id],
+    references: [users.id],
+  }),
+}));
+
+export const conversationParticipantsRelations = relations(conversationParticipants, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [conversationParticipants.conversation_id],
+    references: [conversations.id],
+  }),
+  user: one(users, {
+    fields: [conversationParticipants.user_id],
+    references: [users.id],
+  }),
 }));
 
 export const postsRelations = relations(posts, ({ one }) => ({

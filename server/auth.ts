@@ -7,6 +7,14 @@ import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 import MemoryStore from "memorystore";
 
+// Extend express-session types
+declare module 'express-session' {
+  interface SessionData {
+    userId: number;
+    isAdmin: boolean;
+  }
+}
+
 const scryptAsync = promisify(scrypt);
 
 async function hashPassword(password: string) {
@@ -76,7 +84,8 @@ export function setupAuth(app: Express) {
         .returning();
 
       // Set session
-      (req.session as any).userId = user.id;
+      req.session.userId = user.id;
+      req.session.isAdmin = user.is_admin;
 
       res.json({
         user: {
@@ -134,7 +143,8 @@ export function setupAuth(app: Express) {
       }
 
       // Set session
-      (req.session as any).userId = user.id;
+      req.session.userId = user.id;
+      req.session.isAdmin = user.is_admin;
 
       res.json({
         user: {
@@ -155,7 +165,7 @@ export function setupAuth(app: Express) {
   // Get current user endpoint
   app.get("/api/user", async (req, res) => {
     try {
-      const userId = (req.session as any).userId;
+      const userId = req.session.userId;
       if (!userId) {
         return res.status(401).json({ 
           message: "Not authenticated" 

@@ -29,7 +29,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: users = [] } = useQuery<User[]>({
+  const { data: users = [], isLoading, error } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
   });
 
@@ -40,7 +40,11 @@ export default function AdminDashboard() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(user),
+        body: JSON.stringify({
+          username: user.username,
+          display_name: user.display_name,
+          bio: user.bio,
+        }),
         credentials: "include",
       });
 
@@ -111,11 +115,11 @@ export default function AdminDashboard() {
 
       return response.json();
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({
         title: "Success",
-        description: `User ${variables.suspended ? "suspended" : "reactivated"} successfully`,
+        description: "User suspension status updated successfully",
       });
     },
     onError: (error: Error) => {
@@ -126,6 +130,40 @@ export default function AdminDashboard() {
       });
     },
   });
+
+  if (isLoading) {
+    return (
+      <div className="container py-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>User Management</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-center items-center h-32">
+              Loading users...
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container py-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>User Management</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-destructive">
+              Error loading users: {error.toString()}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-10">
@@ -139,9 +177,9 @@ export default function AdminDashboard() {
               <TableRow>
                 <TableHead>ID</TableHead>
                 <TableHead>Username</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Type</TableHead>
+                <TableHead>Display Name</TableHead>
+                <TableHead>Bio</TableHead>
+                <TableHead>Admin</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
@@ -151,15 +189,13 @@ export default function AdminDashboard() {
                 <TableRow key={user.id}>
                   <TableCell>{user.id}</TableCell>
                   <TableCell>{user.username}</TableCell>
-                  <TableCell>
-                    {user.firstName} {user.lastName}
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.userType}</TableCell>
+                  <TableCell>{user.display_name || '-'}</TableCell>
+                  <TableCell>{user.bio || '-'}</TableCell>
+                  <TableCell>{user.is_admin ? 'Yes' : 'No'}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
                       <Switch
-                        checked={!user.suspended}
+                        checked={!user.is_suspended}
                         onCheckedChange={(checked) => 
                           toggleSuspensionMutation.mutate({
                             userId: user.id,
@@ -167,8 +203,8 @@ export default function AdminDashboard() {
                           })
                         }
                       />
-                      <span className={user.suspended ? "text-destructive" : "text-muted-foreground"}>
-                        {user.suspended ? "Suspended" : "Active"}
+                      <span className={user.is_suspended ? "text-destructive" : "text-muted-foreground"}>
+                        {user.is_suspended ? "Suspended" : "Active"}
                       </span>
                     </div>
                   </TableCell>
@@ -194,41 +230,27 @@ export default function AdminDashboard() {
                           {editingUser && (
                             <div className="grid gap-4 py-4">
                               <div className="grid gap-2">
-                                <label htmlFor="firstName">First Name</label>
+                                <label htmlFor="display_name">Display Name</label>
                                 <Input
-                                  id="firstName"
-                                  value={editingUser.firstName}
+                                  id="display_name"
+                                  value={editingUser.display_name || ''}
                                   onChange={(e) =>
                                     setEditingUser({
                                       ...editingUser,
-                                      firstName: e.target.value,
+                                      display_name: e.target.value,
                                     })
                                   }
                                 />
                               </div>
                               <div className="grid gap-2">
-                                <label htmlFor="lastName">Last Name</label>
+                                <label htmlFor="bio">Bio</label>
                                 <Input
-                                  id="lastName"
-                                  value={editingUser.lastName}
+                                  id="bio"
+                                  value={editingUser.bio || ''}
                                   onChange={(e) =>
                                     setEditingUser({
                                       ...editingUser,
-                                      lastName: e.target.value,
-                                    })
-                                  }
-                                />
-                              </div>
-                              <div className="grid gap-2">
-                                <label htmlFor="email">Email</label>
-                                <Input
-                                  id="email"
-                                  type="email"
-                                  value={editingUser.email}
-                                  onChange={(e) =>
-                                    setEditingUser({
-                                      ...editingUser,
-                                      email: e.target.value,
+                                      bio: e.target.value,
                                     })
                                   }
                                 />

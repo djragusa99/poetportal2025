@@ -1,5 +1,5 @@
 import { db } from "@db";
-import { users, events, pointsOfInterest, resources, posts } from "@db/schema";
+import { users, events, pointsOfInterest, resources } from "@db/schema";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
@@ -129,70 +129,70 @@ export async function seed() {
         title: "Annual Poetry in the Park",
         description: "Join us for a day of poetry readings and workshops in Central Park.",
         location: "Central Park, New York City",
-        date: new Date("2024-05-15"),
+        date: new Date("2024-05-15").toISOString(),
         created_by: adminId
       },
       {
         title: "Poetry Slam Championship",
         description: "Watch poets compete in our annual poetry slam competition.",
         location: "Chicago Cultural Center",
-        date: new Date("2024-06-20"),
+        date: new Date("2024-06-20").toISOString(),
         created_by: adminId
       },
       {
         title: "Verses & Vintages",
         description: "An evening of wine tasting and poetry reading.",
         location: "Napa Valley Vineyard",
-        date: new Date("2024-07-10"),
+        date: new Date("2024-07-10").toISOString(),
         created_by: adminId
       },
       {
         title: "Haiku Workshop",
         description: "Learn the art of writing haikus with master poets.",
         location: "Seattle Public Library",
-        date: new Date("2024-08-05"),
+        date: new Date("2024-08-05").toISOString(),
         created_by: adminId
       },
       {
         title: "Poetry & Jazz Festival",
         description: "Experience the fusion of poetry and jazz music.",
         location: "New Orleans Jazz Museum",
-        date: new Date("2024-09-15"),
+        date: new Date("2024-09-15").toISOString(),
         created_by: adminId
       },
       {
         title: "Spoken Word Night",
         description: "An evening dedicated to spoken word performances.",
         location: "The Poetry Cafe, London",
-        date: new Date("2024-10-01"),
+        date: new Date("2024-10-01").toISOString(),
         created_by: adminId
       },
       {
         title: "Children's Poetry Workshop",
         description: "Interactive poetry workshop for young aspiring poets.",
         location: "Boston Children's Museum",
-        date: new Date("2024-11-12"),
+        date: new Date("2024-11-12").toISOString(),
         created_by: adminId
       },
       {
         title: "Poetry & Nature Retreat",
         description: "A weekend retreat combining poetry and nature appreciation.",
         location: "Yosemite National Park",
-        date: new Date("2024-12-05"),
+        date: new Date("2024-12-05").toISOString(),
         created_by: adminId
       },
       {
         title: "Digital Poetry Exhibition",
         description: "Exploring the intersection of poetry and technology.",
         location: "San Francisco Museum of Modern Art",
-        date: new Date("2025-01-20"),
+        date: new Date("2025-01-20").toISOString(),
         created_by: adminId
       },
       {
         title: "International Poetry Festival",
         description: "Celebrating diverse poetic traditions from around the world.",
         location: "Edinburgh International Book Festival",
-        date: new Date("2025-02-15"),
+        date: new Date("2025-02-15").toISOString(),
         created_by: adminId
       }
     ];
