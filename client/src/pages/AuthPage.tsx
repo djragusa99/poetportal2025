@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,17 +14,23 @@ export default function AuthPage() {
     display_name: ""
   });
 
+  const { toast } = useToast();
   const { login, register } = useUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLogin) {
-      await login({
-        username: formData.username,
-        password: formData.password,
+    try {
+      if (isLogin) {
+        await login(formData);
+      } else {
+        await register(formData);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
-    } else {
-      await register(formData);
     }
   };
 

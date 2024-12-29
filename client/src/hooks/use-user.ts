@@ -37,10 +37,12 @@ async function login(data: LoginData): Promise<User> {
   });
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    const errorText = await response.text();
+    throw new Error(errorText);
   }
 
-  return response.json();
+  const result = await response.json();
+  return result.user;
 }
 
 async function register(data: LoginData): Promise<User> {
@@ -52,10 +54,12 @@ async function register(data: LoginData): Promise<User> {
   });
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    const errorText = await response.text();
+    throw new Error(errorText);
   }
 
-  return response.json();
+  const result = await response.json();
+  return result.user;
 }
 
 async function logout(): Promise<void> {

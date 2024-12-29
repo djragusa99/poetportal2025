@@ -46,14 +46,20 @@ export function setupAuth(app: Express) {
       const { username, password, display_name } = req.body;
 
       if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+        return res.status(400).json({ 
+          ok: false,
+          message: "Username and password are required" 
+        });
       }
 
       // Check if user exists
       const existingUser = await db.select().from(users).where(eq(users.username, username)).limit(1);
 
       if (existingUser.length > 0) {
-        return res.status(400).json({ message: "Username already exists" });
+        return res.status(400).json({ 
+          ok: false,
+          message: "Username already exists" 
+        });
       }
 
       // Create new user
@@ -62,7 +68,7 @@ export function setupAuth(app: Express) {
         .values({
           username,
           password: hashedPassword,
-          display_name: display_name || null
+          display_name: display_name || username
         })
         .returning();
 
@@ -70,13 +76,19 @@ export function setupAuth(app: Express) {
       (req.session as any).userId = user.id;
 
       res.json({
-        id: user.id,
-        username: user.username,
-        display_name: user.display_name
+        ok: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          display_name: user.display_name
+        }
       });
     } catch (error) {
       console.error("Registration error:", error);
-      res.status(500).json({ message: "Failed to register" });
+      res.status(500).json({ 
+        ok: false,
+        message: "Failed to register" 
+      });
     }
   });
 
@@ -86,29 +98,45 @@ export function setupAuth(app: Express) {
       const { username, password } = req.body;
 
       if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+        return res.status(400).json({ 
+          ok: false,
+          message: "Username and password are required" 
+        });
       }
 
       const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
 
       if (!user) {
-        return res.status(401).json({ message: "Invalid username or password" });
+        return res.status(401).json({ 
+          ok: false,
+          message: "Invalid username or password" 
+        });
       }
 
       const isValid = await verifyPassword(password, user.password);
       if (!isValid) {
-        return res.status(401).json({ message: "Invalid username or password" });
+        return res.status(401).json({ 
+          ok: false,
+          message: "Invalid username or password" 
+        });
       }
 
       (req.session as any).userId = user.id;
+
       res.json({
-        id: user.id,
-        username: user.username,
-        display_name: user.display_name
+        ok: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          display_name: user.display_name
+        }
       });
     } catch (error) {
       console.error("Login error:", error);
-      res.status(500).json({ message: "Failed to login" });
+      res.status(500).json({ 
+        ok: false,
+        message: "Failed to login" 
+      });
     }
   });
 
@@ -117,23 +145,35 @@ export function setupAuth(app: Express) {
     try {
       const userId = (req.session as any).userId;
       if (!userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+        return res.status(401).json({ 
+          ok: false,
+          message: "Not authenticated" 
+        });
       }
 
       const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
 
       if (!user) {
-        return res.status(401).json({ message: "User not found" });
+        return res.status(401).json({ 
+          ok: false,
+          message: "User not found" 
+        });
       }
 
       res.json({
-        id: user.id,
-        username: user.username,
-        display_name: user.display_name
+        ok: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          display_name: user.display_name
+        }
       });
     } catch (error) {
       console.error("Get user error:", error);
-      res.status(500).json({ message: "Failed to get user info" });
+      res.status(500).json({ 
+        ok: false,
+        message: "Failed to get user info" 
+      });
     }
   });
 
@@ -142,9 +182,15 @@ export function setupAuth(app: Express) {
     req.session.destroy((err) => {
       if (err) {
         console.error("Logout error:", err);
-        return res.status(500).json({ message: "Failed to logout" });
+        return res.status(500).json({ 
+          ok: false,
+          message: "Failed to logout" 
+        });
       }
-      res.json({ message: "Logged out successfully" });
+      res.json({ 
+        ok: true,
+        message: "Logged out successfully" 
+      });
     });
   });
 }

@@ -3,29 +3,30 @@ import { useQuery } from "@tanstack/react-query";
 import { Post, Event } from "@db/schema";
 import CreatePost from "../components/CreatePost";
 import PostCard from "../components/PostCard";
-import EventCard from "../components/EventCard";
-import api from "../lib/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import UserProfile from "../components/UserProfile";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export default function Home() {
   const { user } = useUser();
-  const { data: posts = [] } = useQuery<Post[]>({
+  const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: ["/api/posts"],
-    queryFn: api.posts.list,
+    enabled: !!user, // Only fetch posts if user is logged in
   });
 
-  const { data: events = [] } = useQuery<Event[]>({
+  const { data: events = [], isLoading: isLoadingEvents } = useQuery<Event[]>({
     queryKey: ["/api/events"],
-    queryFn: () => api.events.list(),
     enabled: !!user, // Only fetch events if user is logged in
   });
 
+  if (!user) {
+    return null; // Let the App component handle the unauthenticated state
+  }
+
+  const displayName = user.display_name || user.username;
+  const avatarFallback = displayName.charAt(0).toUpperCase();
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-4">
       {/* Left Sidebar - Events */}
       <div className="md:col-span-3">
         <Card>
@@ -33,9 +34,14 @@ export default function Home() {
             <CardTitle className="text-base">Upcoming Events</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {Array.isArray(events) && events.length > 0 ? (
+            {isLoadingEvents ? (
+              <p className="text-sm text-muted-foreground">Loading events...</p>
+            ) : events && events.length > 0 ? (
               events.slice(0, 3).map((event) => (
-                <EventCard key={event.id} event={event} />
+                <div key={event.id} className="text-sm">
+                  <h3 className="font-medium">{event.title}</h3>
+                  <p className="text-muted-foreground">{event.description}</p>
+                </div>
               ))
             ) : (
               <p className="text-sm text-muted-foreground">No upcoming events</p>
@@ -47,51 +53,34 @@ export default function Home() {
       {/* Main Content - Feed */}
       <div className="md:col-span-6 space-y-6">
         <CreatePost user={user} />
-        {posts.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
+        {isLoadingPosts ? (
+          <p className="text-center text-muted-foreground">Loading posts...</p>
+        ) : posts && posts.length > 0 ? (
+          posts.map((post) => (
+            <PostCard key={post.id} post={post} />
+          ))
+        ) : (
+          <Card>
+            <CardContent className="p-6 text-center text-muted-foreground">
+              No posts yet. Be the first to share something!
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Right Sidebar - User Profile */}
       <div className="md:col-span-3">
-        <Dialog>
-          <DialogTrigger asChild>
-            <Card className="sticky top-20 hover:bg-accent/50 cursor-pointer transition-colors">
-              <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={user?.avatar} />
-                  <AvatarFallback>
-                    {user?.firstName?.[0]}
-                    {user?.lastName?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <CardTitle className="text-lg">
-                    {user?.firstName} {user?.lastName}
-                  </CardTitle>
-                  <span className="text-sm text-muted-foreground">{user?.userType}</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {user?.location && (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <User className="mr-2 h-4 w-4" />
-                    {user.location}
-                  </div>
-                )}
-                {user?.bio && (
-                  <p className="text-sm text-muted-foreground">{user.bio}</p>
-                )}
-              </CardContent>
-            </Card>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Profile</DialogTitle>
-            </DialogHeader>
-            {user && <UserProfile user={user} />}
-          </DialogContent>
-        </Dialog>
+        <Card className="sticky top-4">
+          <CardHeader className="flex flex-row items-center gap-4 space-y-0">
+            <Avatar className="h-12 w-12">
+              <AvatarFallback>{avatarFallback}</AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col">
+              <CardTitle className="text-lg">{displayName}</CardTitle>
+              <span className="text-sm text-muted-foreground">@{user.username}</span>
+            </div>
+          </CardHeader>
+        </Card>
       </div>
     </div>
   );

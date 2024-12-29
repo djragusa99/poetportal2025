@@ -9,12 +9,8 @@ import Navigation from "./components/Navigation";
 import AuthPage from "./pages/AuthPage";
 import Home from "./pages/Home";
 import Events from "./pages/Events";
-import PointsOfInterest from "./pages/PointsOfInterest";
 import Resources from "./pages/Resources";
-import Organizations from "./pages/Organizations";
-import AdminDashboard from "./pages/AdminDashboard";
 import { useState, useEffect } from "react";
-import Splash from "./components/Splash";
 
 function App() {
   const { user, isLoading } = useUser();
@@ -31,7 +27,11 @@ function App() {
   }, [isLoading]);
 
   if (showSplash) {
-    return <Splash onComplete={() => setShowSplash(false)} />;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <h1 className="text-4xl font-bold">PoetPortal</h1>
+      </div>
+    );
   }
 
   if (isLoading) {
@@ -53,10 +53,7 @@ function App() {
         <Switch>
           <Route path="/" component={Home} />
           <Route path="/events" component={Events} />
-          <Route path="/points-of-interest" component={PointsOfInterest} />
           <Route path="/resources" component={Resources} />
-          <Route path="/organizations" component={Organizations} />
-          <Route path="/admin" component={AdminDashboard} />
         </Switch>
       </main>
       <Toaster />
