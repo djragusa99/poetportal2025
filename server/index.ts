@@ -87,28 +87,37 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    if (app.get("env") === "development") {
-      // Clear existing data and seed the database in development
-      try {
-        await db.execute(sql`
-          TRUNCATE users, posts, comments, follows, likes, events, resources, points_of_interest CASCADE;
-          ALTER SEQUENCE users_id_seq RESTART WITH 1;
-          ALTER SEQUENCE posts_id_seq RESTART WITH 1;
-          ALTER SEQUENCE comments_id_seq RESTART WITH 1;
-          ALTER SEQUENCE follows_id_seq RESTART WITH 1;
-          ALTER SEQUENCE likes_id_seq RESTART WITH 1;
-          ALTER SEQUENCE events_id_seq RESTART WITH 1;
-          ALTER SEQUENCE resources_id_seq RESTART WITH 1;
-          ALTER SEQUENCE points_of_interest_id_seq RESTART WITH 1;
-        `);
-        log("🗑️ Cleared existing data");
+    // Verify database connection first
+    try {
+      await db.execute(sql`SELECT 1`);
+      log("✓ Database connection verified");
+    } catch (error) {
+      console.error("Failed to connect to database:", error);
+      process.exit(1);
+    }
 
-        // Always seed in development
-        process.env.SEED_DB = 'true';
-        await seed();
-        log("🌱 Database seeded successfully");
+    if (app.get("env") === "development") {
+      // Only seed if the tables are empty
+      try {
+        const result = await db.execute<{ exists: boolean }>(sql`
+          SELECT EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = 'users'
+          );
+        `);
+
+        const exists = result[0]?.exists;
+
+        if (!exists) {
+          log("🌱 Starting database seeding...");
+          await seed();
+          log("✅ Database seeded successfully");
+        } else {
+          log("ℹ️ Database tables already exist, skipping seed");
+        }
       } catch (error) {
-        console.error("Failed to seed database:", error);
+        console.error("Failed to check database state or seed:", error);
         // Continue with application startup even if seeding fails
       }
     }
