@@ -5,6 +5,7 @@ import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
+import MemoryStore from "memorystore";
 
 const scryptAsync = promisify(scrypt);
 
@@ -21,13 +22,18 @@ async function verifyPassword(password: string, hashedPassword: string) {
 }
 
 export function setupAuth(app: Express) {
+  const SessionStore = MemoryStore(session);
+
   app.use(
     session({
-      secret: "dev-secret-key",
+      secret: "your-secret-key",
       resave: false,
       saveUninitialized: false,
+      store: new SessionStore({
+        checkPeriod: 86400000 // prune expired entries every 24h
+      }),
       cookie: {
-        secure: false,
+        secure: process.env.NODE_ENV === "production",
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       }
@@ -44,11 +50,9 @@ export function setupAuth(app: Express) {
       }
 
       // Check if user exists
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.username, username),
-      });
+      const existingUser = await db.select().from(users).where(eq(users.username, username)).limit(1);
 
-      if (existingUser) {
+      if (existingUser.length > 0) {
         return res.status(400).json({ message: "Username already exists" });
       }
 
@@ -58,7 +62,7 @@ export function setupAuth(app: Express) {
         .values({
           username,
           password: hashedPassword,
-          display_name
+          display_name: display_name || null
         })
         .returning();
 
@@ -85,9 +89,7 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Username and password are required" });
       }
 
-      const user = await db.query.users.findFirst({
-        where: eq(users.username, username),
-      });
+      const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
 
       if (!user) {
         return res.status(401).json({ message: "Invalid username or password" });
@@ -118,9 +120,7 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, userId),
-      });
+      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
 
       if (!user) {
         return res.status(401).json({ message: "User not found" });

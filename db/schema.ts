@@ -20,3 +20,10 @@ export const selectUserSchema = createSelectSchema(users);
 
 export type InsertUser = typeof users.$inferInsert;
 export type SelectUser = typeof users.$inferSelect;
+
+// Add relations configuration
+export const relations = {
+  users: {
+    // Add relations here when needed
+  },
+};
