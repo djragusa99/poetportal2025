@@ -1,6 +1,6 @@
 import { pgTable, text, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
-import { relations, sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -8,11 +8,11 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
-  pronouns: text("pronouns"),
-  bio: text("bio"),
   email: text("email").notNull(),
   location: text("location").notNull(),
   userType: text("user_type").notNull(),
+  pronouns: text("pronouns"),
+  bio: text("bio"),
   avatar: text("avatar"),
   suspended: boolean("suspended").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -24,40 +24,6 @@ export const follows = pgTable("follows", {
   followedId: integer("followed_id").references(() => users.id).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
-
-export const usersFollowsRelations = relations(users, ({ many }) => ({
-  followedBy: many(follows),
-  following: many(follows),
-}));
-
-export const followsRelations = relations(follows, ({ one }) => ({
-  follower: one(users, {
-    fields: [follows.followerId],
-    references: [users.id],
-  }),
-  followed: one(users, {
-    fields: [follows.followedId],
-    references: [users.id],
-  }),
-}));
-
-export const events = pgTable("events", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  date: timestamp("date").notNull(),
-  location: text("location").notNull(),
-  organizerId: integer("organizer_id").references(() => users.id).notNull(),
-  type: text("type").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const eventsRelations = relations(events, ({ one }) => ({
-  organizer: one(users, {
-    fields: [events.organizerId],
-    references: [users.id],
-  }),
-}));
 
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
@@ -78,10 +44,65 @@ export const comments = pgTable("comments", {
 export const likes = pgTable("likes", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  targetType: text("target_type").notNull(), // 'post' or 'comment'
+  targetType: text("target_type").notNull(),
   targetId: integer("target_id").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
+
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  date: timestamp("date").notNull(),
+  location: text("location").notNull(),
+  organizerId: integer("organizer_id").references(() => users.id).notNull(),
+  type: text("type").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const pointsOfInterest = pgTable("points_of_interest", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  location: text("location").notNull(),
+  type: text("type").notNull(),
+  url: text("url").notNull(),
+  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const resources = pgTable("resources", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  type: text("type").notNull(),
+  url: text("url").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  posts: many(posts),
+  comments: many(comments),
+  likes: many(likes),
+  followedBy: many(follows, { relationName: "followed" }),
+  following: many(follows, { relationName: "follower" }),
+  organizedEvents: many(events),
+  createdPointsOfInterest: many(pointsOfInterest),
+}));
+
+export const followsRelations = relations(follows, ({ one }) => ({
+  follower: one(users, {
+    fields: [follows.followerId],
+    references: [users.id],
+    relationName: "follower",
+  }),
+  followed: one(users, {
+    fields: [follows.followedId],
+    references: [users.id],
+    relationName: "followed",
+  }),
+}));
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
   user: one(users, {
@@ -89,6 +110,7 @@ export const postsRelations = relations(posts, ({ one, many }) => ({
     references: [users.id],
   }),
   comments: many(comments),
+  likes: many(likes),
 }));
 
 export const commentsRelations = relations(comments, ({ one, many }) => ({
@@ -105,27 +127,15 @@ export const commentsRelations = relations(comments, ({ one, many }) => ({
     references: [comments.id],
     relationName: "parent",
   }),
-  childComments: many(comments, {
-    relationName: "parent",
-  }),
+  childComments: many(comments, { relationName: "parent" }),
 }));
 
-export const likesRelations = relations(likes, ({ one }) => ({
-  user: one(users, {
-    fields: [likes.userId],
+export const eventsRelations = relations(events, ({ one }) => ({
+  organizer: one(users, {
+    fields: [events.organizerId],
     references: [users.id],
   }),
 }));
-
-export const pointsOfInterest = pgTable("points_of_interest", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description").notNull(),
-  location: text("location").notNull(),
-  type: text("type").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-  createdById: integer("created_by_id").references(() => users.id).notNull(),
-});
 
 export const pointsOfInterestRelations = relations(pointsOfInterest, ({ one }) => ({
   createdBy: one(users, {
@@ -134,15 +144,7 @@ export const pointsOfInterestRelations = relations(pointsOfInterest, ({ one }) =
   }),
 }));
 
-export const resources = pgTable("resources", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  type: text("type").notNull(),
-  url: text("url").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
+// Schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertEventSchema = createInsertSchema(events);
@@ -152,6 +154,7 @@ export const selectPointOfInterestSchema = createSelectSchema(pointsOfInterest);
 export const insertResourceSchema = createInsertSchema(resources);
 export const selectResourceSchema = createSelectSchema(resources);
 
+// Types
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Post = typeof posts.$inferSelect;

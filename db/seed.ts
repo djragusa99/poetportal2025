@@ -20,8 +20,43 @@ export async function seed() {
     await db.select().from(users).limit(1);
     console.log("✓ Database connection verified");
 
-    // Create users (famous deceased poets)
-    console.log("Creating users...");
+    // Create my test account first
+    const testUsers = [
+      {
+        username: "DamonRagusa",
+        password: await hashPassword("password123"),
+        first_name: "Damon",
+        last_name: "Ragusa",
+        email: "djragusa@gmail.com",
+        location: "Cincinnati, OH",
+        user_type: "User",
+        bio: "I love me some poetry!",
+        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=damonragusa",
+        suspended: false,
+        created_at: new Date(),
+      }
+    ];
+
+    // Create test user account
+    const createdTestUsers = [];
+    for (const user of testUsers) {
+      try {
+        const [created] = await db.insert(users).values(user).returning();
+        createdTestUsers.push(created);
+        console.log(`✓ Created test user: ${user.username}`);
+      } catch (error: any) {
+        if (error.code === '23505') { // Unique constraint violation
+          console.log(`User ${user.username} already exists, skipping...`);
+          const [existing] = await db.select().from(users).where(eq(users.username, user.username));
+          createdTestUsers.push(existing);
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    // Create poet users
+    console.log("Creating poet users...");
     const poetUsers = [
       {
         username: "emilyd",
@@ -165,22 +200,25 @@ export async function seed() {
       },
     ];
 
-    const createdUsers = [];
+    const createdPoetUsers = [];
     for (const user of poetUsers) {
       try {
         const [created] = await db.insert(users).values(user).returning();
-        createdUsers.push(created);
+        createdPoetUsers.push(created);
         console.log(`✓ Created user: ${user.username}`);
       } catch (error: any) {
         if (error.code === '23505') { // Unique constraint violation
           console.log(`User ${user.username} already exists, skipping...`);
           const [existing] = await db.select().from(users).where(eq(users.username, user.username));
-          createdUsers.push(existing);
+          createdPoetUsers.push(existing);
         } else {
           throw error;
         }
       }
     }
+
+    // Combine all users for reference in other seed data
+    const allUsers = [...createdTestUsers, ...createdPoetUsers];
 
     // Create events
     console.log("Creating events...");
@@ -190,7 +228,7 @@ export async function seed() {
         description: "A month-long celebration of poetry featuring workshops, readings, and performances.",
         date: new Date("2024-04-01"),
         location: "Various locations across USA",
-        organizer_id: createdUsers[0].id,
+        organizer_id: allUsers[0].id,
         type: "Festival",
         created_at: new Date(),
       },
@@ -199,7 +237,7 @@ export async function seed() {
         description: "Annual celebration of Robert Frost's poetry in his beloved New England.",
         date: new Date("2024-07-15"),
         location: "Derry, New Hampshire",
-        organizer_id: createdUsers[2].id,
+        organizer_id: allUsers[2].id,
         type: "Festival",
         created_at: new Date(),
       },
@@ -208,7 +246,7 @@ export async function seed() {
         description: "A gathering of poets and scholars discussing the impact of Neruda's work.",
         date: new Date("2024-09-23"),
         location: "Santiago, Chile",
-        organizer_id: createdUsers[6].id,
+        organizer_id: allUsers[6].id,
         type: "Conference",
         created_at: new Date(),
       },
@@ -217,7 +255,7 @@ export async function seed() {
         description: "Contemporary poets perform and discuss the influence of Beat Generation poetry.",
         date: new Date("2024-06-05"),
         location: "San Francisco, CA",
-        organizer_id: createdUsers[1].id,
+        organizer_id: allUsers[1].id,
         type: "Performance",
         created_at: new Date(),
       },
@@ -226,7 +264,7 @@ export async function seed() {
         description: "Celebrating the poetic legacy of the Harlem Renaissance.",
         date: new Date("2024-05-20"),
         location: "Harlem, New York",
-        organizer_id: createdUsers[3].id,
+        organizer_id: allUsers[3].id,
         type: "Festival",
         created_at: new Date(),
       },
@@ -235,7 +273,7 @@ export async function seed() {
         description: "24-hour reading of Emily Dickinson's complete works.",
         date: new Date("2024-08-10"),
         location: "Amherst, Massachusetts",
-        organizer_id: createdUsers[0].id,
+        organizer_id: allUsers[0].id,
         type: "Reading",
         created_at: new Date(),
       },
@@ -244,7 +282,7 @@ export async function seed() {
         description: "Celebrating the contributions of women to poetry throughout history.",
         date: new Date("2024-03-08"),
         location: "London, UK",
-        organizer_id: createdUsers[7].id,
+        organizer_id: allUsers[7].id,
         type: "Conference",
         created_at: new Date(),
       },
@@ -253,7 +291,7 @@ export async function seed() {
         description: "Exploring poetry across languages and cultures.",
         date: new Date("2024-10-15"),
         location: "Paris, France",
-        organizer_id: createdUsers[6].id,
+        organizer_id: allUsers[6].id,
         type: "Festival",
         created_at: new Date(),
       },
@@ -262,7 +300,7 @@ export async function seed() {
         description: "Annual competition featuring the best spoken word artists.",
         date: new Date("2024-11-01"),
         location: "Chicago, IL",
-        organizer_id: createdUsers[3].id,
+        organizer_id: allUsers[3].id,
         type: "Competition",
         created_at: new Date(),
       },
@@ -271,7 +309,7 @@ export async function seed() {
         description: "Exploring the intersection of poetry and technology.",
         date: new Date("2024-12-05"),
         location: "Berlin, Germany",
-        organizer_id: createdUsers[5].id,
+        organizer_id: allUsers[5].id,
         type: "Conference",
         created_at: new Date(),
       },
@@ -288,7 +326,7 @@ export async function seed() {
         description: "The poet's home and gardens, offering tours and educational programs.",
         type: "Museum",
         location: "280 Main St, Amherst, MA",
-        created_by_id: createdUsers[0].id,
+        created_by_id: allUsers[0].id,
         url: "https://www.emilydickinsonmuseum.org/",
         created_at: new Date(),
       },
@@ -297,7 +335,7 @@ export async function seed() {
         description: "Preserved birthplace of Walt Whitman with exhibits and programs.",
         type: "Historic Site",
         location: "246 Old Walt Whitman Rd, Huntington Station, NY",
-        created_by_id: createdUsers[1].id,
+        created_by_id: allUsers[1].id,
         url: "https://www.waltwhitman.org/",
         created_at: new Date(),
       },
@@ -306,7 +344,7 @@ export async function seed() {
         description: "Historic home where Frost wrote some of his most famous poems.",
         type: "Museum",
         location: "121 Historic Route 7A, Shaftsbury, VT",
-        created_by_id: createdUsers[2].id,
+        created_by_id: allUsers[2].id,
         url: "https://www.bennington.edu/robert-frost-stone-house-museum",
         created_at: new Date(),
       },
@@ -315,7 +353,7 @@ export async function seed() {
         description: "Historic brownstone where Hughes spent the last 20 years of his life.",
         type: "Historic Site",
         location: "20 East 127th Street, New York, NY",
-        created_by_id: createdUsers[3].id,
+        created_by_id: allUsers[3].id,
         url: "https://www.nycgo.com/attractions/langston-hughes-house",
         created_at: new Date(),
       },
@@ -324,7 +362,7 @@ export async function seed() {
         description: "Modern building housing the Poetry Foundation and Poetry magazine.",
         type: "Cultural Center",
         location: "61 West Superior Street, Chicago, IL",
-        created_by_id: createdUsers[4].id,
+        created_by_id: allUsers[4].id,
         url: "https://www.poetryfoundation.org/",
         created_at: new Date(),
       },
@@ -333,7 +371,7 @@ export async function seed() {
         description: "Site of Blake's only surviving London home.",
         type: "Historic Site",
         location: "17 South Molton Street, London, UK",
-        created_by_id: createdUsers[5].id,
+        created_by_id: allUsers[5].id,
         url: "https://www.english-heritage.org.uk/",
         created_at: new Date(),
       },
@@ -342,7 +380,7 @@ export async function seed() {
         description: "One of Neruda's three houses in Chile, with stunning views of Valparaíso.",
         type: "Museum",
         location: "Ricardo de Ferrari 692, Valparaíso, Chile",
-        created_by_id: createdUsers[6].id,
+        created_by_id: allUsers[6].id,
         url: "https://fundacionneruda.org/en/museums/la-sebastiana-museum-house/",
         created_at: new Date(),
       },
@@ -351,7 +389,7 @@ export async function seed() {
         description: "Final resting place of the poet in Heptonstall, Yorkshire.",
         type: "Memorial",
         location: "St Thomas a Becket churchyard, Heptonstall, UK",
-        created_by_id: createdUsers[7].id,
+        created_by_id: allUsers[7].id,
         url: "https://www.visitcalderdale.com/",
         created_at: new Date(),
       },
@@ -360,7 +398,7 @@ export async function seed() {
         description: "Cultural center dedicated to the poet's life and work.",
         type: "Cultural Center",
         location: "Plaza de la Romanilla, Granada, Spain",
-        created_by_id: createdUsers[8].id,
+        created_by_id: allUsers[8].id,
         url: "https://www.huertadesanvicente.com/",
         created_at: new Date(),
       },
@@ -369,7 +407,7 @@ export async function seed() {
         description: "Historic bookstore and publisher founded by Lawrence Ferlinghetti.",
         type: "Bookstore",
         location: "261 Columbus Avenue, San Francisco, CA",
-        created_by_id: createdUsers[9].id,
+        created_by_id: allUsers[9].id,
         url: "https://citylights.com/",
         created_at: new Date(),
       },
