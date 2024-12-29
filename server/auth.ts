@@ -3,7 +3,7 @@ import session from "express-session";
 import { users } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-import { scrypt, randomBytes } from "crypto";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import MemoryStore from "memorystore";
 
@@ -17,16 +17,11 @@ declare module 'express-session' {
 
 const scryptAsync = promisify(scrypt);
 
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
-
-async function verifyPassword(password: string, hashedPassword: string) {
-  const [hash, salt] = hashedPassword.split(".");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return buf.toString("hex") === hash;
+async function verifyPassword(supplied: string, stored: string) {
+  const [hashedPassword, salt] = stored.split(".");
+  const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
+  const suppliedPasswordBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
 }
 
 export function setupAuth(app: Express) {
@@ -72,8 +67,14 @@ export function setupAuth(app: Express) {
         });
       }
 
-      // Verify password
-      const isValid = await verifyPassword(password, user.password);
+      // For development seeded accounts
+      let isValid = user.password === password;
+
+      // For hashed passwords
+      if (user.password.includes('.')) {
+        isValid = await verifyPassword(password, user.password);
+      }
+
       if (!isValid) {
         return res.status(401).json({ 
           message: "Invalid username or password" 
@@ -89,7 +90,8 @@ export function setupAuth(app: Express) {
           id: user.id,
           username: user.username,
           display_name: user.display_name,
-          is_admin: user.is_admin
+          is_admin: user.is_admin,
+          bio: user.bio
         }
       });
     } catch (error) {

@@ -7,8 +7,8 @@ import { eq } from "drizzle-orm";
 // Middleware to check if user is admin
 const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.session.userId) {
-      console.log("Admin check failed: No session");
+    if (!req.session.userId || !req.session.isAdmin) {
+      console.log("Admin check failed: No session or not admin");
       return res.status(401).json({ message: "Not authenticated" });
     }
 
@@ -146,6 +146,7 @@ export function registerRoutes(app: Express): Server {
 
       // Set session
       req.session.userId = user.id;
+      req.session.isAdmin = user.is_admin; //Added this line
 
       res.json({
         user: {

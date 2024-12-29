@@ -1,7 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
-import session from "express-session";
-import MemoryStore from "memorystore";
 import { registerRoutes } from "./routes";
+import { setupAuth } from "./auth";
 import { setupVite, serveStatic, log } from "./vite";
 import { db } from "@db";
 import { sql } from "drizzle-orm";
@@ -11,24 +10,6 @@ const app = express();
 // Basic middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// Setup session store
-const SessionStore = MemoryStore(session);
-app.use(
-  session({
-    secret: process.env.REPL_ID || "your-secret-key",
-    resave: false,
-    saveUninitialized: false,
-    store: new SessionStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
-    }),
-    cookie: {
-      secure: process.env.NODE_ENV === "production",
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
-  })
-);
 
 // Setup CORS
 app.use((req, res, next) => {
@@ -87,7 +68,10 @@ app.use((req, res, next) => {
       throw error;
     }
 
-    // Register routes (this includes auth routes)
+    // Setup authentication first
+    setupAuth(app);
+
+    // Then register routes
     const server = registerRoutes(app);
 
     // Setup error handling middleware
