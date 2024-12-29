@@ -47,6 +47,34 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.put("/api/admin/users/:id", isAdmin, async (req, res) => {
+    const userId = parseInt(req.params.id);
+    const { username, display_name } = req.body;
+
+    try {
+      const [updatedUser] = await db
+        .update(users)
+        .set({ 
+          username: username || undefined,
+          display_name: display_name || undefined
+        })
+        .where(eq(users.id, userId))
+        .returning();
+
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      res.json({
+        ...updatedUser,
+        password: undefined
+      });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
   app.post("/api/admin/users/:id/suspend", isAdmin, async (req, res) => {
     const userId = parseInt(req.params.id);
     const { suspended } = req.body;

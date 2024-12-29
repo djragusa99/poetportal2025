@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -10,10 +10,10 @@ export const users = pgTable("users", {
   display_name: text("display_name"),
   is_admin: boolean("is_admin").default(false).notNull(),
   is_suspended: boolean("is_suspended").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
 });
 
-// Schema validation
+// Schema validation with zod
 export const insertUserSchema = createInsertSchema(users, {
   username: z.string().min(3).max(50),
   password: z.string().min(6),
@@ -24,65 +24,9 @@ export const insertUserSchema = createInsertSchema(users, {
 
 export const selectUserSchema = createSelectSchema(users);
 
-// Posts table
-export const posts = pgTable("posts", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  content: text("content").notNull(),
-  userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// Comments table
-export const comments = pgTable("comments", {
-  id: serial("id").primaryKey(),
-  content: text("content").notNull(),
-  userId: integer("user_id").references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  postId: integer("post_id").references(() => posts.id, { onDelete: 'cascade' }).notNull(),
-  parentId: integer("parent_id").references(() => comments.id, { onDelete: 'cascade' }),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
 // Export types
+export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
-export type SelectUser = typeof users.$inferSelect;
-export type Post = typeof posts.$inferSelect;
-export type Comment = typeof comments.$inferSelect;
 
-// Relations configuration
-export const relations = {
-  users: {
-    posts: {
-      references: [users.id],
-      foreignKey: [posts.userId],
-    },
-    comments: {
-      references: [users.id],
-      foreignKey: [comments.userId],
-    },
-  },
-  posts: {
-    user: {
-      references: [users.id],
-      foreignKey: [posts.userId],
-    },
-    comments: {
-      references: [posts.id],
-      foreignKey: [comments.postId],
-    },
-  },
-  comments: {
-    user: {
-      references: [users.id],
-      foreignKey: [comments.userId],
-    },
-    post: {
-      references: [posts.id],
-      foreignKey: [comments.postId],
-    },
-    parent: {
-      references: [comments.id],
-      foreignKey: [comments.parentId],
-    },
-  },
-};
+// Relations (simplified to only include users)
+export const usersRelations = relations(users, ({ many }) => ({}));
