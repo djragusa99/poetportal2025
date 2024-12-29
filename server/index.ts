@@ -14,7 +14,7 @@ app.use(express.urlencoded({ extended: false }));
 // Setup CORS
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Credentials", "true");
-  if (req.headers.origin === "http://localhost:5000") {
+  if (req.headers.origin) {
     res.header("Access-Control-Allow-Origin", req.headers.origin);
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -83,23 +83,11 @@ app.use((req, res, next) => {
     });
 
     if (app.get("env") === "development") {
-      // Setup Vite before database operations
       await setupVite(app, server);
-
-      try {
-        // Import and run seed only in development
-        const { seed } = await import("../db/seed");
-        await seed();
-        log("✓ Database seeded successfully");
-      } catch (error) {
-        console.error("Failed to seed database:", error);
-        // Continue with application startup even if seeding fails
-      }
     } else {
       serveStatic(app);
     }
 
-    // ALWAYS serve the app on port 5000
     const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
       log(`✓ Server running on port ${PORT}`);

@@ -30,12 +30,12 @@ export function registerRoutes(app: Express): Server {
   setupAuth(app);
 
   // Admin routes
-  app.get("/api/admin/users", isAdmin, async (req, res) => {
+  app.get("/api/admin/users", isAdmin, async (_req, res) => {
     try {
       const allUsers = await db
         .select()
         .from(users)
-        .orderBy(users.createdAt);
+        .orderBy(users.created_at);
 
       res.json(allUsers.map(user => ({
         ...user,
@@ -93,7 +93,7 @@ export function registerRoutes(app: Express): Server {
       res.json({ message: "User suspension status updated" });
     } catch (error) {
       console.error("Error updating user suspension:", error);
-      res.status(500).json({ message: "Failed to update user" });
+      res.status(500).json({ message: "Failed to update user suspension status" });
     }
   });
 

@@ -31,5 +31,5 @@ export type InsertUser = typeof users.$inferInsert;
 
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
-  // Define relations here as needed
+  // Empty relations object since we're not implementing messaging
 }));

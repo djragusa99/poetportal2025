@@ -15,35 +15,14 @@ export async function seed() {
   console.log("🌱 Starting database seeding process...");
 
   try {
-    // Create test user
-    console.log("Creating test user...");
-    const testUser = {
-      username: "test",
-      password: await hashPassword("test123"),
-      display_name: "Test User"
-    };
-
-    try {
-      const [created] = await db
-        .insert(users)
-        .values(testUser)
-        .returning();
-      console.log(`✓ Created user: ${created.username}`);
-    } catch (error: any) {
-      if (error.code === '23505') { // Unique constraint violation
-        console.log(`User ${testUser.username} already exists, skipping...`);
-      } else {
-        throw error;
-      }
-    }
-
     // Create admin user
     console.log("Creating admin user...");
     const adminUser = {
       username: "admin",
       password: await hashPassword("admin123"),
       display_name: "Admin User",
-      is_admin: true
+      is_admin: true,
+      is_suspended: false
     };
 
     try {
@@ -60,6 +39,30 @@ export async function seed() {
       }
     }
 
+    // Create test user
+    console.log("Creating test user...");
+    const testUser = {
+      username: "test",
+      password: await hashPassword("test123"),
+      display_name: "Test User",
+      is_admin: false,
+      is_suspended: false
+    };
+
+    try {
+      const [created] = await db
+        .insert(users)
+        .values(testUser)
+        .returning();
+      console.log(`✓ Created test user: ${created.username}`);
+    } catch (error: any) {
+      if (error.code === '23505') { // Unique constraint violation
+        console.log(`User ${testUser.username} already exists, skipping...`);
+      } else {
+        throw error;
+      }
+    }
+
     console.log("✅ Database seeding completed successfully!");
   } catch (error) {
     console.error("Error during seeding:", error);
@@ -67,10 +70,8 @@ export async function seed() {
   }
 }
 
-// Only seed when this file is imported and used
-if (process.env.SEED_DB === 'true') {
-  seed().catch((error) => {
-    console.error("Error seeding database:", error);
-    process.exit(1);
-  });
-}
+// Run seeding
+seed().catch((error) => {
+  console.error("Error seeding database:", error);
+  process.exit(1);
+});
