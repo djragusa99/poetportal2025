@@ -25,11 +25,10 @@ export async function seed() {
       {
         username: "testuser",
         password: await hashPassword("testpass123"),
-      },
-      {
-        username: "demouser",
-        password: await hashPassword("demopass123"),
-      },
+        firstName: "Test",
+        lastName: "User",
+        email: "test@example.com",
+      }
     ];
 
     for (const user of testUsers) {

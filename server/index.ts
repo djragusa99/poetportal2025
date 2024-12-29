@@ -66,17 +66,10 @@ app.use((req, res, next) => {
 
     if (app.get("env") === "development") {
       try {
-        // Clear existing data and seed the database
+        // Clear only the users table
         await db.execute(sql`
-          TRUNCATE users, posts, comments, follows, likes, events, resources, points_of_interest CASCADE;
+          TRUNCATE users CASCADE;
           ALTER SEQUENCE users_id_seq RESTART WITH 1;
-          ALTER SEQUENCE posts_id_seq RESTART WITH 1;
-          ALTER SEQUENCE comments_id_seq RESTART WITH 1;
-          ALTER SEQUENCE follows_id_seq RESTART WITH 1;
-          ALTER SEQUENCE likes_id_seq RESTART WITH 1;
-          ALTER SEQUENCE events_id_seq RESTART WITH 1;
-          ALTER SEQUENCE resources_id_seq RESTART WITH 1;
-          ALTER SEQUENCE points_of_interest_id_seq RESTART WITH 1;
         `);
         log("🗑️ Cleared existing data");
 

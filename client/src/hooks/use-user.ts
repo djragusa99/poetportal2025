@@ -1,7 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { User } from "@db/schema";
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
+
+type User = {
+  id: number;
+  username: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  avatar?: string;
+};
 
 type LoginData = {
   username: string;
@@ -9,10 +17,6 @@ type LoginData = {
   firstName?: string;
   lastName?: string;
   email?: string;
-  location?: string;
-  userType?: string;
-  pronouns?: string;
-  bio?: string;
 };
 
 async function fetchUser(): Promise<User | null> {
@@ -24,7 +28,7 @@ async function fetchUser(): Promise<User | null> {
     if (response.status === 401) {
       return null;
     }
-    return null; 
+    throw new Error(await response.text());
   }
 
   return response.json();
@@ -39,8 +43,7 @@ async function login(data: LoginData): Promise<User> {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText);
+    throw new Error(await response.text());
   }
 
   return response.json();
@@ -78,16 +81,15 @@ export function useUser() {
   const [, setLocation] = useLocation();
 
   const { data: user, isLoading } = useQuery<User | null>({
-    queryKey: ['user'],
+    queryKey: ['/api/user'],
     queryFn: fetchUser,
-    staleTime: Infinity,
     retry: false,
   });
 
   const loginMutation = useMutation({
     mutationFn: login,
-    onSuccess: (data) => {
-      queryClient.setQueryData(['user'], data);
+    onSuccess: (user) => {
+      queryClient.setQueryData(['/api/user'], user);
       toast({
         title: "Success",
         description: "Logged in successfully",
@@ -104,8 +106,8 @@ export function useUser() {
 
   const registerMutation = useMutation({
     mutationFn: register,
-    onSuccess: (data) => {
-      queryClient.setQueryData(['user'], data);
+    onSuccess: (user) => {
+      queryClient.setQueryData(['/api/user'], user);
       toast({
         title: "Success",
         description: "Account created successfully",
@@ -123,7 +125,7 @@ export function useUser() {
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: () => {
-      queryClient.setQueryData(['user'], null);
+      queryClient.setQueryData(['/api/user'], null);
       toast({
         title: "Success",
         description: "Logged out successfully",
@@ -141,8 +143,8 @@ export function useUser() {
   return {
     user,
     isLoading,
-    login: loginMutation.mutateAsync,
-    logout: logoutMutation.mutateAsync,
-    register: registerMutation.mutateAsync,
+    login: loginMutation.mutate,
+    register: registerMutation.mutate,
+    logout: logoutMutation.mutate,
   };
 }

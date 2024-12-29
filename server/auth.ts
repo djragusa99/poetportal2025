@@ -7,9 +7,15 @@ import { eq } from "drizzle-orm";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
+// Extend express-session with our custom properties
+declare module "express-session" {
+  interface SessionData {
+    userId: number;
+  }
+}
+
 const scryptAsync = promisify(scrypt);
 
-// Simple password hashing
 async function hashPassword(password: string) {
   const salt = randomBytes(16).toString("hex");
   const buf = (await scryptAsync(password, salt, 64)) as Buffer;
@@ -23,18 +29,17 @@ async function verifyPassword(password: string, hashedPassword: string) {
 }
 
 export function setupAuth(app: Express) {
-  // Setup session middleware
   const MemoryStore = createMemoryStore(session);
   app.use(
     session({
-      secret: process.env.REPL_ID || "your-secret-key",
+      secret: process.env.REPL_ID || "dev-secret-key",
       resave: false,
       saveUninitialized: false,
       store: new MemoryStore({
         checkPeriod: 86400000 // prune expired entries every 24h
       }),
       cookie: {
-        secure: false, // set to true in production
+        secure: false,
         httpOnly: true,
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       }
@@ -44,7 +49,7 @@ export function setupAuth(app: Express) {
   // Register endpoint
   app.post("/api/register", async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const { username, password, firstName, lastName, email } = req.body;
 
       if (!username || !password) {
         return res.status(400).json({ message: "Username and password are required" });
@@ -66,15 +71,25 @@ export function setupAuth(app: Express) {
         .values({
           username,
           password: hashedPassword,
+          firstName,
+          lastName,
+          email,
         })
         .returning();
 
-      // Set user session
-      req.session.userId = user.id;
+      if (!user) {
+        return res.status(500).json({ message: "Failed to create user" });
+      }
 
-      res.json({ 
+      req.session.userId = user.id;
+      await req.session.save();
+
+      res.json({
         id: user.id,
-        username: user.username
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email
       });
     } catch (error) {
       console.error("Registration error:", error);
@@ -104,12 +119,15 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
-      // Set user session
       req.session.userId = user.id;
+      await req.session.save();
 
-      res.json({ 
+      res.json({
         id: user.id,
-        username: user.username
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -132,6 +150,7 @@ export function setupAuth(app: Express) {
   app.get("/api/user", async (req, res) => {
     try {
       const userId = req.session.userId;
+
       if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
@@ -144,9 +163,12 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "User not found" });
       }
 
-      res.json({ 
+      res.json({
         id: user.id,
-        username: user.username
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email
       });
     } catch (error) {
       console.error("Get user error:", error);
