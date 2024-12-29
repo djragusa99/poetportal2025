@@ -8,6 +8,7 @@ import { createServer } from "http";
 import { seed } from "../db/seed";
 import { db } from "@db";
 import { sql } from "drizzle-orm";
+import { users } from "@db/schema";
 
 const app = express();
 
@@ -88,28 +89,18 @@ app.use((req, res, next) => {
 (async () => {
   try {
     if (app.get("env") === "development") {
-      // Clear existing data and seed the database in development
-      try {
-        await db.execute(sql`
-          TRUNCATE users, posts, comments, follows, likes, events, resources, points_of_interest CASCADE;
-          ALTER SEQUENCE users_id_seq RESTART WITH 1;
-          ALTER SEQUENCE posts_id_seq RESTART WITH 1;
-          ALTER SEQUENCE comments_id_seq RESTART WITH 1;
-          ALTER SEQUENCE follows_id_seq RESTART WITH 1;
-          ALTER SEQUENCE likes_id_seq RESTART WITH 1;
-          ALTER SEQUENCE events_id_seq RESTART WITH 1;
-          ALTER SEQUENCE resources_id_seq RESTART WITH 1;
-          ALTER SEQUENCE points_of_interest_id_seq RESTART WITH 1;
-        `);
-        log("🗑️ Cleared existing data");
+      // Only seed if the database is empty
+      const userCount = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(users);
 
-        // Always seed in development
+      if (userCount[0].count === 0) {
+        log("Database is empty, seeding initial data...");
         process.env.SEED_DB = 'true';
         await seed();
         log("🌱 Database seeded successfully");
-      } catch (error) {
-        console.error("Failed to seed database:", error);
-        // Continue with application startup even if seeding fails
+      } else {
+        log(`Database already contains ${userCount[0].count} users, skipping seed`);
       }
     }
 
