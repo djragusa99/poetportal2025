@@ -1,97 +1,145 @@
-import { useUser } from "../hooks/use-user";
-import { useQuery } from "@tanstack/react-query";
-import { Post, Event } from "@db/schema";
-import CreatePost from "../components/CreatePost";
-import PostCard from "../components/PostCard";
-import EventCard from "../components/EventCard";
-import api from "../lib/api";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import UserProfile from "../components/UserProfile";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Home() {
-  const { user } = useUser();
-  const { data: posts = [] } = useQuery<Post[]>({
-    queryKey: ["/api/posts"],
-    queryFn: api.posts.list,
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [newUser, setNewUser] = useState({
+    username: "",
+    displayName: "",
+    bio: "",
   });
 
-  const { data: events = [] } = useQuery<Event[]>({
-    queryKey: ["/api/events"],
-    queryFn: () => api.events.list(),
-    enabled: !!user, // Only fetch events if user is logged in
+  // Fetch all users
+  const { data: users = [] } = useQuery({
+    queryKey: ["/api/users"],
   });
+
+  // Fetch all posts
+  const { data: posts = [] } = useQuery({
+    queryKey: ["/api/posts"],
+  });
+
+  // Create user mutation
+  const createUser = useMutation({
+    mutationFn: async (userData: typeof newUser) => {
+      const response = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(userData),
+      });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({
+        title: "Success",
+        description: "User created successfully!",
+      });
+      setNewUser({ username: "", displayName: "", bio: "" });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createUser.mutate(newUser);
+  };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-      {/* Left Sidebar - Events */}
-      <div className="md:col-span-3">
+    <div className="container mx-auto p-4 max-w-4xl">
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Create New User</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Input
+                placeholder="Username"
+                value={newUser.username}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, username: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Input
+                placeholder="Display Name"
+                value={newUser.displayName}
+                onChange={(e) =>
+                  setNewUser({ ...newUser, displayName: e.target.value })
+                }
+              />
+            </div>
+            <div>
+              <Input
+                placeholder="Bio"
+                value={newUser.bio}
+                onChange={(e) => setNewUser({ ...newUser, bio: e.target.value })}
+              />
+            </div>
+            <Button type="submit" disabled={createUser.isPending}>
+              Create User
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Users List */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Upcoming Events</CardTitle>
+            <CardTitle>Users</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {Array.isArray(events) && events.length > 0 ? (
-              events.slice(0, 3).map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">No upcoming events</p>
-            )}
+            {users.map((user: any) => (
+              <div
+                key={user.id}
+                className="p-4 border rounded-lg hover:bg-accent/50"
+              >
+                <h3 className="font-semibold">{user.displayName}</h3>
+                <p className="text-sm text-muted-foreground">@{user.username}</p>
+                {user.bio && (
+                  <p className="text-sm text-muted-foreground mt-2">{user.bio}</p>
+                )}
+              </div>
+            ))}
           </CardContent>
         </Card>
-      </div>
 
-      {/* Main Content - Feed */}
-      <div className="md:col-span-6 space-y-6">
-        <CreatePost user={user} />
-        {posts.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
-      </div>
-
-      {/* Right Sidebar - User Profile */}
-      <div className="md:col-span-3">
-        <Dialog>
-          <DialogTrigger asChild>
-            <Card className="sticky top-20 hover:bg-accent/50 cursor-pointer transition-colors">
-              <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={user?.avatar} />
-                  <AvatarFallback>
-                    {user?.firstName?.[0]}
-                    {user?.lastName?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <CardTitle className="text-lg">
-                    {user?.firstName} {user?.lastName}
-                  </CardTitle>
-                  <span className="text-sm text-muted-foreground">{user?.userType}</span>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {user?.location && (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <User className="mr-2 h-4 w-4" />
-                    {user.location}
-                  </div>
-                )}
-                {user?.bio && (
-                  <p className="text-sm text-muted-foreground">{user.bio}</p>
-                )}
-              </CardContent>
-            </Card>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Profile</DialogTitle>
-            </DialogHeader>
-            {user && <UserProfile user={user} />}
-          </DialogContent>
-        </Dialog>
+        {/* Posts List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Posts</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {posts.map((post: any) => (
+              <div
+                key={post.id}
+                className="p-4 border rounded-lg hover:bg-accent/50"
+              >
+                <p className="text-sm">{post.content}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  By User #{post.userId}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

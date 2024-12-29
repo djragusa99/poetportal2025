@@ -1,16 +1,6 @@
 import { db } from "@db";
 import { users, posts } from "@db/schema";
-import { scrypt, randomBytes } from "crypto";
-import { promisify } from "util";
 import { eq } from 'drizzle-orm';
-
-const scryptAsync = promisify(scrypt);
-
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
-}
 
 export async function seed() {
   console.log("🌱 Starting database seeding process...");
@@ -73,9 +63,7 @@ export async function seed() {
   }
 }
 
-export const hashPasswordForAuth = hashPassword;
-
-// Only seed when this file is imported and used
+// Run seeding if explicitly requested
 if (process.env.SEED_DB === 'true') {
   seed().catch((error) => {
     console.error("Error seeding database:", error);

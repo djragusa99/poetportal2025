@@ -1,62 +1,18 @@
-import { StrictMode } from "react";
 import { Switch, Route } from "wouter";
+import { Card, CardContent } from "@/components/ui/card";
+import { AlertCircle } from "lucide-react";
+import { Toaster } from "@/components/ui/toaster";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
-import { Toaster } from "@/components/ui/toaster";
-import { useUser } from "./hooks/use-user";
-import { Loader2 } from "lucide-react";
-import Navigation from "./components/Navigation";
-import AuthPage from "./pages/AuthPage";
 import Home from "./pages/Home";
-import Events from "./pages/Events";
-import PointsOfInterest from "./pages/PointsOfInterest";
-import Resources from "./pages/Resources";
-import Organizations from "./pages/Organizations";
-import AdminDashboard from "./pages/AdminDashboard";
-import { useState, useEffect } from "react";
-import Splash from "./components/Splash";
 
 function App() {
-  const { user, isLoading } = useUser();
-  const [showSplash, setShowSplash] = useState(true);
-
-  // Hide splash screen after delay
-  useEffect(() => {
-    if (!isLoading) {
-      const timer = setTimeout(() => {
-        setShowSplash(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading]);
-
-  if (showSplash) {
-    return <Splash onComplete={() => setShowSplash(false)} />;
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-border" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <AuthPage />;
-  }
-
   return (
     <div className="min-h-screen bg-background">
-      <Navigation />
       <main className="container mx-auto px-4 py-8">
         <Switch>
           <Route path="/" component={Home} />
-          <Route path="/events" component={Events} />
-          <Route path="/points-of-interest" component={PointsOfInterest} />
-          <Route path="/resources" component={Resources} />
-          <Route path="/organizations" component={Organizations} />
-          <Route path="/admin" component={AdminDashboard} />
+          <Route component={NotFound} />
         </Switch>
       </main>
       <Toaster />
@@ -64,12 +20,29 @@ function App() {
   );
 }
 
+// fallback 404 not found page
+function NotFound() {
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50">
+      <Card className="w-full max-w-md mx-4">
+        <CardContent className="pt-6">
+          <div className="flex mb-4 gap-2">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+            <h1 className="text-2xl font-bold text-gray-900">404 Page Not Found</h1>
+          </div>
+          <p className="mt-4 text-sm text-gray-600">
+            The page you're looking for doesn't exist.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function WrappedApp() {
   return (
-    <StrictMode>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <App />
+    </QueryClientProvider>
   );
 }
