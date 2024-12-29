@@ -34,6 +34,49 @@ export function setupAuth(app: Express) {
     })
   );
 
+  // Registration endpoint
+  app.post("/api/register", async (req, res) => {
+    try {
+      const { username, password, display_name } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
+      }
+
+      // Check if user exists
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.username, username),
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      // Create new user
+      const hashedPassword = await hashPassword(password);
+      const [user] = await db.insert(users)
+        .values({
+          username,
+          password: hashedPassword,
+          display_name
+        })
+        .returning();
+
+      // Set session
+      (req.session as any).userId = user.id;
+
+      res.json({
+        id: user.id,
+        username: user.username,
+        display_name: user.display_name
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Failed to register" });
+    }
+  });
+
+  // Login endpoint
   app.post("/api/login", async (req, res) => {
     try {
       const { username, password } = req.body;
@@ -42,11 +85,9 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Username and password are required" });
       }
 
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
+      const user = await db.query.users.findFirst({
+        where: eq(users.username, username),
+      });
 
       if (!user) {
         return res.status(401).json({ message: "Invalid username or password" });
@@ -60,7 +101,8 @@ export function setupAuth(app: Express) {
       (req.session as any).userId = user.id;
       res.json({
         id: user.id,
-        username: user.username
+        username: user.username,
+        display_name: user.display_name
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -68,44 +110,7 @@ export function setupAuth(app: Express) {
     }
   });
 
-  app.post("/api/register", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
-      const hashedPassword = await hashPassword(password);
-      const [user] = await db
-        .insert(users)
-        .values({
-          username,
-          password: hashedPassword,
-        })
-        .returning();
-
-      (req.session as any).userId = user.id;
-      res.json({
-        id: user.id,
-        username: user.username
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Failed to register" });
-    }
-  });
-
+  // Get current user endpoint
   app.get("/api/user", async (req, res) => {
     try {
       const userId = (req.session as any).userId;
@@ -113,11 +118,9 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, userId),
+      });
 
       if (!user) {
         return res.status(401).json({ message: "User not found" });
@@ -125,7 +128,8 @@ export function setupAuth(app: Express) {
 
       res.json({
         id: user.id,
-        username: user.username
+        username: user.username,
+        display_name: user.display_name
       });
     } catch (error) {
       console.error("Get user error:", error);
@@ -133,6 +137,7 @@ export function setupAuth(app: Express) {
     }
   });
 
+  // Logout endpoint
   app.post("/api/logout", (req, res) => {
     req.session.destroy((err) => {
       if (err) {

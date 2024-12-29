@@ -10,6 +10,7 @@ export default function AuthPage() {
   const [formData, setFormData] = useState({
     username: "",
     password: "",
+    display_name: ""
   });
 
   const { login, register } = useUser();
@@ -17,7 +18,10 @@ export default function AuthPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLogin) {
-      await login(formData);
+      await login({
+        username: formData.username,
+        password: formData.password,
+      });
     } else {
       await register(formData);
     }
@@ -54,6 +58,19 @@ export default function AuthPage() {
                 required
               />
             </div>
+
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="display_name">Display Name</Label>
+                <Input
+                  id="display_name"
+                  value={formData.display_name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, display_name: e.target.value })
+                  }
+                />
+              </div>
+            )}
 
             <Button type="submit" className="w-full">
               {isLogin ? "Login" : "Register"}

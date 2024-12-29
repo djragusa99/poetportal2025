@@ -4,11 +4,13 @@ import { useToast } from '@/hooks/use-toast';
 type User = {
   id: number;
   username: string;
+  display_name?: string;
 };
 
 type LoginData = {
   username: string;
   password: string;
+  display_name?: string;
 };
 
 async function fetchUser(): Promise<User | null> {

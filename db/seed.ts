@@ -15,18 +15,12 @@ export async function seed() {
   console.log("🌱 Starting database seeding process...");
 
   try {
-    // First verify database connection
-    await db.select().from(users).limit(1);
-    console.log("✓ Database connection verified");
-
     // Create test user
-    console.log("Creating users...");
+    console.log("Creating test user...");
     const testUser = {
-      username: "testuser",
-      password: await hashPassword("testpass123"),
-      firstName: "Test",
-      lastName: "User",
-      email: "test@example.com"
+      username: "test",
+      password: await hashPassword("test123"),
+      display_name: "Test User"
     };
 
     try {
