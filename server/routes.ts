@@ -3,11 +3,17 @@ import { createServer, type Server } from "http";
 import { db } from "@db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
-import { setupAuth } from "./auth";
 
 // Middleware to check if user is admin
 const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Log detailed session state for debugging
+    console.log("Admin check - Session state:", {
+      sessionID: req.sessionID,
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user
+    });
+
     if (!req.session || !req.isAuthenticated()) {
       console.log("Admin check failed - Not authenticated:", {
         session: !!req.session,
@@ -26,6 +32,22 @@ const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    // Verify user still exists and is admin in database
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
+
+    if (!dbUser || !dbUser.is_admin) {
+      console.log("Admin check failed - User not found or not admin in DB:", {
+        userId: user.id,
+        foundInDb: !!dbUser,
+        isAdminInDb: dbUser?.is_admin
+      });
+      return res.status(403).json({ message: "Not authorized" });
+    }
+
     console.log("Admin check passed:", {
       userId: user.id,
       username: user.username
@@ -38,9 +60,6 @@ const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 export function registerRoutes(app: Express): Server {
-  // Setup auth first
-  setupAuth(app);
-
   // Admin routes
   app.get("/api/admin/users", isAdmin, async (_req, res) => {
     try {

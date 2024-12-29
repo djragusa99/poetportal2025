@@ -89,7 +89,8 @@ export function useUser() {
     queryKey: ['/api/user'],
     queryFn: fetchUser,
     retry: false,
-    staleTime: Infinity,
+    staleTime: 30000, // Cache for 30 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   const loginMutation = useMutation({

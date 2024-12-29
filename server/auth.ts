@@ -45,15 +45,15 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Configure passport serialization
+  // Configure passport serialization with enhanced logging
   passport.serializeUser((user: Express.User, done) => {
-    console.log("Serializing user:", user.id);
+    console.log("Serializing user:", { id: user.id, username: user.username });
     done(null, user.id);
   });
 
   passport.deserializeUser(async (id: number, done) => {
     try {
-      console.log("Deserializing user:", id);
+      console.log("Deserializing user ID:", id);
       const [user] = await db
         .select()
         .from(users)
@@ -70,7 +70,7 @@ export function setupAuth(app: Express) {
         return done(null, false);
       }
 
-      console.log("User deserialized successfully:", user.id);
+      console.log("Successfully deserialized user:", { id: user.id, username: user.username });
       done(null, user);
     } catch (err) {
       console.error("Error during deserialization:", err);
@@ -78,11 +78,11 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Configure local strategy
+  // Configure local strategy with detailed logging
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
-        console.log("Attempting login for username:", username);
+        console.log("Login attempt for username:", username);
         const [user] = await db
           .select()
           .from(users)
@@ -90,22 +90,22 @@ export function setupAuth(app: Express) {
           .limit(1);
 
         if (!user) {
-          console.log("User not found");
+          console.log("Login failed: User not found");
           return done(null, false, { message: "Invalid username or password" });
         }
 
         const isValid = await verifyPassword(password, user.password);
         if (!isValid) {
-          console.log("Invalid password");
+          console.log("Login failed: Invalid password");
           return done(null, false, { message: "Invalid username or password" });
         }
 
         if (user.is_suspended) {
-          console.log("User is suspended");
+          console.log("Login failed: User is suspended");
           return done(null, false, { message: "Account is suspended" });
         }
 
-        console.log("Login successful for user:", user.id);
+        console.log("Login successful for user:", { id: user.id, username: user.username });
         return done(null, user);
       } catch (err) {
         console.error("Login error:", err);
@@ -114,7 +114,7 @@ export function setupAuth(app: Express) {
     })
   );
 
-  // Login endpoint with enhanced error handling
+  // Login endpoint with enhanced session handling
   app.post("/api/login", (req, res, next) => {
     console.log("Login request received:", req.body.username);
 
@@ -135,7 +135,7 @@ export function setupAuth(app: Express) {
           return next(err);
         }
 
-        console.log("User logged in successfully:", user.id);
+        console.log("User logged in successfully:", { id: user.id, username: user.username });
         return res.json({
           user: {
             id: user.id,
@@ -148,7 +148,7 @@ export function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  // Get current user endpoint with session verification
+  // Get current user endpoint with enhanced session checks
   app.get("/api/user", (req, res) => {
     console.log("User check request:", {
       isAuthenticated: req.isAuthenticated(),
