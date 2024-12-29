@@ -1,8 +1,7 @@
 import { db } from "@db";
-import { users, posts, comments, events, pointsOfInterest, resources, follows, likes } from "@db/schema";
+import { users } from "@db/schema";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
-import { eq } from 'drizzle-orm';
 
 const scryptAsync = promisify(scrypt);
 
@@ -20,35 +19,38 @@ export async function seed() {
     await db.select().from(users).limit(1);
     console.log("✓ Database connection verified");
 
-    // Create my test account first
+    // Create test accounts
     const testUsers = [
       {
-        username: "DamonRagusa",
-        password: await hashPassword("password123"),
-        first_name: "Damon",
-        last_name: "Ragusa",
-        email: "djragusa@gmail.com",
-        location: "Cincinnati, OH",
+        username: "testuser",
+        password: await hashPassword("testpass123"),
+        first_name: "Test",
+        last_name: "User",
+        email: "test@example.com",
+        location: "San Francisco, CA",
         user_type: "User",
-        bio: "I love me some poetry!",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=damonragusa",
-        suspended: false,
-        created_at: new Date(),
+        bio: "A test user account",
+      },
+      {
+        username: "admin",
+        password: await hashPassword("admin123"),
+        first_name: "Admin",
+        last_name: "User",
+        email: "admin@example.com",
+        location: "New York, NY",
+        user_type: "Admin",
+        bio: "An admin test account",
       }
     ];
 
-    // Create test user account
-    const createdTestUsers = [];
+    // Create test user accounts
     for (const user of testUsers) {
       try {
-        const [created] = await db.insert(users).values([user]).returning();
-        createdTestUsers.push(created);
+        await db.insert(users).values(user);
         console.log(`✓ Created test user: ${user.username}`);
       } catch (error: any) {
         if (error.code === '23505') { // Unique constraint violation
           console.log(`User ${user.username} already exists, skipping...`);
-          const [existing] = await db.select().from(users).where(eq(users.username, user.username));
-          createdTestUsers.push(existing);
         } else {
           throw error;
         }
@@ -62,7 +64,8 @@ export async function seed() {
   }
 }
 
-if (process.env.SEED_DB === 'true') {
+// Run seeding if called directly
+if (import.meta.url === new URL(import.meta.url).href) {
   seed().catch((error) => {
     console.error("Error seeding database:", error);
     process.exit(1);

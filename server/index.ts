@@ -7,28 +7,14 @@ import { sql } from "drizzle-orm";
 import { users } from "@db/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
+import { seed } from "../db/seed";
+import passport from "passport";
 
 const app = express();
 
 // Basic middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-
-// CORS configuration for development
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin === "http://localhost:5000") {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-  }
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-  next();
-});
 
 // Session configuration
 const MemoryStore = createMemoryStore(session);
@@ -51,8 +37,21 @@ app.use(
   })
 );
 
-// Setup authentication after session middleware
-setupAuth(app);
+// Initialize Passport and restore authentication state from session
+app.use(passport.initialize());
+app.use(passport.session());
+
+// CORS configuration for development
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -88,24 +87,31 @@ app.use((req, res, next) => {
 (async () => {
   try {
     // Check database connection and create tables if needed
+    await db.execute(sql`SELECT 1`);
+    log("✓ Database connection verified");
+
     const userCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(users);
 
     if (userCount[0].count === 0) {
-      log("Database is empty, setting up initial data...");
-      // You can add initial data setup here if needed
-      log("Initial setup complete");
+      log("Database is empty, seeding initial data...");
+      await seed();
+      log("🌱 Database seeded successfully");
     } else {
       log(`Database contains ${userCount[0].count} users`);
     }
 
+    // Setup authentication after database is ready
+    setupAuth(app);
+
     const server = registerRoutes(app);
 
+    // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+      console.error("Error:", err);
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
-      console.error("Error:", err);
       res.status(status).json({ message });
     });
 
@@ -115,7 +121,6 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
 
-    // ALWAYS serve the app on port 5000
     const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
       log(`serving on port ${PORT}`);
