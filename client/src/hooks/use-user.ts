@@ -16,7 +16,11 @@ type LoginData = {
 
 async function fetchUser(): Promise<User | null> {
   const response = await fetch('/api/user', {
-    credentials: 'include'
+    credentials: 'include',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    }
   });
 
   if (!response.ok) {
@@ -33,7 +37,10 @@ async function fetchUser(): Promise<User | null> {
 async function login(data: LoginData): Promise<User> {
   const response = await fetch('/api/login', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
     credentials: 'include',
     body: JSON.stringify(data),
   });
@@ -50,7 +57,10 @@ async function login(data: LoginData): Promise<User> {
 async function register(data: LoginData): Promise<User> {
   const response = await fetch('/api/register', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
     credentials: 'include',
     body: JSON.stringify(data),
   });
@@ -68,6 +78,9 @@ async function logout(): Promise<void> {
   const response = await fetch('/api/logout', {
     method: 'POST',
     credentials: 'include',
+    headers: {
+      'Accept': 'application/json'
+    }
   });
 
   if (!response.ok) {
@@ -83,6 +96,9 @@ export function useUser() {
   const { data: user, isLoading } = useQuery<User | null>({
     queryKey: ['/api/user'],
     queryFn: fetchUser,
+    staleTime: 0, // Always fetch fresh data
+    cacheTime: 0, // Don't cache the user data
+    retry: false
   });
 
   const loginMutation = useMutation({
@@ -125,6 +141,7 @@ export function useUser() {
     mutationFn: logout,
     onSuccess: () => {
       queryClient.setQueryData(['/api/user'], null);
+      queryClient.invalidateQueries();
       toast({
         title: "Success",
         description: "Logged out successfully",

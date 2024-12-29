@@ -4,32 +4,46 @@ import { db } from "@db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
 
+// Extend express Request type to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any;
+    }
+  }
+}
+
 // Middleware to check if user is admin
 const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Debug log for session data
-    console.log("Session data:", { 
-      userId: req.session.userId, 
-      isAdmin: req.session.isAdmin 
-    });
-
-    if (!req.session.userId) {
+    // Check if user is authenticated and has a valid session
+    if (!req.session || !req.session.userId) {
+      console.log("No session or userId found:", req.session);
       return res.status(401).json({ message: "Not authenticated" });
     }
 
+    // Fetch user from database
     const [user] = await db
       .select()
       .from(users)
       .where(eq(users.id, req.session.userId))
       .limit(1);
 
-    if (!user?.is_admin) {
+    if (!user) {
+      console.log("No user found for id:", req.session.userId);
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    if (!user.is_admin) {
+      console.log("User is not admin:", user.username);
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    // Add user to request for use in route handlers
+    req.user = user;
     next();
   } catch (error) {
-    console.error("Admin check error:", error);
+    console.error("Admin middleware error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
@@ -65,7 +79,7 @@ export function registerRoutes(app: Express): Server {
     try {
       const [updatedUser] = await db
         .update(users)
-        .set({ 
+        .set({
           username: username || undefined,
           display_name: display_name || undefined,
           bio: bio || undefined
@@ -77,10 +91,7 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "User not found" });
       }
 
-      res.json({
-        ...updatedUser,
-        password: undefined
-      });
+      res.json(updatedUser);
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });

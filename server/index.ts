@@ -11,11 +11,13 @@ const app = express();
 
 // Setup session store first
 const SessionStore = MemoryStore(session);
+
+// Configure session middleware
 app.use(
   session({
     secret: process.env.REPL_ID || "your-secret-key",
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Changed to true to ensure session is saved
+    saveUninitialized: true, // Changed to true to create session for all requests
     store: new SessionStore({
       checkPeriod: 86400000 // prune expired entries every 24h
     }),
@@ -23,7 +25,8 @@ app.use(
       secure: false, // Set to false to work in development
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      sameSite: 'lax'
+      sameSite: 'lax',
+      path: '/' // Ensure cookie is sent for all paths
     }
   })
 );
@@ -53,6 +56,18 @@ app.use((req, res, next) => {
   next();
 });
 
+// Debug middleware to log session data
+app.use((req, _res, next) => {
+  console.log("Session data:", {
+    id: req.session.id,
+    userId: req.session.userId,
+    isAdmin: req.session.isAdmin,
+    cookie: req.session.cookie
+  });
+  next();
+});
+
+// Request logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;

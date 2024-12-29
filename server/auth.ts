@@ -37,6 +37,7 @@ export function setupAuth(app: Express) {
   // Login endpoint
   app.post("/api/login", async (req, res) => {
     try {
+      console.log("Login attempt:", { username: req.body.username });
       const { username, password } = req.body;
 
       if (!username || !password) {
@@ -155,67 +156,9 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Register endpoint
-  app.post("/api/register", async (req, res) => {
-    try {
-      const { username, password, display_name } = req.body;
-
-      if (!username || !password) {
-        return res.status(400).json({ 
-          message: "Username and password are required" 
-        });
-      }
-
-      // Check if username exists
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-
-      if (existingUser) {
-        return res.status(400).json({ 
-          message: "Username already exists" 
-        });
-      }
-
-      // Hash password
-      const hashedPassword = await hashPassword(password);
-
-      // Create user
-      const [user] = await db
-        .insert(users)
-        .values({
-          username,
-          password: hashedPassword,
-          display_name: display_name || null,
-          is_admin: false,
-          is_suspended: false
-        })
-        .returning();
-
-      // Set session
-      req.session.userId = user.id;
-      req.session.isAdmin = user.is_admin;
-
-      res.json({
-        user: {
-          id: user.id,
-          username: user.username,
-          display_name: user.display_name,
-          is_admin: user.is_admin
-        }
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ 
-        message: "Failed to register" 
-      });
-    }
-  });
-
   // Logout endpoint
   app.post("/api/logout", (req, res) => {
+    console.log("Logout request received");
     req.session.destroy((err) => {
       if (err) {
         console.error("Logout error:", err);
