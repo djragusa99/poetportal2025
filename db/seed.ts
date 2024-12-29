@@ -24,8 +24,11 @@ export async function seed() {
     };
 
     try {
-      const [created] = await db.insert(users).values(testUser).returning();
-      console.log(`✓ Created user: ${testUser.username}`);
+      const [created] = await db
+        .insert(users)
+        .values(testUser)
+        .returning();
+      console.log(`✓ Created user: ${created.username}`);
     } catch (error: any) {
       if (error.code === '23505') { // Unique constraint violation
         console.log(`User ${testUser.username} already exists, skipping...`);

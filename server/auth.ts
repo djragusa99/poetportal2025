@@ -47,28 +47,31 @@ export function setupAuth(app: Express) {
 
       if (!username || !password) {
         return res.status(400).json({ 
-          ok: false,
           message: "Username and password are required" 
         });
       }
 
       // Check if user exists
-      const existingUser = await db.select().from(users).where(eq(users.username, username)).limit(1);
+      const existingUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
 
       if (existingUser.length > 0) {
         return res.status(400).json({ 
-          ok: false,
           message: "Username already exists" 
         });
       }
 
-      // Create new user
+      // Hash password and create user
       const hashedPassword = await hashPassword(password);
-      const [user] = await db.insert(users)
+      const [user] = await db
+        .insert(users)
         .values({
           username,
           password: hashedPassword,
-          display_name: display_name || username
+          display_name: display_name || null
         })
         .returning();
 
@@ -76,7 +79,6 @@ export function setupAuth(app: Express) {
       (req.session as any).userId = user.id;
 
       res.json({
-        ok: true,
         user: {
           id: user.id,
           username: user.username,
@@ -86,7 +88,6 @@ export function setupAuth(app: Express) {
     } catch (error) {
       console.error("Registration error:", error);
       res.status(500).json({ 
-        ok: false,
         message: "Failed to register" 
       });
     }
@@ -99,32 +100,35 @@ export function setupAuth(app: Express) {
 
       if (!username || !password) {
         return res.status(400).json({ 
-          ok: false,
           message: "Username and password are required" 
         });
       }
 
-      const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+      // Find user
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
 
       if (!user) {
         return res.status(401).json({ 
-          ok: false,
           message: "Invalid username or password" 
         });
       }
 
+      // Verify password
       const isValid = await verifyPassword(password, user.password);
       if (!isValid) {
         return res.status(401).json({ 
-          ok: false,
           message: "Invalid username or password" 
         });
       }
 
+      // Set session
       (req.session as any).userId = user.id;
 
       res.json({
-        ok: true,
         user: {
           id: user.id,
           username: user.username,
@@ -134,7 +138,6 @@ export function setupAuth(app: Express) {
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ 
-        ok: false,
         message: "Failed to login" 
       });
     }
@@ -146,32 +149,30 @@ export function setupAuth(app: Express) {
       const userId = (req.session as any).userId;
       if (!userId) {
         return res.status(401).json({ 
-          ok: false,
           message: "Not authenticated" 
         });
       }
 
-      const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
 
       if (!user) {
         return res.status(401).json({ 
-          ok: false,
           message: "User not found" 
         });
       }
 
       res.json({
-        ok: true,
-        user: {
-          id: user.id,
-          username: user.username,
-          display_name: user.display_name
-        }
+        id: user.id,
+        username: user.username,
+        display_name: user.display_name
       });
     } catch (error) {
       console.error("Get user error:", error);
       res.status(500).json({ 
-        ok: false,
         message: "Failed to get user info" 
       });
     }
@@ -183,14 +184,10 @@ export function setupAuth(app: Express) {
       if (err) {
         console.error("Logout error:", err);
         return res.status(500).json({ 
-          ok: false,
           message: "Failed to logout" 
         });
       }
-      res.json({ 
-        ok: true,
-        message: "Logged out successfully" 
-      });
+      res.json({ message: "Logged out successfully" });
     });
   });
 }

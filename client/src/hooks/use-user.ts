@@ -22,7 +22,8 @@ async function fetchUser(): Promise<User | null> {
     if (response.status === 401) {
       return null;
     }
-    throw new Error(await response.text());
+    const error = await response.json();
+    throw new Error(error.message);
   }
 
   return response.json();
@@ -37,8 +38,8 @@ async function login(data: LoginData): Promise<User> {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText);
+    const error = await response.json();
+    throw new Error(error.message);
   }
 
   const result = await response.json();
@@ -54,8 +55,8 @@ async function register(data: LoginData): Promise<User> {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText);
+    const error = await response.json();
+    throw new Error(error.message);
   }
 
   const result = await response.json();
@@ -69,7 +70,8 @@ async function logout(): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    const error = await response.json();
+    throw new Error(error.message);
   }
 }
 

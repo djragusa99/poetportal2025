@@ -4,7 +4,6 @@ import { setupVite, serveStatic, log } from "./vite";
 import { setupAuth } from "./auth";
 import { db } from "@db";
 import { sql } from "drizzle-orm";
-import { seed } from "../db/seed";
 
 const app = express();
 app.use(express.json());
@@ -62,26 +61,18 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    const server = registerRoutes(app);
-
-    if (app.get("env") === "development") {
-      try {
-        // Clear only the users table
-        await db.execute(sql`
-          TRUNCATE users CASCADE;
-          ALTER SEQUENCE users_id_seq RESTART WITH 1;
-        `);
-        log("🗑️ Cleared existing data");
-
-        // Seed database
-        await seed();
-        log("🌱 Database seeded successfully");
-      } catch (error) {
-        console.error("Failed to seed database:", error);
-        // Continue with application startup even if seeding fails
-      }
+    // First verify database connection
+    try {
+      await db.execute(sql`SELECT 1`);
+      log("✓ Database connection verified");
+    } catch (error) {
+      log("⨯ Database connection failed");
+      throw error;
     }
 
+    const server = registerRoutes(app);
+
+    // Setup error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
@@ -89,7 +80,31 @@ app.use((req, res, next) => {
       res.status(status).json({ message });
     });
 
+    // Development-specific setup
     if (app.get("env") === "development") {
+      try {
+        log("🗑️ Clearing existing data...");
+        // Clear only the users table
+        await db.execute(sql`
+          TRUNCATE TABLE users CASCADE;
+          ALTER SEQUENCE users_id_seq RESTART WITH 1;
+        `);
+        log("✓ Existing data cleared");
+
+        // Import seed after verifying database connection
+        const { seed } = await import("../db/seed");
+
+        // Run seeding
+        await seed();
+        log("✓ Database seeded successfully");
+      } catch (error) {
+        console.error("Failed to seed database:", error);
+        // Log the full error for debugging
+        console.error("Full error:", error);
+        // Continue with application startup even if seeding fails
+      }
+
+      // Setup Vite after database operations
       await setupVite(app, server);
     } else {
       serveStatic(app);
@@ -97,7 +112,7 @@ app.use((req, res, next) => {
 
     const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
-      log(`serving on port ${PORT}`);
+      log(`✓ Server running on port ${PORT}`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);
