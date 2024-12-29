@@ -1,21 +1,56 @@
-import { pgTable, text, serial, timestamp, integer, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
 
+// Users table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").unique().notNull(),
   password: text("password").notNull(),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
+  firstName: text("firstName").notNull(),
+  lastName: text("lastName").notNull(),
   email: text("email").notNull(),
-  location: text("location").notNull(),
-  userType: text("user_type").notNull(),
+  location: text("location"),
+  userType: text("userType").default("User").notNull(),
   pronouns: text("pronouns"),
   bio: text("bio"),
   avatar: text("avatar"),
   suspended: boolean("suspended").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Events table
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  date: timestamp("date").notNull(),
+  location: text("location").notNull(),
+  organizerId: integer("organizerId").references(() => users.id).notNull(),
+  type: text("type").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Points of Interest table
+export const pointsOfInterest = pgTable("pointsOfInterest", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  type: text("type").notNull(),
+  location: text("location").notNull(),
+  createdById: integer("createdById").references(() => users.id).notNull(),
+  url: text("url").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// Resources table
+export const resources = pgTable("resources", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  type: text("type").notNull(),
+  url: text("url").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
 export const follows = pgTable("follows", {
@@ -49,46 +84,16 @@ export const likes = pgTable("likes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const events = pgTable("events", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  date: timestamp("date").notNull(),
-  location: text("location").notNull(),
-  organizerId: integer("organizer_id").references(() => users.id).notNull(),
-  type: text("type").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
 
-export const pointsOfInterest = pgTable("points_of_interest", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  description: text("description").notNull(),
-  location: text("location").notNull(),
-  type: text("type").notNull(),
-  url: text("url").notNull(),
-  createdById: integer("created_by_id").references(() => users.id).notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-export const resources = pgTable("resources", {
-  id: serial("id").primaryKey(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  type: text("type").notNull(),
-  url: text("url").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Relations
+// Define relations
 export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts),
   comments: many(comments),
   likes: many(likes),
   followedBy: many(follows, { relationName: "followed" }),
   following: many(follows, { relationName: "follower" }),
-  organizedEvents: many(events),
-  createdPointsOfInterest: many(pointsOfInterest),
+  events: many(events),
+  pointsOfInterest: many(pointsOfInterest),
 }));
 
 export const followsRelations = relations(follows, ({ one }) => ({
@@ -144,7 +149,7 @@ export const pointsOfInterestRelations = relations(pointsOfInterest, ({ one }) =
   }),
 }));
 
-// Schemas for validation
+// Export schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertEventSchema = createInsertSchema(events);
@@ -154,9 +159,15 @@ export const selectPointOfInterestSchema = createSelectSchema(pointsOfInterest);
 export const insertResourceSchema = createInsertSchema(resources);
 export const selectResourceSchema = createSelectSchema(resources);
 
-// Types
-export type User = typeof users.$inferSelect;
-export type NewUser = typeof users.$inferInsert;
+// Export types
+export type InsertUser = typeof users.$inferInsert;
+export type SelectUser = typeof users.$inferSelect;
+export type InsertEvent = typeof events.$inferInsert;
+export type SelectEvent = typeof events.$inferSelect;
+export type InsertPointOfInterest = typeof pointsOfInterest.$inferInsert;
+export type SelectPointOfInterest = typeof pointsOfInterest.$inferSelect;
+export type InsertResource = typeof resources.$inferInsert;
+export type SelectResource = typeof resources.$inferSelect;
 export type Post = typeof posts.$inferSelect;
 export type Comment = typeof comments.$inferSelect;
 export type Follow = typeof follows.$inferSelect;
