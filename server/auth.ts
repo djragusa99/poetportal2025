@@ -34,7 +34,7 @@ export function setupAuth(app: Express) {
 
   app.use(
     session({
-      secret: "your-secret-key",
+      secret: process.env.REPL_ID || "your-secret-key",
       resave: false,
       saveUninitialized: false,
       store: new SessionStore({
@@ -47,61 +47,6 @@ export function setupAuth(app: Express) {
       }
     })
   );
-
-  // Registration endpoint
-  app.post("/api/register", async (req, res) => {
-    try {
-      const { username, password, display_name } = req.body;
-
-      if (!username || !password) {
-        return res.status(400).json({ 
-          message: "Username and password are required" 
-        });
-      }
-
-      // Check if user exists
-      const existingUser = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-
-      if (existingUser.length > 0) {
-        return res.status(400).json({ 
-          message: "Username already exists" 
-        });
-      }
-
-      // Hash password and create user
-      const hashedPassword = await hashPassword(password);
-      const [user] = await db
-        .insert(users)
-        .values({
-          username,
-          password: hashedPassword,
-          display_name: display_name || null
-        })
-        .returning();
-
-      // Set session
-      req.session.userId = user.id;
-      req.session.isAdmin = user.is_admin;
-
-      res.json({
-        user: {
-          id: user.id,
-          username: user.username,
-          display_name: user.display_name,
-          is_admin: user.is_admin
-        }
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ 
-        message: "Failed to register" 
-      });
-    }
-  });
 
   // Login endpoint
   app.post("/api/login", async (req, res) => {
@@ -135,13 +80,6 @@ export function setupAuth(app: Express) {
         });
       }
 
-      // Check if user is suspended
-      if (user.is_suspended) {
-        return res.status(403).json({
-          message: "Your account has been suspended"
-        });
-      }
-
       // Set session
       req.session.userId = user.id;
       req.session.isAdmin = user.is_admin;
@@ -165,8 +103,7 @@ export function setupAuth(app: Express) {
   // Get current user endpoint
   app.get("/api/user", async (req, res) => {
     try {
-      const userId = req.session.userId;
-      if (!userId) {
+      if (!req.session.userId) {
         return res.status(401).json({ 
           message: "Not authenticated" 
         });
@@ -175,7 +112,7 @@ export function setupAuth(app: Express) {
       const [user] = await db
         .select()
         .from(users)
-        .where(eq(users.id, userId))
+        .where(eq(users.id, req.session.userId))
         .limit(1);
 
       if (!user) {
@@ -188,7 +125,8 @@ export function setupAuth(app: Express) {
         id: user.id,
         username: user.username,
         display_name: user.display_name,
-        is_admin: user.is_admin
+        is_admin: user.is_admin,
+        bio: user.bio
       });
     } catch (error) {
       console.error("Get user error:", error);
