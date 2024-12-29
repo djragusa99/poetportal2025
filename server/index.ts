@@ -13,13 +13,10 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Setup session store
+// Setup session store with proper configuration
 const SessionStore = MemoryStore(session);
-
-// Use a consistent secret key
 const SECRET_KEY = process.env.REPL_ID || "development-secret-key";
 
-// Configure session middleware
 app.use(
   session({
     name: 'sid',
@@ -27,24 +24,31 @@ app.use(
     resave: false,
     saveUninitialized: false,
     store: new SessionStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
+      checkPeriod: 86400000 // prune expired entries every 24h
     }),
     cookie: {
       httpOnly: true,
-      secure: false, // Set to false for development
+      secure: false, // Set to false since we're not using HTTPS in development
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
   })
 );
 
-// Setup auth BEFORE routes
+// Setup auth AFTER session but BEFORE routes
 setupAuth(app);
 
-// Debug middleware to log requests and responses
+// Debug middleware to log requests and session state
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
+
+  // Log authentication state for API requests
+  if (path.startsWith('/api')) {
+    log(`Request ${req.method} ${path}`);
+    log(`Auth state: ${req.isAuthenticated()} User: ${JSON.stringify(req.user)}`);
+  }
+
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
@@ -60,9 +64,11 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
+
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
+
       log(logLine);
     }
   });
@@ -76,7 +82,6 @@ app.use((req, res, next) => {
     await db.execute(sql`SELECT 1`);
     log("✓ Database connection verified");
 
-    // Register routes after auth setup
     const server = registerRoutes(app);
 
     // Error handling middleware

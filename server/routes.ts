@@ -4,27 +4,31 @@ import { db } from "@db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
 
-// Extend express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
-
 // Middleware to check if user is admin
 const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.isAuthenticated() || !req.user) {
+    if (!req.session || !req.isAuthenticated()) {
+      console.log("Admin check failed - Not authenticated:", {
+        session: !!req.session,
+        isAuthenticated: req.isAuthenticated(),
+        sessionID: req.sessionID
+      });
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    const user = req.user as any;
-    if (!user.is_admin) {
+    const user = req.user;
+    if (!user || !user.is_admin) {
+      console.log("Admin check failed - Not admin:", {
+        userId: user?.id,
+        isAdmin: user?.is_admin
+      });
       return res.status(403).json({ message: "Not authorized" });
     }
 
+    console.log("Admin check passed:", {
+      userId: user.id,
+      username: user.username
+    });
     next();
   } catch (error) {
     console.error("Admin middleware error:", error);

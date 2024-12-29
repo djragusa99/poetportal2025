@@ -8,11 +8,16 @@ export const queryClient = new QueryClient({
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json',
           },
         });
 
         if (!res.ok) {
+          if (res.status === 401) {
+            // Force a page refresh on auth errors to ensure proper state
+            window.location.href = '/';
+            throw new Error(`${res.status}: ${await res.text()}`);
+          }
+
           if (res.status >= 500) {
             throw new Error(`${res.status}: ${res.statusText}`);
           }
@@ -22,10 +27,10 @@ export const queryClient = new QueryClient({
 
         return res.json();
       },
-      refetchInterval: false,
-      refetchOnWindowFocus: false,
-      staleTime: Infinity,
       retry: false,
+      staleTime: Infinity,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
     },
     mutations: {
       retry: false,
