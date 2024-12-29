@@ -1,4 +1,5 @@
 import { pgTable, text, serial, timestamp, boolean } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -28,5 +29,7 @@ export const selectUserSchema = createSelectSchema(users);
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// Relations (simplified to only include users)
-export const usersRelations = relations(users, ({ many }) => ({}));
+// Relations
+export const usersRelations = relations(users, ({ many }) => ({
+  // Empty relations object since we're not implementing messaging
+}));
