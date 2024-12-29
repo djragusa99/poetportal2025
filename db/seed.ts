@@ -37,6 +37,29 @@ export async function seed() {
       }
     }
 
+    // Create admin user
+    console.log("Creating admin user...");
+    const adminUser = {
+      username: "admin",
+      password: await hashPassword("admin123"),
+      display_name: "Admin User",
+      is_admin: true
+    };
+
+    try {
+      const [adminCreated] = await db
+        .insert(users)
+        .values(adminUser)
+        .returning();
+      console.log(`✓ Created admin user: ${adminCreated.username}`);
+    } catch (error: any) {
+      if (error.code === '23505') { // Unique constraint violation
+        console.log(`User ${adminUser.username} already exists, skipping...`);
+      } else {
+        throw error;
+      }
+    }
+
     console.log("✅ Database seeding completed successfully!");
   } catch (error) {
     console.error("Error during seeding:", error);

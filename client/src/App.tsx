@@ -1,5 +1,5 @@
 import { StrictMode } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,7 +10,19 @@ import AuthPage from "./pages/AuthPage";
 import Home from "./pages/Home";
 import Events from "./pages/Events";
 import Resources from "./pages/Resources";
+import AdminDashboard from "./pages/AdminDashboard";
 import { useState, useEffect } from "react";
+
+// Protected route component for admin only access
+function AdminRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user } = useUser();
+
+  if (!user?.is_admin) {
+    return <Redirect to="/" />;
+  }
+
+  return <Component />;
+}
 
 function App() {
   const { user, isLoading } = useUser();
@@ -54,6 +66,7 @@ function App() {
           <Route path="/" component={Home} />
           <Route path="/events" component={Events} />
           <Route path="/resources" component={Resources} />
+          <Route path="/admin" component={() => <AdminRoute component={AdminDashboard} />} />
         </Switch>
       </main>
       <Toaster />

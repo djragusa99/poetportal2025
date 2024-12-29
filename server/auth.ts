@@ -82,7 +82,8 @@ export function setupAuth(app: Express) {
         user: {
           id: user.id,
           username: user.username,
-          display_name: user.display_name
+          display_name: user.display_name,
+          is_admin: user.is_admin
         }
       });
     } catch (error) {
@@ -125,6 +126,13 @@ export function setupAuth(app: Express) {
         });
       }
 
+      // Check if user is suspended
+      if (user.is_suspended) {
+        return res.status(403).json({
+          message: "Your account has been suspended"
+        });
+      }
+
       // Set session
       (req.session as any).userId = user.id;
 
@@ -132,7 +140,8 @@ export function setupAuth(app: Express) {
         user: {
           id: user.id,
           username: user.username,
-          display_name: user.display_name
+          display_name: user.display_name,
+          is_admin: user.is_admin
         }
       });
     } catch (error) {
@@ -168,7 +177,8 @@ export function setupAuth(app: Express) {
       res.json({
         id: user.id,
         username: user.username,
-        display_name: user.display_name
+        display_name: user.display_name,
+        is_admin: user.is_admin
       });
     } catch (error) {
       console.error("Get user error:", error);

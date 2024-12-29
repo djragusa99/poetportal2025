@@ -5,6 +5,7 @@ type User = {
   id: number;
   username: string;
   display_name: string | null;
+  is_admin: boolean;
 };
 
 type LoginData = {

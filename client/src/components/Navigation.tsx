@@ -59,12 +59,14 @@ export default function Navigation() {
                 Resources
               </Button>
             </Link>
-            <Link href="/admin">
-              <Button variant="ghost" size="sm">
-                <Settings className="h-4 w-4 mr-2" />
-                Admin
-              </Button>
-            </Link>
+            {user?.is_admin && (
+              <Link href="/admin">
+                <Button variant="ghost" size="sm">
+                  <Settings className="h-4 w-4 mr-2" />
+                  Admin
+                </Button>
+              </Link>
+            )}
           </nav>
         </div>
         <div className="flex items-center justify-end space-x-2">
