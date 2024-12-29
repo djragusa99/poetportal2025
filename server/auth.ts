@@ -16,7 +16,7 @@ async function hashPassword(password: string) {
 }
 
 async function verifyPassword(supplied: string, stored: string) {
-  // For development seeded accounts
+  // For development seeded accounts with plain text passwords
   if (supplied === stored) {
     return true;
   }
@@ -24,6 +24,19 @@ async function verifyPassword(supplied: string, stored: string) {
   const [hashedPassword, salt] = stored.split(".");
   const buf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return buf.toString("hex") === hashedPassword;
+}
+
+// Declare user type for passport
+declare global {
+  namespace Express {
+    interface User {
+      id: number;
+      username: string;
+      display_name: string | null;
+      is_admin: boolean;
+      is_suspended: boolean;
+    }
+  }
 }
 
 export function setupAuth(app: Express) {
@@ -59,7 +72,7 @@ export function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((user: any, done) => {
+  passport.serializeUser((user, done) => {
     done(null, user.id);
   });
 
@@ -121,7 +134,7 @@ export function setupAuth(app: Express) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    const user = req.user as any;
+    const user = req.user;
     res.json({
       id: user.id,
       username: user.username,

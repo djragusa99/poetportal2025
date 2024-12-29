@@ -9,17 +9,17 @@ import MemoryStore from "memorystore";
 
 const app = express();
 
-// First, configure middleware for parsing requests
+// Basic middleware setup
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Setup session store first
+// Setup session store
 const SessionStore = MemoryStore(session);
 
 // Use a consistent secret key
 const SECRET_KEY = process.env.REPL_ID || "development-secret-key";
 
-// Configure session middleware with more robust settings
+// Configure session middleware
 app.use(
   session({
     name: 'sid',
@@ -38,24 +38,10 @@ app.use(
   })
 );
 
-// Setup auth before routes
+// Setup auth BEFORE routes
 setupAuth(app);
 
-// Debug middleware to log session data
-app.use((req, _res, next) => {
-  if (req.path.startsWith('/api')) {
-    log(`Session debug: ${JSON.stringify({
-      path: req.path,
-      method: req.method,
-      sessionID: req.sessionID,
-      session: req.session,
-      isAuthenticated: req.isAuthenticated?.()
-    }, null, 2)}`);
-  }
-  next();
-});
-
-// Request logging middleware
+// Debug middleware to log requests and responses
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -74,11 +60,9 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
-
       log(logLine);
     }
   });

@@ -14,12 +14,11 @@ type LoginData = {
   display_name?: string;
 };
 
-async function login(data: LoginData) {
+async function login(data: LoginData): Promise<User> {
   const response = await fetch('/api/login', {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
     },
     credentials: 'include',
     body: JSON.stringify(data),
@@ -33,12 +32,11 @@ async function login(data: LoginData) {
   return result.user;
 }
 
-async function register(data: LoginData) {
+async function register(data: LoginData): Promise<User> {
   const response = await fetch('/api/register', {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
     },
     credentials: 'include',
     body: JSON.stringify(data),
@@ -52,14 +50,10 @@ async function register(data: LoginData) {
   return result.user;
 }
 
-async function logout() {
+async function logout(): Promise<void> {
   const response = await fetch('/api/logout', {
     method: 'POST',
     credentials: 'include',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    }
   });
 
   if (!response.ok) {
@@ -71,10 +65,6 @@ async function fetchUser(): Promise<User | null> {
   try {
     const response = await fetch('/api/user', {
       credentials: 'include',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      }
     });
 
     if (!response.ok) {
@@ -99,8 +89,7 @@ export function useUser() {
     queryKey: ['/api/user'],
     queryFn: fetchUser,
     retry: false,
-    refetchInterval: false,
-    refetchOnWindowFocus: false
+    staleTime: Infinity,
   });
 
   const loginMutation = useMutation({
@@ -143,7 +132,6 @@ export function useUser() {
     mutationFn: logout,
     onSuccess: () => {
       queryClient.setQueryData(['/api/user'], null);
-      queryClient.clear();
       toast({
         title: "Success",
         description: "Logged out successfully",
