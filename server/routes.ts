@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth } from "./auth";
 import { db } from "@db";
-import { posts, comments, users, follows, likes, events, resources } from "@db/schema";
+import { posts, comments, users, follows, likes, events, resources, conversations, conversationParticipants, messages } from "@db/schema";
 import { generateVerificationToken, sendVerificationEmail } from "./email";
 import { upload } from "./upload";
 import express from "express";
@@ -639,6 +639,244 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Failed to fetch resources:", error);
       res.status(500).json({ message: "Failed to fetch resources" });
+    }
+  });
+
+  /**
+   * Create a new conversation between users
+   * POST /api/conversations
+   * Body: { participantIds: number[] }
+   */
+  app.post("/api/conversations", async (req, res) => {
+    try {
+      const currentUserId = getCurrentUserId(req);
+      const { participantIds } = req.body;
+
+      if (!Array.isArray(participantIds) || participantIds.length === 0) {
+        return res.status(400).json({ message: "Invalid participant list" });
+      }
+
+      // Create conversation
+      const [conversation] = await db
+        .insert(conversations)
+        .values({})
+        .returning();
+
+      // Add participants including the current user
+      const uniqueParticipants = [...new Set([currentUserId, ...participantIds])];
+      await db.insert(conversationParticipants).values(
+        uniqueParticipants.map(userId => ({
+          conversationId: conversation.id,
+          userId,
+        }))
+      );
+
+      const conversationWithParticipants = await db.query.conversations.findFirst({
+        where: eq(conversations.id, conversation.id),
+        with: {
+          participants: {
+            with: {
+              user: true,
+            },
+          },
+        },
+      });
+
+      res.json(conversationWithParticipants);
+    } catch (error) {
+      console.error("Failed to create conversation:", error);
+      res.status(500).json({ message: "Failed to create conversation" });
+    }
+  });
+
+  /**
+   * Get all conversations for the current user
+   * GET /api/conversations
+   */
+  app.get("/api/conversations", async (req, res) => {
+    try {
+      const currentUserId = getCurrentUserId(req);
+
+      const userConversations = await db
+        .select({
+          conversation: conversations,
+          participants: conversationParticipants,
+          lastMessage: db
+            .select()
+            .from(messages)
+            .where(eq(messages.conversationId, conversations.id))
+            .orderBy(desc(messages.createdAt))
+            .limit(1),
+        })
+        .from(conversations)
+        .innerJoin(
+          conversationParticipants,
+          eq(conversations.id, conversationParticipants.conversationId)
+        )
+        .where(eq(conversationParticipants.userId, currentUserId))
+        .orderBy(desc(conversations.updatedAt));
+
+      res.json(userConversations);
+    } catch (error) {
+      console.error("Failed to fetch conversations:", error);
+      res.status(500).json({ message: "Failed to fetch conversations" });
+    }
+  });
+
+  /**
+   * Send a message in a conversation
+   * POST /api/conversations/:conversationId/messages
+   * Body: { content: string }
+   */
+  app.post("/api/conversations/:conversationId/messages", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.conversationId);
+      const senderId = getCurrentUserId(req);
+      const { content } = req.body;
+
+      if (!content) {
+        return res.status(400).json({ message: "Message content is required" });
+      }
+
+      // Verify user is part of conversation
+      const [participant] = await db
+        .select()
+        .from(conversationParticipants)
+        .where(
+          and(
+            eq(conversationParticipants.conversationId, conversationId),
+            eq(conversationParticipants.userId, senderId)
+          )
+        )
+        .limit(1);
+
+      if (!participant) {
+        return res.status(403).json({ message: "Not a participant in this conversation" });
+      }
+
+      // Create message
+      const [message] = await db
+        .insert(messages)
+        .values({
+          conversationId,
+          senderId,
+          content,
+        })
+        .returning();
+
+      // Update conversation timestamp
+      await db
+        .update(conversations)
+        .set({ updatedAt: new Date() })
+        .where(eq(conversations.id, conversationId));
+
+      const messageWithSender = await db.query.messages.findFirst({
+        where: eq(messages.id, message.id),
+        with: {
+          sender: true,
+        },
+      });
+
+      res.json(messageWithSender);
+    } catch (error) {
+      console.error("Failed to send message:", error);
+      res.status(500).json({ message: "Failed to send message" });
+    }
+  });
+
+  /**
+   * Get messages in a conversation
+   * GET /api/conversations/:conversationId/messages
+   * Query params: 
+   * - before: timestamp (for pagination)
+   * - limit: number (default 50)
+   */
+  app.get("/api/conversations/:conversationId/messages", async (req, res) => {
+    try {
+      const conversationId = parseInt(req.params.conversationId);
+      const currentUserId = getCurrentUserId(req);
+      const before = req.query.before as string;
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+
+      // Verify user is part of conversation
+      const [participant] = await db
+        .select()
+        .from(conversationParticipants)
+        .where(
+          and(
+            eq(conversationParticipants.conversationId, conversationId),
+            eq(conversationParticipants.userId, currentUserId)
+          )
+        )
+        .limit(1);
+
+      if (!participant) {
+        return res.status(403).json({ message: "Not a participant in this conversation" });
+      }
+
+      // Update last read timestamp
+      await db
+        .update(conversationParticipants)
+        .set({ lastReadAt: new Date() })
+        .where(
+          and(
+            eq(conversationParticipants.conversationId, conversationId),
+            eq(conversationParticipants.userId, currentUserId)
+          )
+        );
+
+      // Fetch messages with pagination
+      const conversationMessages = await db.query.messages.findMany({
+        where: and(
+          eq(messages.conversationId, conversationId),
+          before ? sql`${messages.createdAt} < ${before}` : undefined
+        ),
+        with: {
+          sender: true,
+        },
+        orderBy: desc(messages.createdAt),
+        limit,
+      });
+
+      res.json(conversationMessages);
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+      res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  /**
+   * Get unread message count
+   * GET /api/conversations/unread
+   */
+  app.get("/api/conversations/unread", async (req, res) => {
+    try {
+      const currentUserId = getCurrentUserId(req);
+
+      const unreadCounts = await db
+        .select({
+          conversationId: conversations.id,
+          unreadCount: sql<number>`count(*)`,
+        })
+        .from(conversations)
+        .innerJoin(
+          conversationParticipants,
+          eq(conversations.id, conversationParticipants.conversationId)
+        )
+        .innerJoin(
+          messages,
+          and(
+            eq(messages.conversationId, conversations.id),
+            sql`${messages.createdAt} > COALESCE(${conversationParticipants.lastReadAt}, '1970-01-01')`
+          )
+        )
+        .where(eq(conversationParticipants.userId, currentUserId))
+        .groupBy(conversations.id);
+
+      res.json(unreadCounts);
+    } catch (error) {
+      console.error("Failed to fetch unread counts:", error);
+      res.status(500).json({ message: "Failed to fetch unread counts" });
     }
   });
 

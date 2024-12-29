@@ -84,6 +84,28 @@ export const likes = pgTable("likes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Messages related tables
+export const conversations = pgTable("conversations", {
+  id: serial("id").primaryKey(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export const conversationParticipants = pgTable("conversation_participants", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversationId").references(() => conversations.id).notNull(),
+  userId: integer("userId").references(() => users.id).notNull(),
+  lastReadAt: timestamp("lastReadAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  conversationId: integer("conversationId").references(() => conversations.id).notNull(),
+  senderId: integer("senderId").references(() => users.id).notNull(),
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
 
 // Define relations
 export const usersRelations = relations(users, ({ many }) => ({
@@ -94,6 +116,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   following: many(follows, { relationName: "follower" }),
   events: many(events),
   pointsOfInterest: many(pointsOfInterest),
+  conversations: many(conversationParticipants),
+  sentMessages: many(messages, { relationName: "sender" }),
 }));
 
 export const followsRelations = relations(follows, ({ one }) => ({
@@ -149,6 +173,33 @@ export const pointsOfInterestRelations = relations(pointsOfInterest, ({ one }) =
   }),
 }));
 
+export const conversationsRelations = relations(conversations, ({ many }) => ({
+  participants: many(conversationParticipants),
+  messages: many(messages),
+}));
+
+export const conversationParticipantsRelations = relations(conversationParticipants, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [conversationParticipants.conversationId],
+    references: [conversations.id],
+  }),
+  user: one(users, {
+    fields: [conversationParticipants.userId],
+    references: [users.id],
+  }),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
+  }),
+  sender: one(users, {
+    fields: [messages.senderId],
+    references: [users.id],
+  }),
+}));
+
 // Export schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
@@ -158,6 +209,12 @@ export const insertPointOfInterestSchema = createInsertSchema(pointsOfInterest);
 export const selectPointOfInterestSchema = createSelectSchema(pointsOfInterest);
 export const insertResourceSchema = createInsertSchema(resources);
 export const selectResourceSchema = createSelectSchema(resources);
+export const insertConversationSchema = createInsertSchema(conversations);
+export const selectConversationSchema = createSelectSchema(conversations);
+export const insertConversationParticipantSchema = createInsertSchema(conversationParticipants);
+export const selectConversationParticipantSchema = createSelectSchema(conversationParticipants);
+export const insertMessageSchema = createInsertSchema(messages);
+export const selectMessageSchema = createSelectSchema(messages);
 
 // Export types
 export type InsertUser = typeof users.$inferInsert;
@@ -180,3 +237,9 @@ export type PointOfInterest = typeof pointsOfInterest.$inferSelect;
 export type NewPointOfInterest = typeof pointsOfInterest.$inferInsert;
 export type Resource = typeof resources.$inferSelect;
 export type NewResource = typeof resources.$inferInsert;
+export type Conversation = typeof conversations.$inferSelect;
+export type NewConversation = typeof conversations.$inferInsert;
+export type ConversationParticipant = typeof conversationParticipants.$inferSelect;
+export type NewConversationParticipant = typeof conversationParticipants.$inferInsert;
+export type Message = typeof messages.$inferSelect;
+export type NewMessage = typeof messages.$inferInsert;
