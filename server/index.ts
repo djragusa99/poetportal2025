@@ -31,28 +31,15 @@ app.use(
     }),
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false, // Set to false for development
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
   })
 );
 
-// Setup CORS with proper credentials support
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (origin) {
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  }
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
+// Setup auth before routes
+setupAuth(app);
 
 // Debug middleware to log session data
 app.use((req, _res, next) => {
@@ -104,9 +91,6 @@ app.use((req, res, next) => {
     // Verify database connection
     await db.execute(sql`SELECT 1`);
     log("✓ Database connection verified");
-
-    // Setup authentication after session middleware
-    setupAuth(app);
 
     // Register routes after auth setup
     const server = registerRoutes(app);

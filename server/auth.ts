@@ -16,7 +16,7 @@ async function hashPassword(password: string) {
 }
 
 async function verifyPassword(supplied: string, stored: string) {
-  // Handle development seeded accounts with plain passwords
+  // For development seeded accounts
   if (supplied === stored) {
     return true;
   }
@@ -30,32 +30,34 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  passport.use(new LocalStrategy(async (username, password, done) => {
-    try {
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
+  passport.use(
+    new LocalStrategy(async (username, password, done) => {
+      try {
+        const [user] = await db
+          .select()
+          .from(users)
+          .where(eq(users.username, username))
+          .limit(1);
 
-      if (!user) {
-        return done(null, false, { message: "Invalid username or password" });
+        if (!user) {
+          return done(null, false, { message: "Invalid username or password" });
+        }
+
+        const isValid = await verifyPassword(password, user.password);
+        if (!isValid) {
+          return done(null, false, { message: "Invalid username or password" });
+        }
+
+        if (user.is_suspended) {
+          return done(null, false, { message: "Account is suspended" });
+        }
+
+        return done(null, user);
+      } catch (err) {
+        return done(err);
       }
-
-      const isValid = await verifyPassword(password, user.password);
-      if (!isValid) {
-        return done(null, false, { message: "Invalid username or password" });
-      }
-
-      if (user.is_suspended) {
-        return done(null, false, { message: "Account is suspended" });
-      }
-
-      return done(null, user);
-    } catch (err) {
-      return done(err);
-    }
-  }));
+    })
+  );
 
   passport.serializeUser((user: any, done) => {
     done(null, user.id);
@@ -83,68 +85,9 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Register endpoint
-  app.post("/api/register", async (req, res, next) => {
-    try {
-      const { username, password, display_name } = req.body;
-
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-
-      // Check if user already exists
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
-      // Hash password
-      const hashedPassword = await hashPassword(password);
-
-      // Create user
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          username,
-          password: hashedPassword,
-          display_name: display_name || null,
-          is_admin: false,
-          is_suspended: false,
-        })
-        .returning();
-
-      // Log the user in after registration
-      req.login(newUser, (err) => {
-        if (err) {
-          return next(err);
-        }
-        return res.json({
-          user: {
-            id: newUser.id,
-            username: newUser.username,
-            display_name: newUser.display_name,
-            is_admin: newUser.is_admin,
-          }
-        });
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      next(error);
-    }
-  });
-
   // Login endpoint
   app.post("/api/login", (req, res, next) => {
-    if (!req.body.username || !req.body.password) {
-      return res.status(400).json({ message: "Username and password are required" });
-    }
-
-    passport.authenticate("local", (err: Error, user: any, info: any) => {
+    passport.authenticate("local", (err: Error | null, user: any, info: any) => {
       if (err) {
         console.error("Login error:", err);
         return next(err);
@@ -166,7 +109,6 @@ export function setupAuth(app: Express) {
             username: user.username,
             display_name: user.display_name,
             is_admin: user.is_admin,
-            bio: user.bio
           }
         });
       });
@@ -185,23 +127,26 @@ export function setupAuth(app: Express) {
       username: user.username,
       display_name: user.display_name,
       is_admin: user.is_admin,
-      bio: user.bio
     });
   });
 
   // Logout endpoint
   app.post("/api/logout", (req, res) => {
-    req.logout((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ message: "Failed to logout" });
-      }
-      req.session.destroy((err) => {
+    if (req.isAuthenticated()) {
+      req.logout((err) => {
         if (err) {
-          console.error("Session destruction error:", err);
+          console.error("Logout error:", err);
+          return res.status(500).json({ message: "Failed to logout" });
         }
-        res.json({ message: "Logged out successfully" });
+        req.session.destroy((err) => {
+          if (err) {
+            console.error("Session destruction error:", err);
+          }
+          res.json({ message: "Logged out successfully" });
+        });
       });
-    });
+    } else {
+      res.json({ message: "Already logged out" });
+    }
   });
 }
