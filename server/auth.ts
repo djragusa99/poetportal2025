@@ -36,20 +36,23 @@ const crypto = {
   },
 };
 
+// Update interface to match database schema
 declare global {
   namespace Express {
     interface User {
       id: number;
       username: string;
       password: string;
-      firstName: string;
-      lastName: string;
+      first_name: string;
+      last_name: string;
       email: string;
-      location: string;
-      userType: string;
-      avatar?: string | null;
-      bio?: string | null;
-      pronouns?: string | null;
+      location: string | null;
+      user_type: string;
+      pronouns: string | null;
+      bio: string | null;
+      avatar: string | null;
+      suspended: boolean;
+      created_at: Date;
     }
 
     interface Session {
@@ -167,7 +170,7 @@ export function setupAuth(app: Express) {
           .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
       }
 
-      const { username, password, firstName, lastName, email, location, userType } = result.data;
+      const { username, password, first_name, last_name, email, location, user_type } = result.data;
 
       const [existingUser] = await db
         .select()
@@ -186,11 +189,11 @@ export function setupAuth(app: Express) {
         .values({
           username,
           password: hashedPassword,
-          firstName,
-          lastName,
+          first_name,
+          last_name,
           email,
           location,
-          userType,
+          user_type,
         })
         .returning();
 
