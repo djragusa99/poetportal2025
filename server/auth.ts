@@ -1,17 +1,10 @@
 import { type Express } from "express";
 import session from "express-session";
-import createMemoryStore from "memorystore";
-import { users, insertUserSchema } from "@db/schema";
+import { users } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
-
-declare module "express-session" {
-  interface Session {
-    userId?: number;
-  }
-}
 
 const scryptAsync = promisify(scrypt);
 
@@ -28,27 +21,19 @@ async function verifyPassword(password: string, hashedPassword: string) {
 }
 
 export function setupAuth(app: Express) {
-  const MemoryStore = createMemoryStore(session);
-
   app.use(
     session({
-      name: "sid",
-      secret: process.env.REPL_ID || "dev-secret-key",
+      secret: "dev-secret-key",
       resave: false,
       saveUninitialized: false,
-      store: new MemoryStore({
-        checkPeriod: 86400000 // prune expired entries every 24h
-      }),
       cookie: {
-        secure: process.env.NODE_ENV === "production",
+        secure: false,
         httpOnly: true,
-        sameSite: "lax",
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       }
     })
   );
 
-  // Login endpoint
   app.post("/api/login", async (req, res) => {
     try {
       const { username, password } = req.body;
@@ -57,9 +42,11 @@ export function setupAuth(app: Express) {
         return res.status(400).json({ message: "Username and password are required" });
       }
 
-      const user = await db.query.users.findFirst({
-        where: eq(users.username, username),
-      });
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
 
       if (!user) {
         return res.status(401).json({ message: "Invalid username or password" });
@@ -70,7 +57,7 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
-      req.session.userId = user.id;
+      (req.session as any).userId = user.id;
       res.json({
         id: user.id,
         username: user.username
@@ -81,21 +68,19 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Register endpoint
   app.post("/api/register", async (req, res) => {
     try {
-      const result = insertUserSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ 
-          message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") 
-        });
+      const { username, password } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
       }
 
-      const { username, password } = result.data;
-
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.username, username),
-      });
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
 
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
@@ -110,7 +95,7 @@ export function setupAuth(app: Express) {
         })
         .returning();
 
-      req.session.userId = user.id;
+      (req.session as any).userId = user.id;
       res.json({
         id: user.id,
         username: user.username
@@ -121,17 +106,18 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Get current user endpoint
   app.get("/api/user", async (req, res) => {
     try {
-      const userId = req.session.userId;
+      const userId = (req.session as any).userId;
       if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
 
-      const user = await db.query.users.findFirst({
-        where: eq(users.id, userId),
-      });
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
 
       if (!user) {
         return res.status(401).json({ message: "User not found" });
@@ -147,14 +133,12 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Logout endpoint
   app.post("/api/logout", (req, res) => {
     req.session.destroy((err) => {
       if (err) {
         console.error("Logout error:", err);
         return res.status(500).json({ message: "Failed to logout" });
       }
-      res.clearCookie("sid");
       res.json({ message: "Logged out successfully" });
     });
   });

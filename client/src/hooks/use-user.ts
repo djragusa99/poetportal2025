@@ -106,9 +106,9 @@ export function useUser() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message,
         variant: "destructive",
+        title: "Registration Failed",
+        description: error.message,
       });
     },
   });
@@ -124,9 +124,9 @@ export function useUser() {
     },
     onError: (error: Error) => {
       toast({
-        title: "Error",
-        description: error.message,
         variant: "destructive",
+        title: "Logout Failed",
+        description: error.message,
       });
     },
   });
