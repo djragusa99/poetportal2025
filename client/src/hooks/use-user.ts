@@ -1,22 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { useLocation } from 'wouter';
 
 type User = {
   id: number;
   username: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  avatar?: string;
 };
 
 type LoginData = {
   username: string;
   password: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
 };
 
 async function fetchUser(): Promise<User | null> {
@@ -78,7 +70,6 @@ async function logout(): Promise<void> {
 export function useUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
 
   const { data: user, isLoading } = useQuery<User | null>({
     queryKey: ['/api/user'],

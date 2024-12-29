@@ -19,28 +19,24 @@ export async function seed() {
     await db.select().from(users).limit(1);
     console.log("✓ Database connection verified");
 
-    // Create test users
+    // Create test user
     console.log("Creating users...");
-    const testUsers = [
-      {
-        username: "testuser",
-        password: await hashPassword("testpass123"),
-        firstName: "Test",
-        lastName: "User",
-        email: "test@example.com",
-      }
-    ];
+    const testUser = {
+      username: "testuser",
+      password: await hashPassword("testpass123"),
+      firstName: "Test",
+      lastName: "User",
+      email: "test@example.com"
+    };
 
-    for (const user of testUsers) {
-      try {
-        const [created] = await db.insert(users).values(user).returning();
-        console.log(`✓ Created user: ${user.username}`);
-      } catch (error: any) {
-        if (error.code === '23505') { // Unique constraint violation
-          console.log(`User ${user.username} already exists, skipping...`);
-        } else {
-          throw error;
-        }
+    try {
+      const [created] = await db.insert(users).values(testUser).returning();
+      console.log(`✓ Created user: ${testUser.username}`);
+    } catch (error: any) {
+      if (error.code === '23505') { // Unique constraint violation
+        console.log(`User ${testUser.username} already exists, skipping...`);
+      } else {
+        throw error;
       }
     }
 

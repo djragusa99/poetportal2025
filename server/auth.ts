@@ -1,16 +1,15 @@
 import { type Express } from "express";
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import { users } from "@db/schema";
+import { users, insertUserSchema } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
-// Extend express-session with our custom properties
 declare module "express-session" {
-  interface SessionData {
-    userId: number;
+  interface Session {
+    userId?: number;
   }
 }
 
@@ -30,8 +29,10 @@ async function verifyPassword(password: string, hashedPassword: string) {
 
 export function setupAuth(app: Express) {
   const MemoryStore = createMemoryStore(session);
+
   app.use(
     session({
+      name: "sid",
       secret: process.env.REPL_ID || "dev-secret-key",
       resave: false,
       saveUninitialized: false,
@@ -39,63 +40,13 @@ export function setupAuth(app: Express) {
         checkPeriod: 86400000 // prune expired entries every 24h
       }),
       cookie: {
-        secure: false,
+        secure: process.env.NODE_ENV === "production",
         httpOnly: true,
+        sameSite: "lax",
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
       }
     })
   );
-
-  // Register endpoint
-  app.post("/api/register", async (req, res) => {
-    try {
-      const { username, password, firstName, lastName, email } = req.body;
-
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-
-      // Check if user exists
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.username, username),
-      });
-
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
-      // Create new user
-      const hashedPassword = await hashPassword(password);
-      const [user] = await db
-        .insert(users)
-        .values({
-          username,
-          password: hashedPassword,
-          firstName,
-          lastName,
-          email,
-        })
-        .returning();
-
-      if (!user) {
-        return res.status(500).json({ message: "Failed to create user" });
-      }
-
-      req.session.userId = user.id;
-      await req.session.save();
-
-      res.json({
-        id: user.id,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      res.status(500).json({ message: "Failed to register" });
-    }
-  });
 
   // Login endpoint
   app.post("/api/login", async (req, res) => {
@@ -120,14 +71,9 @@ export function setupAuth(app: Express) {
       }
 
       req.session.userId = user.id;
-      await req.session.save();
-
       res.json({
         id: user.id,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email
+        username: user.username
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -135,22 +81,50 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Logout endpoint
-  app.post("/api/logout", (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ message: "Failed to logout" });
+  // Register endpoint
+  app.post("/api/register", async (req, res) => {
+    try {
+      const result = insertUserSchema.safeParse(req.body);
+      if (!result.success) {
+        return res.status(400).json({ 
+          message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") 
+        });
       }
-      res.json({ message: "Logged out successfully" });
-    });
+
+      const { username, password } = result.data;
+
+      const existingUser = await db.query.users.findFirst({
+        where: eq(users.username, username),
+      });
+
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const hashedPassword = await hashPassword(password);
+      const [user] = await db
+        .insert(users)
+        .values({
+          username,
+          password: hashedPassword,
+        })
+        .returning();
+
+      req.session.userId = user.id;
+      res.json({
+        id: user.id,
+        username: user.username
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Failed to register" });
+    }
   });
 
   // Get current user endpoint
   app.get("/api/user", async (req, res) => {
     try {
       const userId = req.session.userId;
-
       if (!userId) {
         return res.status(401).json({ message: "Not authenticated" });
       }
@@ -165,14 +139,23 @@ export function setupAuth(app: Express) {
 
       res.json({
         id: user.id,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email
+        username: user.username
       });
     } catch (error) {
       console.error("Get user error:", error);
       res.status(500).json({ message: "Failed to get user info" });
     }
+  });
+
+  // Logout endpoint
+  app.post("/api/logout", (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Logout error:", err);
+        return res.status(500).json({ message: "Failed to logout" });
+      }
+      res.clearCookie("sid");
+      res.json({ message: "Logged out successfully" });
+    });
   });
 }
