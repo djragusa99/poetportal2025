@@ -1,5 +1,5 @@
 import { db } from "@db";
-import { users } from "@db/schema";
+import { users, events, pointsOfInterest, resources, posts } from "@db/schema";
 import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
@@ -22,14 +22,16 @@ export async function seed() {
       password: await hashPassword("admin123"),
       display_name: "Admin User",
       is_admin: true,
-      is_suspended: false
+      is_suspended: false,
     };
 
+    let adminId;
     try {
       const [adminCreated] = await db
         .insert(users)
         .values(adminUser)
         .returning();
+      adminId = adminCreated.id;
       console.log(`✓ Created admin user: ${adminCreated.username}`);
     } catch (error: any) {
       if (error.code === '23505') { // Unique constraint violation
@@ -39,29 +41,320 @@ export async function seed() {
       }
     }
 
-    // Create test user
-    console.log("Creating test user...");
-    const testUser = {
-      username: "test",
-      password: await hashPassword("test123"),
-      display_name: "Test User",
-      is_admin: false,
-      is_suspended: false
-    };
+    // Create famous poet users
+    console.log("Creating famous poet users...");
+    const poets = [
+      {
+        username: "emily_dickinson",
+        display_name: "Emily Dickinson",
+        bio: "American poet who lived a largely introverted life, known for her unique style of poetry.",
+        password: await hashPassword("poet123")
+      },
+      {
+        username: "walt_whitman",
+        display_name: "Walt Whitman",
+        bio: "American poet, essayist and journalist. A humanist, he was a part of the transition between transcendentalism and realism.",
+        password: await hashPassword("poet123")
+      },
+      {
+        username: "robert_frost",
+        display_name: "Robert Frost",
+        bio: "American poet known for his realistic depictions of rural life and command of American colloquial speech.",
+        password: await hashPassword("poet123")
+      },
+      {
+        username: "maya_angelou",
+        display_name: "Maya Angelou",
+        bio: "American poet, memoirist, and civil rights activist.",
+        password: await hashPassword("poet123")
+      },
+      {
+        username: "william_wordsworth",
+        display_name: "William Wordsworth",
+        bio: "English Romantic poet who helped to launch the Romantic Age in English literature.",
+        password: await hashPassword("poet123")
+      },
+      {
+        username: "langston_hughes",
+        display_name: "Langston Hughes",
+        bio: "American poet, social activist, novelist, and playwright.",
+        password: await hashPassword("poet123")
+      },
+      {
+        username: "sylvia_plath",
+        display_name: "Sylvia Plath",
+        bio: "American poet, novelist, and short story writer.",
+        password: await hashPassword("poet123")
+      },
+      {
+        username: "william_blake",
+        display_name: "William Blake",
+        bio: "English poet, painter, and printmaker.",
+        password: await hashPassword("poet123")
+      },
+      {
+        username: "edgar_allan_poe",
+        display_name: "Edgar Allan Poe",
+        bio: "American writer, poet, editor, and literary critic.",
+        password: await hashPassword("poet123")
+      },
+      {
+        username: "pablo_neruda",
+        display_name: "Pablo Neruda",
+        bio: "Chilean poet-diplomat and politician.",
+        password: await hashPassword("poet123")
+      }
+    ];
 
-    try {
-      const [created] = await db
-        .insert(users)
-        .values(testUser)
-        .returning();
-      console.log(`✓ Created test user: ${created.username}`);
-    } catch (error: any) {
-      if (error.code === '23505') { // Unique constraint violation
-        console.log(`User ${testUser.username} already exists, skipping...`);
-      } else {
-        throw error;
+    for (const poet of poets) {
+      try {
+        const [created] = await db
+          .insert(users)
+          .values(poet)
+          .returning();
+        console.log(`✓ Created poet user: ${created.username}`);
+      } catch (error: any) {
+        if (error.code === '23505') {
+          console.log(`User ${poet.username} already exists, skipping...`);
+        } else {
+          throw error;
+        }
       }
     }
+
+    // Create events
+    console.log("Creating poetry events...");
+    const poetryEvents = [
+      {
+        title: "Annual Poetry in the Park",
+        description: "Join us for a day of poetry readings and workshops in Central Park.",
+        location: "Central Park, New York City",
+        date: new Date("2024-05-15"),
+        created_by: adminId
+      },
+      {
+        title: "Poetry Slam Championship",
+        description: "Watch poets compete in our annual poetry slam competition.",
+        location: "Chicago Cultural Center",
+        date: new Date("2024-06-20"),
+        created_by: adminId
+      },
+      {
+        title: "Verses & Vintages",
+        description: "An evening of wine tasting and poetry reading.",
+        location: "Napa Valley Vineyard",
+        date: new Date("2024-07-10"),
+        created_by: adminId
+      },
+      {
+        title: "Haiku Workshop",
+        description: "Learn the art of writing haikus with master poets.",
+        location: "Seattle Public Library",
+        date: new Date("2024-08-05"),
+        created_by: adminId
+      },
+      {
+        title: "Poetry & Jazz Festival",
+        description: "Experience the fusion of poetry and jazz music.",
+        location: "New Orleans Jazz Museum",
+        date: new Date("2024-09-15"),
+        created_by: adminId
+      },
+      {
+        title: "Spoken Word Night",
+        description: "An evening dedicated to spoken word performances.",
+        location: "The Poetry Cafe, London",
+        date: new Date("2024-10-01"),
+        created_by: adminId
+      },
+      {
+        title: "Children's Poetry Workshop",
+        description: "Interactive poetry workshop for young aspiring poets.",
+        location: "Boston Children's Museum",
+        date: new Date("2024-11-12"),
+        created_by: adminId
+      },
+      {
+        title: "Poetry & Nature Retreat",
+        description: "A weekend retreat combining poetry and nature appreciation.",
+        location: "Yosemite National Park",
+        date: new Date("2024-12-05"),
+        created_by: adminId
+      },
+      {
+        title: "Digital Poetry Exhibition",
+        description: "Exploring the intersection of poetry and technology.",
+        location: "San Francisco Museum of Modern Art",
+        date: new Date("2025-01-20"),
+        created_by: adminId
+      },
+      {
+        title: "International Poetry Festival",
+        description: "Celebrating diverse poetic traditions from around the world.",
+        location: "Edinburgh International Book Festival",
+        date: new Date("2025-02-15"),
+        created_by: adminId
+      }
+    ];
+
+    await db.insert(events).values(poetryEvents);
+    console.log("✓ Created poetry events");
+
+    // Create points of interest
+    console.log("Creating points of interest...");
+    const pointsOfInterestData = [
+      {
+        title: "Emily Dickinson Museum",
+        description: "The poet's family home and a center for literary history.",
+        location: "280 Main St, Amherst, MA 01002",
+        link: "https://www.emilydickinsonmuseum.org/",
+        created_by: adminId
+      },
+      {
+        title: "Walt Whitman Birthplace State Historic Site",
+        description: "Preserved birthplace of the renowned poet Walt Whitman.",
+        location: "246 Old Walt Whitman Rd, Huntington Station, NY 11746",
+        link: "https://www.waltwhitman.org/",
+        created_by: adminId
+      },
+      {
+        title: "The Poetry Foundation",
+        description: "Home to Poetry magazine and a world-class poetry library.",
+        location: "61 W Superior St, Chicago, IL 60654",
+        link: "https://www.poetryfoundation.org/",
+        created_by: adminId
+      },
+      {
+        title: "The Globe Theatre",
+        description: "Recreation of Shakespeare's famous theater.",
+        location: "21 New Globe Walk, London SE1 9DT, UK",
+        link: "https://www.shakespearesglobe.com/",
+        created_by: adminId
+      },
+      {
+        title: "City Lights Bookstore",
+        description: "Historic bookstore and publisher, founded by Lawrence Ferlinghetti.",
+        location: "261 Columbus Ave, San Francisco, CA 94133",
+        link: "https://citylights.com/",
+        created_by: adminId
+      },
+      {
+        title: "Poets House",
+        description: "National poetry library and literary center.",
+        location: "10 River Terrace, New York, NY 10282",
+        link: "https://poetshouse.org/",
+        created_by: adminId
+      },
+      {
+        title: "Robert Frost Farm",
+        description: "Historic home where Frost wrote many of his famous poems.",
+        location: "122 Rockingham Rd, Derry, NH 03038",
+        link: "https://www.robertfrostfarm.org/",
+        created_by: adminId
+      },
+      {
+        title: "The Poetry Cafe",
+        description: "Home of the Poetry Society, featuring readings and events.",
+        location: "22 Betterton St, London WC2H 9BX, UK",
+        link: "https://poetrysociety.org.uk/poetry-cafe/",
+        created_by: adminId
+      },
+      {
+        title: "The Beat Museum",
+        description: "Dedicated to the Beat Generation and its impact on American culture.",
+        location: "540 Broadway, San Francisco, CA 94133",
+        link: "https://www.kerouac.com/",
+        created_by: adminId
+      },
+      {
+        title: "Keats House",
+        description: "Historic house museum where poet John Keats lived and wrote.",
+        location: "10 Keats Grove, London NW3 2RR, UK",
+        link: "https://www.cityoflondon.gov.uk/things-to-do/keats-house",
+        created_by: adminId
+      }
+    ];
+
+    await db.insert(pointsOfInterest).values(pointsOfInterestData);
+    console.log("✓ Created points of interest");
+
+    // Create resources
+    console.log("Creating poetry resources...");
+    const resourcesData = [
+      {
+        title: "Academy of American Poets",
+        description: "Comprehensive resource for American poetry, including poems, poet biographies, and educational materials.",
+        type: "Website",
+        link: "https://poets.org/",
+        created_by: adminId
+      },
+      {
+        title: "Poetry Foundation",
+        description: "Extensive collection of poems, articles, and podcasts about poetry.",
+        type: "Website",
+        link: "https://www.poetryfoundation.org/",
+        created_by: adminId
+      },
+      {
+        title: "The Poetry Archive",
+        description: "World's premier online collection of recordings of poets reading their work.",
+        type: "Digital Archive",
+        link: "https://poetryarchive.org/",
+        created_by: adminId
+      },
+      {
+        title: "Poetry Society of America",
+        description: "National organization dedicated to building a larger audience for poetry.",
+        type: "Organization",
+        link: "https://poetrysociety.org/",
+        created_by: adminId
+      },
+      {
+        title: "The Poetry School",
+        description: "UK's largest provider of poetry education, offering courses and workshops.",
+        type: "Educational",
+        link: "https://poetryschool.com/",
+        created_by: adminId
+      },
+      {
+        title: "Poetry Daily",
+        description: "Daily poetry readings and contemporary poetry news.",
+        type: "Website",
+        link: "https://poems.com/",
+        created_by: adminId
+      },
+      {
+        title: "Poetry Magazine",
+        description: "Oldest monthly devoted to verse in the English-speaking world.",
+        type: "Magazine",
+        link: "https://www.poetryfoundation.org/poetrymagazine",
+        created_by: adminId
+      },
+      {
+        title: "Poets & Writers",
+        description: "Largest nonprofit organization serving creative writers.",
+        type: "Organization",
+        link: "https://www.pw.org/",
+        created_by: adminId
+      },
+      {
+        title: "Poetry International Web",
+        description: "Platform for international exchange of poetry.",
+        type: "Website",
+        link: "https://www.poetryinternational.org/",
+        created_by: adminId
+      },
+      {
+        title: "Button Poetry",
+        description: "Digital platform promoting performance poetry.",
+        type: "Digital Platform",
+        link: "https://buttonpoetry.com/",
+        created_by: adminId
+      }
+    ];
+
+    await db.insert(resources).values(resourcesData);
+    console.log("✓ Created resources");
 
     console.log("✅ Database seeding completed successfully!");
   } catch (error) {
