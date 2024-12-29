@@ -5,10 +5,19 @@ import { users, posts } from "@db/schema";
 import { eq } from "drizzle-orm";
 
 export function registerRoutes(app: Express): Server {
-  // User routes
+  // User routes - simplified without auth
   app.post("/api/users", async (req, res) => {
     try {
-      const [user] = await db.insert(users).values(req.body).returning();
+      const { username, displayName, bio } = req.body;
+      const [user] = await db
+        .insert(users)
+        .values({
+          username,
+          displayName,
+          bio: bio || null,
+          avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`,
+        })
+        .returning();
       res.json(user);
     } catch (error) {
       console.error("Failed to create user:", error);
@@ -42,32 +51,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Failed to fetch users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
-    }
-  });
-
-  // Post routes
-  app.post("/api/posts", async (req, res) => {
-    try {
-      const [post] = await db.insert(posts).values(req.body).returning();
-      res.json(post);
-    } catch (error) {
-      console.error("Failed to create post:", error);
-      res.status(500).json({ message: "Failed to create post" });
-    }
-  });
-
-  app.get("/api/posts", async (_req, res) => {
-    try {
-      const allPosts = await db.query.posts.findMany({
-        with: {
-          user: true,
-        },
-        orderBy: (posts, { desc }) => [desc(posts.createdAt)],
-      });
-      res.json(allPosts);
-    } catch (error) {
-      console.error("Failed to fetch posts:", error);
-      res.status(500).json({ message: "Failed to fetch posts" });
     }
   });
 

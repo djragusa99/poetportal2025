@@ -1,97 +1,127 @@
 import { useUser } from "../hooks/use-user";
 import { useQuery } from "@tanstack/react-query";
-import { Post, Event } from "@db/schema";
-import CreatePost from "../components/CreatePost";
-import PostCard from "../components/PostCard";
-import EventCard from "../components/EventCard";
-import api from "../lib/api";
+import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import UserProfile from "../components/UserProfile";
 
 export default function Home() {
-  const { user } = useUser();
-  const { data: posts = [] } = useQuery<Post[]>({
-    queryKey: ["/api/posts"],
-    queryFn: api.posts.list,
+  const { data: users = [], refetch } = useQuery({
+    queryKey: ['/api/users'],
+    queryFn: async () => {
+      const res = await fetch('/api/users');
+      if (!res.ok) throw new Error('Failed to fetch users');
+      return res.json();
+    }
   });
 
-  const { data: events = [] } = useQuery<Event[]>({
-    queryKey: ["/api/events"],
-    queryFn: () => api.events.list(),
-    enabled: !!user, // Only fetch events if user is logged in
-  });
+  const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const userData = {
+      username: formData.get('username'),
+      displayName: formData.get('displayName'),
+      bio: formData.get('bio')
+    };
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(userData)
+      });
+
+      if (!res.ok) {
+        throw new Error(await res.text());
+      }
+
+      toast({
+        title: "Success",
+        description: "User created successfully",
+      });
+
+      refetch();
+      (event.target as HTMLFormElement).reset();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-      {/* Left Sidebar - Events */}
-      <div className="md:col-span-3">
+    <div className="container mx-auto p-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Registration Form */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Upcoming Events</CardTitle>
+            <CardTitle>Create New User</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {Array.isArray(events) && events.length > 0 ? (
-              events.slice(0, 3).map((event) => (
-                <EventCard key={event.id} event={event} />
-              ))
-            ) : (
-              <p className="text-sm text-muted-foreground">No upcoming events</p>
-            )}
+          <CardContent>
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  name="username"
+                  id="username"
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="displayName" className="block text-sm font-medium text-gray-700">
+                  Display Name
+                </label>
+                <input
+                  type="text"
+                  name="displayName"
+                  id="displayName"
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                />
+              </div>
+              <div>
+                <label htmlFor="bio" className="block text-sm font-medium text-gray-700">
+                  Bio
+                </label>
+                <textarea
+                  name="bio"
+                  id="bio"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm"
+                />
+              </div>
+              <button
+                type="submit"
+                className="inline-flex justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              >
+                Create User
+              </button>
+            </form>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Main Content - Feed */}
-      <div className="md:col-span-6 space-y-6">
-        <CreatePost user={user} />
-        {posts.map((post) => (
-          <PostCard key={post.id} post={post} />
-        ))}
-      </div>
-
-      {/* Right Sidebar - User Profile */}
-      <div className="md:col-span-3">
-        <Dialog>
-          <DialogTrigger asChild>
-            <Card className="sticky top-20 hover:bg-accent/50 cursor-pointer transition-colors">
-              <CardHeader className="flex flex-row items-center gap-4 space-y-0">
-                <Avatar className="h-12 w-12">
-                  <AvatarImage src={user?.avatar} />
-                  <AvatarFallback>
-                    {user?.firstName?.[0]}
-                    {user?.lastName?.[0]}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex flex-col">
-                  <CardTitle className="text-lg">
-                    {user?.firstName} {user?.lastName}
-                  </CardTitle>
-                  <span className="text-sm text-muted-foreground">{user?.userType}</span>
+        {/* User List */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Existing Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {users.map((user: any) => (
+                <div key={user.id} className="border rounded p-4">
+                  <h3 className="font-semibold">{user.displayName}</h3>
+                  <p className="text-sm text-gray-500">@{user.username}</p>
+                  {user.bio && <p className="mt-2 text-sm">{user.bio}</p>}
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {user?.location && (
-                  <div className="flex items-center text-sm text-muted-foreground">
-                    <User className="mr-2 h-4 w-4" />
-                    {user.location}
-                  </div>
-                )}
-                {user?.bio && (
-                  <p className="text-sm text-muted-foreground">{user.bio}</p>
-                )}
-              </CardContent>
-            </Card>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Profile</DialogTitle>
-            </DialogHeader>
-            {user && <UserProfile user={user} />}
-          </DialogContent>
-        </Dialog>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
