@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 type User = {
   id: number;
   username: string;
-  display_name?: string;
+  display_name: string | null;
 };
 
 type LoginData = {
@@ -76,7 +76,6 @@ export function useUser() {
   const { data: user, isLoading } = useQuery<User | null>({
     queryKey: ['/api/user'],
     queryFn: fetchUser,
-    retry: false,
   });
 
   const loginMutation = useMutation({

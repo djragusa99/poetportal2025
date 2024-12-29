@@ -3,10 +3,14 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User } from "@db/schema";
 import { useToast } from "@/hooks/use-toast";
-import api from "../lib/api";
 import { useQueryClient } from "@tanstack/react-query";
+
+interface User {
+  id: number;
+  username: string;
+  display_name: string | null;
+}
 
 interface CreatePostProps {
   user: User;
@@ -23,7 +27,19 @@ export default function CreatePost({ user }: CreatePostProps) {
     }
 
     try {
-      await api.posts.create(content);
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ content }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create post');
+      }
+
       setContent("");
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
@@ -40,18 +56,19 @@ export default function CreatePost({ user }: CreatePostProps) {
     }
   };
 
+  const displayName = user.display_name || user.username;
+  const avatarFallback = displayName.charAt(0).toUpperCase();
+
   return (
     <Card>
       <CardHeader className="flex flex-row items-center gap-4">
         <Avatar>
-          <AvatarImage src={user.avatar} className="object-cover" />
           <AvatarFallback>
-            {user.firstName[0]}
-            {user.lastName[0]}
+            {avatarFallback}
           </AvatarFallback>
         </Avatar>
         <span className="font-semibold">
-          {user.firstName} {user.lastName}
+          {displayName}
         </span>
       </CardHeader>
       <CardContent>
