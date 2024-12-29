@@ -1,5 +1,6 @@
 import { pgTable, text, serial, timestamp, integer } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 
 // Core user table with minimal fields
 export const users = pgTable("users", {
@@ -7,6 +8,7 @@ export const users = pgTable("users", {
   username: text("username").unique().notNull(),
   displayName: text("display_name").notNull(),
   bio: text("bio"),
+  avatar: text("avatar"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -25,6 +27,12 @@ export const postsRelations = relations(posts, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// Create schemas for type safety
+export const insertUserSchema = createInsertSchema(users);
+export const selectUserSchema = createSelectSchema(users);
+export const insertPostSchema = createInsertSchema(posts);
+export const selectPostSchema = createSelectSchema(posts);
 
 // Export types
 export type User = typeof users.$inferSelect;

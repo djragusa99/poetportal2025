@@ -8,11 +8,7 @@ export function registerRoutes(app: Express): Server {
   // User routes
   app.post("/api/users", async (req, res) => {
     try {
-      const { username, displayName, bio } = req.body;
-      const [user] = await db
-        .insert(users)
-        .values({ username, displayName, bio })
-        .returning();
+      const [user] = await db.insert(users).values(req.body).returning();
       res.json(user);
     } catch (error) {
       console.error("Failed to create user:", error);
@@ -52,11 +48,7 @@ export function registerRoutes(app: Express): Server {
   // Post routes
   app.post("/api/posts", async (req, res) => {
     try {
-      const { userId, content } = req.body;
-      const [post] = await db
-        .insert(posts)
-        .values({ userId, content })
-        .returning();
+      const [post] = await db.insert(posts).values(req.body).returning();
       res.json(post);
     } catch (error) {
       console.error("Failed to create post:", error);
