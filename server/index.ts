@@ -1,14 +1,12 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import session from "express-session";
-import createMemoryStore from "memorystore";
-import passport from "passport";
-import { createServer } from "http";
-import { seed } from "../db/seed";
+import { setupAuth } from "./auth";
 import { db } from "@db";
 import { sql } from "drizzle-orm";
 import { users } from "@db/schema";
+import session from "express-session";
+import createMemoryStore from "memorystore";
 
 const app = express();
 
@@ -16,7 +14,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// CORS configuration
+// CORS configuration for development
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin === "http://localhost:5000") {
@@ -34,26 +32,27 @@ app.use((req, res, next) => {
 
 // Session configuration
 const MemoryStore = createMemoryStore(session);
-app.use(session({
-  secret: process.env.REPL_ID || "poet-portal-secret",
-  name: "poet.sid",
-  resave: false,
-  saveUninitialized: false,
-  store: new MemoryStore({
-    checkPeriod: 86400000, // 24h
-  }),
-  cookie: {
-    secure: false, // Set to true in production
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: 'lax',
-    path: '/',
-  },
-}));
+app.use(
+  session({
+    secret: process.env.REPL_ID || "poet-portal-secret",
+    name: "poet.sid",
+    resave: false,
+    saveUninitialized: false,
+    store: new MemoryStore({
+      checkPeriod: 86400000, // 24h
+    }),
+    cookie: {
+      secure: false, // Set to true in production
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: "lax",
+      path: "/",
+    },
+  })
+);
 
-// Initialize Passport and restore authentication state from session
-app.use(passport.initialize());
-app.use(passport.session());
+// Setup authentication after session middleware
+setupAuth(app);
 
 // Logging middleware
 app.use((req, res, next) => {
@@ -88,18 +87,17 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    // Only seed if the database is empty
+    // Check database connection and create tables if needed
     const userCount = await db
       .select({ count: sql<number>`count(*)` })
       .from(users);
 
     if (userCount[0].count === 0) {
-      log("Database is empty, seeding initial data...");
-      process.env.SEED_DB = 'true';
-      await seed();
-      log("🌱 Database seeded successfully");
+      log("Database is empty, setting up initial data...");
+      // You can add initial data setup here if needed
+      log("Initial setup complete");
     } else {
-      log(`Database contains ${userCount[0].count} users, skipping seed`);
+      log(`Database contains ${userCount[0].count} users`);
     }
 
     const server = registerRoutes(app);

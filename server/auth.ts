@@ -36,30 +36,17 @@ const crypto = {
   },
 };
 
-// Update interface to match database schema
-declare global {
-  namespace Express {
-    interface User {
-      id: number;
-      username: string;
-      password: string;
-      first_name: string;
-      last_name: string;
-      email: string;
-      location: string | null;
-      user_type: string;
-      pronouns: string | null;
-      bio: string | null;
-      avatar: string | null;
-      suspended: boolean;
-      created_at: Date;
-    }
-
-    interface Session {
-      currentUserId?: number;
-    }
-  }
-}
+const registerSchema = z.object({
+  username: z.string().min(1, "Username is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email address"),
+  location: z.string().optional(),
+  user_type: z.string().optional().default("User"),
+  pronouns: z.string().optional(),
+  bio: z.string().optional(),
+});
 
 const loginSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -67,6 +54,10 @@ const loginSchema = z.object({
 });
 
 export function setupAuth(app: Express) {
+  // Initialize Passport and restore authentication state from session
+  app.use(passport.initialize());
+  app.use(passport.session());
+
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -97,7 +88,7 @@ export function setupAuth(app: Express) {
     })
   );
 
-  passport.serializeUser((user, done) => {
+  passport.serializeUser((user: Express.User, done) => {
     console.log("Serializing user:", user.id);
     done(null, user.id);
   });
@@ -122,9 +113,61 @@ export function setupAuth(app: Express) {
     }
   });
 
+  app.post("/api/register", async (req, res, next) => {
+    try {
+      console.log("Registration attempt:", req.body);
+      const result = registerSchema.safeParse(req.body);
+      if (!result.success) {
+        return res
+          .status(400)
+          .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
+      }
+
+      const { username, password, first_name, last_name, email, location, user_type, pronouns, bio } = result.data;
+
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      const hashedPassword = await crypto.hash(password);
+
+      const [newUser] = await db
+        .insert(users)
+        .values({
+          username,
+          password: hashedPassword,
+          first_name,
+          last_name,
+          email,
+          location,
+          user_type,
+          pronouns,
+          bio,
+        })
+        .returning();
+
+      req.login(newUser, (err) => {
+        if (err) {
+          return next(err);
+        }
+        console.log("Registration successful for user:", newUser.username);
+        console.log("Session after registration:", req.session);
+        return res.json(newUser);
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      next(error);
+    }
+  });
+
   app.post("/api/login", (req, res, next) => {
     console.log("Login attempt:", req.body.username);
-    console.log("Request headers:", req.headers);
 
     const result = loginSchema.safeParse(req.body);
     if (!result.success) {
@@ -150,8 +193,6 @@ export function setupAuth(app: Express) {
           return next(err);
         }
 
-        req.session.currentUserId = user.id;
-
         console.log("Login successful for user:", user.username);
         console.log("Session ID:", req.sessionID);
         console.log("Session data:", req.session);
@@ -160,62 +201,9 @@ export function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  app.post("/api/register", async (req, res, next) => {
-    try {
-      console.log("Registration attempt:", req.body.username);
-      const result = insertUserSchema.safeParse(req.body);
-      if (!result.success) {
-        return res
-          .status(400)
-          .json({ message: "Invalid input: " + result.error.issues.map(i => i.message).join(", ") });
-      }
-
-      const { username, password, first_name, last_name, email, location, user_type } = result.data;
-
-      const [existingUser] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
-      const hashedPassword = await crypto.hash(password);
-
-      const [newUser] = await db
-        .insert(users)
-        .values({
-          username,
-          password: hashedPassword,
-          first_name,
-          last_name,
-          email,
-          location,
-          user_type,
-        })
-        .returning();
-
-      req.login(newUser, (err) => {
-        if (err) {
-          return next(err);
-        }
-        console.log("Registration successful for user:", newUser.username);
-        console.log("Session after registration:", req.session);
-        return res.json(newUser);
-      });
-    } catch (error) {
-      console.error("Registration error:", error);
-      next(error);
-    }
-  });
-
   app.post("/api/logout", (req, res) => {
     const username = req.user?.username;
     console.log("Logout attempt for user:", username);
-    console.log("Session before logout:", req.session);
-    console.log("Request headers:", req.headers);
 
     req.logout((err) => {
       if (err) {
@@ -223,7 +211,6 @@ export function setupAuth(app: Express) {
         return res.status(500).json({ message: "Logout failed" });
       }
       console.log("Logout successful for user:", username);
-      console.log("Session after logout:", req.session);
       res.json({ message: "Logout successful" });
     });
   });
@@ -232,7 +219,6 @@ export function setupAuth(app: Express) {
     console.log("Checking user authentication");
     console.log("Session ID:", req.sessionID);
     console.log("Session:", req.session);
-    console.log("Request headers:", req.headers);
     console.log("Is Authenticated:", req.isAuthenticated());
 
     if (req.isAuthenticated()) {

@@ -1,21 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { User } from "@db/schema";
+import type { SelectUser } from "@db/schema";
 import { useToast } from '@/hooks/use-toast';
-import { useLocation } from 'wouter';
 
 type LoginData = {
   username: string;
   password: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
+};
+
+type RegisterData = LoginData & {
+  first_name: string;
+  last_name: string;
+  email: string;
   location?: string;
-  userType?: string;
+  user_type?: string;
   pronouns?: string;
   bio?: string;
 };
 
-async function fetchUser(): Promise<User | null> {
+async function fetchUser(): Promise<SelectUser | null> {
   const response = await fetch('/api/user', {
     credentials: 'include'
   });
@@ -24,13 +26,13 @@ async function fetchUser(): Promise<User | null> {
     if (response.status === 401) {
       return null;
     }
-    return null; 
+    throw new Error(await response.text());
   }
 
   return response.json();
 }
 
-async function login(data: LoginData): Promise<User> {
+async function login(data: LoginData): Promise<SelectUser> {
   const response = await fetch('/api/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -39,14 +41,13 @@ async function login(data: LoginData): Promise<User> {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText);
+    throw new Error(await response.text());
   }
 
   return response.json();
 }
 
-async function register(data: LoginData): Promise<User> {
+async function register(data: RegisterData): Promise<SelectUser> {
   const response = await fetch('/api/register', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -75,9 +76,8 @@ async function logout(): Promise<void> {
 export function useUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [, setLocation] = useLocation();
 
-  const { data: user, isLoading } = useQuery<User | null>({
+  const { data: user, isLoading } = useQuery<SelectUser | null>({
     queryKey: ['user'],
     queryFn: fetchUser,
     staleTime: Infinity,

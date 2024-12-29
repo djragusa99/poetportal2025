@@ -1,6 +1,7 @@
-import { pgTable, text, serial, integer, boolean, timestamp, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { relations } from "drizzle-orm";
+import { z } from "zod";
 
 // Users table
 export const users = pgTable("users", {
@@ -200,7 +201,7 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   }),
 }));
 
-// Export schemas for validation
+// Define schemas for validation
 export const insertUserSchema = createInsertSchema(users);
 export const selectUserSchema = createSelectSchema(users);
 export const insertEventSchema = createInsertSchema(events);
@@ -217,6 +218,7 @@ export const insertMessageSchema = createInsertSchema(messages);
 export const selectMessageSchema = createSelectSchema(messages);
 
 // Export types
+export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type SelectUser = typeof users.$inferSelect;
 export type InsertEvent = typeof events.$inferInsert;
@@ -243,3 +245,11 @@ export type ConversationParticipant = typeof conversationParticipants.$inferSele
 export type NewConversationParticipant = typeof conversationParticipants.$inferInsert;
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;
+
+
+// Add type for Express session
+declare global {
+  namespace Express {
+    interface User extends SelectUser {}
+  }
+}
