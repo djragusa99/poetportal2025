@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { db } from "@db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
+import { setupAuth } from "./auth";
 
 // Middleware to check if user is admin
 const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
@@ -37,6 +38,9 @@ const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
 };
 
 export function registerRoutes(app: Express): Server {
+  // Setup auth first
+  setupAuth(app);
+
   // Admin routes
   app.get("/api/admin/users", isAdmin, async (_req, res) => {
     try {

@@ -21,8 +21,8 @@ app.use(
   session({
     name: 'sid',
     secret: SECRET_KEY,
-    resave: false,
-    saveUninitialized: false,
+    resave: true, // Changed to true to ensure session is saved
+    saveUninitialized: true, // Changed to true to ensure session is created
     store: new SessionStore({
       checkPeriod: 86400000 // prune expired entries every 24h
     }),
@@ -35,7 +35,7 @@ app.use(
   })
 );
 
-// Setup auth AFTER session but BEFORE routes
+// Setup auth AFTER session middleware
 setupAuth(app);
 
 // Debug middleware to log requests and session state
@@ -43,10 +43,11 @@ app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
 
-  // Log authentication state for API requests
+  // Log authentication state for all requests
   if (path.startsWith('/api')) {
     log(`Request ${req.method} ${path}`);
-    log(`Auth state: ${req.isAuthenticated()} User: ${JSON.stringify(req.user)}`);
+    log(`Session ID: ${req.sessionID}`);
+    log(`Auth state: ${req.isAuthenticated()} User ID: ${req.user?.id}`);
   }
 
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
