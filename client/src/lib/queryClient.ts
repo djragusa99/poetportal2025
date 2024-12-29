@@ -8,6 +8,7 @@ export const queryClient = new QueryClient({
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
         });
 

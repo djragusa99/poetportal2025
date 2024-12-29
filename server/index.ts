@@ -9,48 +9,53 @@ import MemoryStore from "memorystore";
 
 const app = express();
 
+// First, configure middleware for parsing requests
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
 // Setup session store first
 const SessionStore = MemoryStore(session);
 
-// Configure session middleware
+// Use a consistent secret key
+const SECRET_KEY = process.env.REPL_ID || "development-secret-key";
+
+// Configure session middleware with more robust settings
 app.use(
   session({
-    secret: process.env.REPL_ID || "your-secret-key",
-    resave: true, // Changed to true to ensure session is saved
-    saveUninitialized: true, // Changed to true to create session for all requests
+    secret: SECRET_KEY,
+    name: 'sid', // Set a specific cookie name
+    resave: false, // Don't save session if unmodified
+    saveUninitialized: false, // Don't create session until something stored
     store: new SessionStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
+      checkPeriod: 86400000, // prune expired entries every 24h
+      stale: false, // Delete stale sessions
     }),
     cookie: {
-      secure: false, // Set to false to work in development
+      secure: false, // Set to true in production with HTTPS
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       sameSite: 'lax',
-      path: '/' // Ensure cookie is sent for all paths
+      path: '/'
     }
   })
 );
 
-// Then setup other middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// Setup CORS with credentials support
+// Setup CORS with credentials support before authentication
 app.use((req, res, next) => {
-  // Allow credentials
-  res.header("Access-Control-Allow-Credentials", "true");
-
-  // Set origin based on request
   const origin = req.headers.origin;
   if (origin) {
-    res.header("Access-Control-Allow-Origin", origin);
+    // Allow credentials and specific origin
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS');
+    res.header(
+      'Access-Control-Allow-Headers',
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+    );
   }
 
-  // Allow methods
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-
-  if (req.method === "OPTIONS") {
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
     return res.sendStatus(200);
   }
   next();
@@ -58,12 +63,15 @@ app.use((req, res, next) => {
 
 // Debug middleware to log session data
 app.use((req, _res, next) => {
-  console.log("Session data:", {
-    id: req.session.id,
-    userId: req.session.userId,
-    isAdmin: req.session.isAdmin,
-    cookie: req.session.cookie
-  });
+  if (req.path.startsWith('/api')) {
+    console.log("Session debug:", {
+      path: req.path,
+      method: req.method,
+      sessionID: req.sessionID,
+      session: req.session,
+      isAuthenticated: req.isAuthenticated?.()
+    });
+  }
   next();
 });
 
@@ -109,29 +117,29 @@ app.use((req, res, next) => {
       throw error;
     }
 
-    // Setup authentication before routes
+    // Setup authentication after session and before routes
     setupAuth(app);
 
     // Register routes after auth setup
     const server = registerRoutes(app);
 
+    // Error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error("Error:", err);
       const status = err.status || err.statusCode || 500;
       const message = err.message || "Internal Server Error";
 
       res.status(status).json({ message });
-      throw err;
     });
 
+    // Setup Vite or static serving
     if (app.get("env") === "development") {
       await setupVite(app, server);
     } else {
       serveStatic(app);
     }
 
-    // ALWAYS serve the app on port 5000
-    // this serves both the API and the client
+    // Start server
     const PORT = 5000;
     server.listen(PORT, "0.0.0.0", () => {
       log(`✓ Server running on port ${PORT}`);

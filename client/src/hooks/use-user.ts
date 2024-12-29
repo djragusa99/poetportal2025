@@ -15,23 +15,27 @@ type LoginData = {
 };
 
 async function fetchUser(): Promise<User | null> {
-  const response = await fetch('/api/user', {
-    credentials: 'include',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-    }
-  });
+  try {
+    const response = await fetch('/api/user', {
+      credentials: 'include',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+    });
 
-  if (!response.ok) {
-    if (response.status === 401) {
-      return null;
+    if (!response.ok) {
+      if (response.status === 401) {
+        return null;
+      }
+      throw new Error(await response.text());
     }
-    const error = await response.json();
-    throw new Error(error.message);
+
+    return response.json();
+  } catch (error) {
+    console.error('Error fetching user:', error);
+    return null;
   }
-
-  return response.json();
 }
 
 async function login(data: LoginData): Promise<User> {
@@ -79,7 +83,8 @@ async function logout(): Promise<void> {
     method: 'POST',
     credentials: 'include',
     headers: {
-      'Accept': 'application/json'
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
     }
   });
 
@@ -96,8 +101,6 @@ export function useUser() {
   const { data: user, isLoading } = useQuery<User | null>({
     queryKey: ['/api/user'],
     queryFn: fetchUser,
-    staleTime: 0, // Always fetch fresh data
-    cacheTime: 0, // Don't cache the user data
     retry: false
   });
 

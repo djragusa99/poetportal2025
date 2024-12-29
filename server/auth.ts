@@ -1,8 +1,10 @@
 import { type Express } from "express";
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
 import { users } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { scrypt, randomBytes } from "crypto";
 import { promisify } from "util";
 
 // Extend express-session types
@@ -28,25 +30,16 @@ async function verifyPassword(supplied: string, stored: string) {
   }
 
   const [hashedPassword, salt] = stored.split(".");
-  const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
-  const suppliedPasswordBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedPasswordBuf, suppliedPasswordBuf);
+  const buf = (await scryptAsync(supplied, salt, 64)) as Buffer;
+  return buf.toString("hex") === hashedPassword;
 }
 
 export function setupAuth(app: Express) {
-  // Login endpoint
-  app.post("/api/login", async (req, res) => {
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  passport.use(new LocalStrategy(async (username, password, done) => {
     try {
-      console.log("Login attempt:", { username: req.body.username });
-      const { username, password } = req.body;
-
-      if (!username || !password) {
-        return res.status(400).json({ 
-          message: "Username and password are required" 
-        });
-      }
-
-      // Find user
       const [user] = await db
         .select()
         .from(users)
@@ -54,43 +47,137 @@ export function setupAuth(app: Express) {
         .limit(1);
 
       if (!user) {
-        return res.status(401).json({ 
-          message: "Invalid username or password" 
-        });
+        return done(null, false, { message: "Invalid username or password" });
       }
 
       const isValid = await verifyPassword(password, user.password);
-
       if (!isValid) {
-        return res.status(401).json({ 
-          message: "Invalid username or password" 
-        });
+        return done(null, false, { message: "Invalid username or password" });
       }
 
       if (user.is_suspended) {
-        return res.status(403).json({
-          message: "Account is suspended"
-        });
+        return done(null, false, { message: "Account is suspended" });
       }
 
-      // Set session data
-      req.session.userId = user.id;
-      req.session.isAdmin = user.is_admin;
+      return done(null, user);
+    } catch (err) {
+      return done(err);
+    }
+  }));
 
-      // Save session explicitly
-      req.session.save((err) => {
+  passport.serializeUser((user: any, done) => {
+    console.log("Serializing user:", { userId: user.id });
+    done(null, user.id);
+  });
+
+  passport.deserializeUser(async (id: number, done) => {
+    try {
+      console.log("Deserializing user:", { userId: id });
+      const [user] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, id))
+        .limit(1);
+
+      if (!user) {
+        return done(null, false);
+      }
+
+      if (user.is_suspended) {
+        return done(null, false);
+      }
+
+      done(null, user);
+    } catch (err) {
+      done(err);
+    }
+  });
+
+  // Register endpoint
+  app.post("/api/register", async (req, res, next) => {
+    try {
+      const { username, password, display_name } = req.body;
+
+      // Check if user already exists
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+
+      // Hash password
+      const hashedPassword = await hashPassword(password);
+
+      // Create user
+      const [user] = await db
+        .insert(users)
+        .values({
+          username,
+          password: hashedPassword,
+          display_name: display_name || null,
+          is_admin: false,
+          is_suspended: false,
+        })
+        .returning();
+
+      // Log the user in
+      req.login(user, (err) => {
         if (err) {
-          console.error("Session save error:", err);
-          return res.status(500).json({ message: "Failed to create session" });
+          return next(err);
         }
+
+        // Set session data
+        req.session.userId = user.id;
+        req.session.isAdmin = user.is_admin;
+
+        return res.json({
+          user: {
+            id: user.id,
+            username: user.username,
+            display_name: user.display_name,
+            is_admin: user.is_admin,
+          }
+        });
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  // Login endpoint
+  app.post("/api/login", (req, res, next) => {
+    passport.authenticate("local", (err: Error, user: any, info: any) => {
+      if (err) {
+        console.error("Login error:", err);
+        return next(err);
+      }
+
+      if (!user) {
+        return res.status(401).json({ message: info.message || "Authentication failed" });
+      }
+
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error("Login error:", err);
+          return next(err);
+        }
+
+        // Set session data
+        req.session.userId = user.id;
+        req.session.isAdmin = user.is_admin;
 
         console.log("Login successful:", {
           userId: user.id,
           isAdmin: user.is_admin,
-          sessionId: req.session.id
+          sessionID: req.sessionID,
+          session: req.session
         });
 
-        res.json({
+        return res.json({
           user: {
             id: user.id,
             username: user.username,
@@ -100,71 +187,31 @@ export function setupAuth(app: Express) {
           }
         });
       });
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ 
-        message: "Failed to login" 
-      });
-    }
+    })(req, res, next);
   });
 
   // Get current user endpoint
-  app.get("/api/user", async (req, res) => {
-    try {
-      console.log("Session data in /api/user:", {
-        sessionId: req.session.id,
-        userId: req.session.userId,
-        isAdmin: req.session.isAdmin
-      });
-
-      if (!req.session.userId) {
-        return res.status(401).json({ 
-          message: "Not authenticated" 
-        });
-      }
-
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, req.session.userId))
-        .limit(1);
-
-      if (!user) {
-        return res.status(401).json({ 
-          message: "User not found" 
-        });
-      }
-
-      if (user.is_suspended) {
-        return res.status(403).json({
-          message: "Account is suspended"
-        });
-      }
-
-      res.json({
-        id: user.id,
-        username: user.username,
-        display_name: user.display_name,
-        is_admin: user.is_admin,
-        bio: user.bio
-      });
-    } catch (error) {
-      console.error("Get user error:", error);
-      res.status(500).json({ 
-        message: "Failed to get user info" 
-      });
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated() || !req.user) {
+      return res.status(401).json({ message: "Not authenticated" });
     }
+
+    const user = req.user as any;
+    res.json({
+      id: user.id,
+      username: user.username,
+      display_name: user.display_name,
+      is_admin: user.is_admin,
+      bio: user.bio
+    });
   });
 
   // Logout endpoint
   app.post("/api/logout", (req, res) => {
-    console.log("Logout request received");
-    req.session.destroy((err) => {
+    req.logout((err) => {
       if (err) {
         console.error("Logout error:", err);
-        return res.status(500).json({ 
-          message: "Failed to logout" 
-        });
+        return res.status(500).json({ message: "Failed to logout" });
       }
       res.json({ message: "Logged out successfully" });
     });

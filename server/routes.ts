@@ -16,31 +16,15 @@ declare global {
 // Middleware to check if user is admin
 const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Check if user is authenticated and has a valid session
-    if (!req.session || !req.session.userId) {
-      console.log("No session or userId found:", req.session);
+    if (!req.isAuthenticated() || !req.user) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
-    // Fetch user from database
-    const [user] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, req.session.userId))
-      .limit(1);
-
-    if (!user) {
-      console.log("No user found for id:", req.session.userId);
-      return res.status(401).json({ message: "User not found" });
-    }
-
+    const user = req.user as any;
     if (!user.is_admin) {
-      console.log("User is not admin:", user.username);
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // Add user to request for use in route handlers
-    req.user = user;
     next();
   } catch (error) {
     console.error("Admin middleware error:", error);
