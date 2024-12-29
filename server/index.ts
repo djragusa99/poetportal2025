@@ -88,20 +88,18 @@ app.use((req, res, next) => {
 
 (async () => {
   try {
-    if (app.get("env") === "development") {
-      // Only seed if the database is empty
-      const userCount = await db
-        .select({ count: sql<number>`count(*)` })
-        .from(users);
+    // Only seed if the database is empty
+    const userCount = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(users);
 
-      if (userCount[0].count === 0) {
-        log("Database is empty, seeding initial data...");
-        process.env.SEED_DB = 'true';
-        await seed();
-        log("🌱 Database seeded successfully");
-      } else {
-        log(`Database already contains ${userCount[0].count} users, skipping seed`);
-      }
+    if (userCount[0].count === 0) {
+      log("Database is empty, seeding initial data...");
+      process.env.SEED_DB = 'true';
+      await seed();
+      log("🌱 Database seeded successfully");
+    } else {
+      log(`Database contains ${userCount[0].count} users, skipping seed`);
     }
 
     const server = registerRoutes(app);
