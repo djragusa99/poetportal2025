@@ -7,8 +7,13 @@ import { eq } from "drizzle-orm";
 // Middleware to check if user is admin
 const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.session.userId || !req.session.isAdmin) {
-      console.log("Admin check failed: No session or not admin");
+    // Debug log for session data
+    console.log("Session data:", { 
+      userId: req.session.userId, 
+      isAdmin: req.session.isAdmin 
+    });
+
+    if (!req.session.userId) {
       return res.status(401).json({ message: "Not authenticated" });
     }
 
@@ -19,7 +24,6 @@ const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
       .limit(1);
 
     if (!user?.is_admin) {
-      console.log("Admin check failed: User not admin", { userId: req.session.userId });
       return res.status(403).json({ message: "Not authorized" });
     }
 
@@ -123,82 +127,6 @@ export function registerRoutes(app: Express): Server {
       console.error("Error deleting user:", error);
       res.status(500).json({ message: "Failed to delete user" });
     }
-  });
-
-  // User authentication routes
-  app.post("/api/login", async (req, res) => {
-    try {
-      const { username, password } = req.body;
-
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
-      }
-
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.username, username))
-        .limit(1);
-
-      if (!user || user.password !== password) {
-        return res.status(401).json({ message: "Invalid username or password" });
-      }
-
-      // Set session
-      req.session.userId = user.id;
-      req.session.isAdmin = user.is_admin; //Added this line
-
-      res.json({
-        user: {
-          id: user.id,
-          username: user.username,
-          display_name: user.display_name,
-          is_admin: user.is_admin
-        }
-      });
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Failed to login" });
-    }
-  });
-
-  app.get("/api/user", async (req, res) => {
-    try {
-      if (!req.session.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
-
-      const [user] = await db
-        .select()
-        .from(users)
-        .where(eq(users.id, req.session.userId))
-        .limit(1);
-
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
-      }
-
-      res.json({
-        id: user.id,
-        username: user.username,
-        display_name: user.display_name,
-        is_admin: user.is_admin,
-        bio: user.bio
-      });
-    } catch (error) {
-      console.error("Get user error:", error);
-      res.status(500).json({ message: "Failed to get user info" });
-    }
-  });
-
-  app.post("/api/logout", (req, res) => {
-    req.session.destroy((err) => {
-      if (err) {
-        console.error("Logout error:", err);
-        return res.status(500).json({ message: "Failed to logout" });
-      }
-      res.json({ message: "Logged out successfully" });
-    });
   });
 
   const httpServer = createServer(app);

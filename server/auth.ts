@@ -1,11 +1,9 @@
 import { type Express } from "express";
-import session from "express-session";
 import { users } from "@db/schema";
 import { db } from "@db";
 import { eq } from "drizzle-orm";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
-import MemoryStore from "memorystore";
 
 // Extend express-session types
 declare module 'express-session' {
@@ -17,7 +15,18 @@ declare module 'express-session' {
 
 const scryptAsync = promisify(scrypt);
 
+async function hashPassword(password: string) {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
+
 async function verifyPassword(supplied: string, stored: string) {
+  // Handle development seeded accounts with plain passwords
+  if (!stored.includes('.')) {
+    return supplied === stored;
+  }
+
   const [hashedPassword, salt] = stored.split(".");
   const hashedPasswordBuf = Buffer.from(hashedPassword, "hex");
   const suppliedPasswordBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
@@ -25,24 +34,6 @@ async function verifyPassword(supplied: string, stored: string) {
 }
 
 export function setupAuth(app: Express) {
-  const SessionStore = MemoryStore(session);
-
-  app.use(
-    session({
-      secret: process.env.REPL_ID || "your-secret-key",
-      resave: false,
-      saveUninitialized: false,
-      store: new SessionStore({
-        checkPeriod: 86400000 // prune expired entries every 24h
-      }),
-      cookie: {
-        secure: process.env.NODE_ENV === "production",
-        httpOnly: true,
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-      }
-    })
-  );
-
   // Login endpoint
   app.post("/api/login", async (req, res) => {
     try {
@@ -67,13 +58,7 @@ export function setupAuth(app: Express) {
         });
       }
 
-      // For development seeded accounts
-      let isValid = user.password === password;
-
-      // For hashed passwords
-      if (user.password.includes('.')) {
-        isValid = await verifyPassword(password, user.password);
-      }
+      const isValid = await verifyPassword(password, user.password);
 
       if (!isValid) {
         return res.status(401).json({ 
@@ -81,18 +66,38 @@ export function setupAuth(app: Express) {
         });
       }
 
-      // Set session
+      if (user.is_suspended) {
+        return res.status(403).json({
+          message: "Account is suspended"
+        });
+      }
+
+      // Set session data
       req.session.userId = user.id;
       req.session.isAdmin = user.is_admin;
 
-      res.json({
-        user: {
-          id: user.id,
-          username: user.username,
-          display_name: user.display_name,
-          is_admin: user.is_admin,
-          bio: user.bio
+      // Save session explicitly
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Failed to create session" });
         }
+
+        console.log("Login successful:", {
+          userId: user.id,
+          isAdmin: user.is_admin,
+          sessionId: req.session.id
+        });
+
+        res.json({
+          user: {
+            id: user.id,
+            username: user.username,
+            display_name: user.display_name,
+            is_admin: user.is_admin,
+            bio: user.bio
+          }
+        });
       });
     } catch (error) {
       console.error("Login error:", error);
@@ -105,6 +110,12 @@ export function setupAuth(app: Express) {
   // Get current user endpoint
   app.get("/api/user", async (req, res) => {
     try {
+      console.log("Session data in /api/user:", {
+        sessionId: req.session.id,
+        userId: req.session.userId,
+        isAdmin: req.session.isAdmin
+      });
+
       if (!req.session.userId) {
         return res.status(401).json({ 
           message: "Not authenticated" 
@@ -123,6 +134,12 @@ export function setupAuth(app: Express) {
         });
       }
 
+      if (user.is_suspended) {
+        return res.status(403).json({
+          message: "Account is suspended"
+        });
+      }
+
       res.json({
         id: user.id,
         username: user.username,
@@ -134,6 +151,65 @@ export function setupAuth(app: Express) {
       console.error("Get user error:", error);
       res.status(500).json({ 
         message: "Failed to get user info" 
+      });
+    }
+  });
+
+  // Register endpoint
+  app.post("/api/register", async (req, res) => {
+    try {
+      const { username, password, display_name } = req.body;
+
+      if (!username || !password) {
+        return res.status(400).json({ 
+          message: "Username and password are required" 
+        });
+      }
+
+      // Check if username exists
+      const [existingUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.username, username))
+        .limit(1);
+
+      if (existingUser) {
+        return res.status(400).json({ 
+          message: "Username already exists" 
+        });
+      }
+
+      // Hash password
+      const hashedPassword = await hashPassword(password);
+
+      // Create user
+      const [user] = await db
+        .insert(users)
+        .values({
+          username,
+          password: hashedPassword,
+          display_name: display_name || null,
+          is_admin: false,
+          is_suspended: false
+        })
+        .returning();
+
+      // Set session
+      req.session.userId = user.id;
+      req.session.isAdmin = user.is_admin;
+
+      res.json({
+        user: {
+          id: user.id,
+          username: user.username,
+          display_name: user.display_name,
+          is_admin: user.is_admin
+        }
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ 
+        message: "Failed to register" 
       });
     }
   });
