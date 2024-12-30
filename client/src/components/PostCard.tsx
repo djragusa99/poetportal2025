@@ -332,7 +332,7 @@ export default function PostCard({ post }: PostCardProps) {
                 </Button>
               )}
               <span className="text-sm text-muted-foreground">
-                {format(new Date(post.createdAt || ''), "PPp")}
+                {format(new Date(post.created_at), "PPp")}
               </span>
             </div>
             {post.userId === user.id && (
