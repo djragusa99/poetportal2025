@@ -45,7 +45,7 @@ export default function Resources() {
         {filteredResources.map((resource) => (
           <Card key={resource.id}>
             <CardHeader>
-              <CardTitle className="flex items-start justify-between">
+              <CardTitle className="flex items-start justify-between text-lg">
                 <span>{resource.title}</span>
                 <span className="text-sm font-normal text-muted-foreground">
                   {resource.type}
