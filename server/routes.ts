@@ -342,9 +342,16 @@ export function registerRoutes(app: Express): Server {
     const followerId = req.user?.id;
     const followingId = parseInt(req.params.userId);
 
+    if (!followerId || !followingId) {
+      return res.status(400).json({ message: "Invalid request parameters" });
+    }
+
+    if (followerId === followingId) {
+      return res.status(400).json({ message: "Cannot follow yourself" });
+    }
+
     try {
-      // Check if already following
-      const existing = await db.select()
+      const [existing] = await db.select()
         .from(followers)
         .where(and(
           eq(followers.follower_id, followerId),
