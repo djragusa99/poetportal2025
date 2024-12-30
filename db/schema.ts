@@ -1,3 +1,4 @@
+
 import { pgTable, text, serial, timestamp, boolean, integer, date } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -89,9 +90,9 @@ export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
   content: text("content").notNull(),
   created_at: timestamp("created_at").defaultNow().notNull(),
-  user_id: integer("user_id").references(() => users.id).notNull(),
-  post_id: integer("post_id").references(() => posts.id).notNull(),
-  parent_id: integer("parent_id").references(() => comments.id),
+  user_id: integer("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  post_id: integer("post_id").references(() => posts.id, { onDelete: "cascade" }).notNull(),
+  parent_id: integer("parent_id").references(() => comments.id, { onDelete: "cascade" }),
 });
 
 // Schema validation with zod
@@ -208,15 +209,6 @@ export const resourcesRelations = relations(resources, ({ one }) => ({
     references: [users.id],
   }),
 }));
-
-export const comments = pgTable('comments', {
-  id: serial('id').primaryKey(),
-  content: text('content').notNull(),
-  user_id: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  post_id: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }).notNull(),
-  parent_id: integer('parent_id').references(() => comments.id, { onDelete: 'cascade' }),
-  created_at: timestamp('created_at').defaultNow(),
-});
 
 export const commentsRelations = relations(comments, ({ one }) => ({
   user: one(users, {
