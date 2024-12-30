@@ -76,13 +76,16 @@ async function fetchUser(): Promise<User | null> {
 
     if (!response.ok) {
       if (response.status === 401) {
+        console.log('User not authenticated');
         return null;
       }
       const text = await response.text();
       throw new Error(text || 'Failed to fetch user');
     }
 
-    return response.json();
+    const userData = await response.json();
+    console.log('Fetched user data:', userData);
+    return userData;
   } catch (error) {
     console.error('Error fetching user:', error);
     throw error;
@@ -104,11 +107,11 @@ export function useUser() {
       // Retry up to 3 times for other errors
       return failureCount < 3;
     },
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
-    refetchInterval: 4 * 60 * 1000, // Refresh every 4 minutes
-    refetchIntervalInBackground: true,
-    refetchOnWindowFocus: true,
+    staleTime: 60 * 60 * 1000, // Consider data fresh for 1 hour
+    gcTime: 2 * 60 * 60 * 1000, // Keep in cache for 2 hours
+    refetchInterval: 30 * 60 * 1000, // Refresh every 30 minutes
+    refetchIntervalInBackground: false, // Don't refetch in background
+    refetchOnWindowFocus: false, // Don't refetch on window focus
     refetchOnReconnect: true,
   });
 

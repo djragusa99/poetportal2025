@@ -16,11 +16,6 @@ async function hashPassword(password: string) {
 }
 
 async function verifyPassword(supplied: string, stored: string) {
-  // For development seeded accounts with plain text passwords
-  if (supplied === stored) {
-    return true;
-  }
-
   const [hashedPassword, salt] = stored.split(".");
   const buf = (await scryptAsync(supplied, salt, 64)) as Buffer;
   return buf.toString("hex") === hashedPassword;

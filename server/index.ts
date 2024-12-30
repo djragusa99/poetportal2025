@@ -20,7 +20,7 @@ app.set('trust proxy', 1);
 const SessionStore = MemoryStore(session);
 const SECRET_KEY = process.env.REPL_ID || "development-secret-key";
 
-// Session configuration with strict security settings and longer duration
+// Enhanced session configuration with better persistence
 app.use(
   session({
     name: 'sid',
@@ -29,13 +29,13 @@ app.use(
     saveUninitialized: false,
     store: new SessionStore({
       checkPeriod: 86400000, // prune expired entries every 24h
-      ttl: 7 * 24 * 60 * 60 * 1000 // TTL of 7 days
+      ttl: 30 * 24 * 60 * 60 * 1000 // TTL of 30 days for longer persistence
     }),
     cookie: {
       httpOnly: true,
       secure: false, // Set to false since we're not using HTTPS in development
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       path: '/',
       domain: undefined
     }
@@ -45,7 +45,7 @@ app.use(
 // Setup auth AFTER session middleware
 setupAuth(app);
 
-// Debug middleware to log requests and session state
+// Enhanced debug middleware to log requests and session state
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -105,7 +105,7 @@ app.use((req, res, next) => {
 
     const server = registerRoutes(app);
 
-    // Error handling middleware with detailed logging
+    // Enhanced error handling middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error("Error:", err);
       const status = err.status || err.statusCode || 500;
