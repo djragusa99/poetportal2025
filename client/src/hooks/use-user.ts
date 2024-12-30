@@ -14,13 +14,25 @@ type LoginData = {
   display_name?: string;
 };
 
+type AuthResponse = {
+  token: string;
+  user: User;
+};
+
+// Token management
+const TOKEN_KEY = 'auth_token';
+
+const getStoredToken = () => localStorage.getItem(TOKEN_KEY);
+const setStoredToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
+const removeStoredToken = () => localStorage.removeItem(TOKEN_KEY);
+
+// API functions
 async function login(data: LoginData): Promise<User> {
   const response = await fetch('/api/login', {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
     body: JSON.stringify(data),
   });
 
@@ -29,7 +41,8 @@ async function login(data: LoginData): Promise<User> {
     throw new Error(text || 'Failed to login');
   }
 
-  const result = await response.json();
+  const result: AuthResponse = await response.json();
+  setStoredToken(result.token);
   return result.user;
 }
 
@@ -39,7 +52,6 @@ async function register(data: LoginData): Promise<User> {
     headers: { 
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
     body: JSON.stringify(data),
   });
 
@@ -48,35 +60,33 @@ async function register(data: LoginData): Promise<User> {
     throw new Error(text || 'Failed to register');
   }
 
-  const result = await response.json();
+  const result: AuthResponse = await response.json();
+  setStoredToken(result.token);
   return result.user;
 }
 
 async function logout(): Promise<void> {
-  const response = await fetch('/api/logout', {
-    method: 'POST',
-    credentials: 'include',
-  });
-
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(text || 'Failed to logout');
-  }
+  removeStoredToken();
 }
 
 async function fetchUser(): Promise<User | null> {
+  const token = getStoredToken();
+  if (!token) {
+    return null;
+  }
+
   try {
     const response = await fetch('/api/user', {
-      credentials: 'include',
       headers: {
+        'Authorization': `Bearer ${token}`,
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache'
       }
     });
 
     if (!response.ok) {
-      if (response.status === 401) {
-        console.log('User not authenticated');
+      if (response.status === 401 || response.status === 403) {
+        removeStoredToken();
         return null;
       }
       const text = await response.text();
@@ -84,7 +94,6 @@ async function fetchUser(): Promise<User | null> {
     }
 
     const userData = await response.json();
-    console.log('Fetched user data:', userData);
     return userData;
   } catch (error) {
     console.error('Error fetching user:', error);
@@ -100,19 +109,16 @@ export function useUser() {
     queryKey: ['/api/user'],
     queryFn: fetchUser,
     retry: (failureCount, error) => {
-      // Don't retry on 401 errors
-      if (error instanceof Error && error.message.includes('401')) {
+      // Don't retry on auth errors
+      if (error instanceof Error && 
+          (error.message.includes('401') || error.message.includes('403'))) {
         return false;
       }
       // Retry up to 3 times for other errors
       return failureCount < 3;
     },
-    staleTime: 60 * 60 * 1000, // Consider data fresh for 1 hour
-    gcTime: 2 * 60 * 60 * 1000, // Keep in cache for 2 hours
-    refetchInterval: 30 * 60 * 1000, // Refresh every 30 minutes
-    refetchIntervalInBackground: false, // Don't refetch in background
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-    refetchOnReconnect: true,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
   });
 
   const loginMutation = useMutation({
@@ -167,7 +173,7 @@ export function useUser() {
         title: "Logout Failed",
         description: error.message,
       });
-      // Even if logout fails on server, clear local state
+      // Even if logout fails, clear local state
       queryClient.setQueryData(['/api/user'], null);
     },
   });

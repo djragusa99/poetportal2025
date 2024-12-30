@@ -1,20 +1,30 @@
 import { QueryClient } from "@tanstack/react-query";
 
+const getAuthToken = () => localStorage.getItem('auth_token');
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: async ({ queryKey }) => {
+        const token = getAuthToken();
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        };
+
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
         const res = await fetch(queryKey[0] as string, {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          },
+          headers
         });
 
         if (!res.ok) {
           if (res.status === 401) {
+            // Clear token on authentication error
+            localStorage.removeItem('auth_token');
             throw new Error('Not authenticated');
           }
 
@@ -33,7 +43,10 @@ export const queryClient = new QueryClient({
       },
       retry: (failureCount, error) => {
         // Don't retry on auth errors
-        if (error instanceof Error && (error.message.includes('401') || error.message.includes('403'))) {
+        if (error instanceof Error && 
+            (error.message.includes('401') || 
+             error.message.includes('403') ||
+             error.message.includes('Not authenticated'))) {
           return false;
         }
         // Retry up to 3 times for other errors
