@@ -152,22 +152,7 @@ export default function PostCard({ post }: PostCardProps) {
 
   const followMutation = useMutation({
     mutationFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/users/${post.userId}/follow`, {
-        method: "POST",
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to follow user');
-      }
-
-      return response.json();
+      return api.users.follow(post.userId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
@@ -188,22 +173,7 @@ export default function PostCard({ post }: PostCardProps) {
 
   const unfollowMutation = useMutation({
     mutationFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/users/${post.userId}/follow`, {
-        method: "DELETE",
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to unfollow user');
-      }
-
-      return response.json();
+      return api.users.unfollow(post.userId);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });

@@ -58,6 +58,20 @@ const api = {
     list: () =>
       fetch("/api/resources").then(handleResponse) as Promise<Resource[]>,
   },
+  users: {
+    follow: (userId: number) =>
+      fetch(`/api/users/${userId}/follow`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      }).then(handleResponse),
+    unfollow: (userId: number) =>
+      fetch(`/api/users/${userId}/follow`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      }).then(handleResponse),
+  },
 };
 
 export default api;
