@@ -355,6 +355,17 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Cannot follow yourself" });
       }
 
+      // Validate user exists
+      const [targetUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, followingId))
+        .limit(1);
+
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
       // Check if target user exists
       const targetUser = await db
         .select()

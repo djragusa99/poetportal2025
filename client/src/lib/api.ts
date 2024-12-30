@@ -70,15 +70,16 @@ const api = {
         headers: { 
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
-        }
+        },
+        credentials: "include"
       });
       
+      const data = await response.json();
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to follow user");
+        throw new Error(data.message || "Failed to follow user");
       }
       
-      return response.json();
+      return data;
     },
     unfollow: (userId: number) =>
       fetch(`/api/users/${userId}/follow`, {
