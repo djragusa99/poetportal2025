@@ -35,10 +35,6 @@ export default function CreatePost({ user }: CreatePostProps) {
 
       await queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       setContent("");
-      }
-
-      setContent("");
-      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
         title: "Success",
         description: "Your post has been created",
