@@ -67,10 +67,28 @@ export default function AdminDashboard() {
     queryFn: async () => {
       const response = await fetch('/api/admin/users', {
         credentials: 'include',
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
+        }
       });
+
       if (!response.ok) {
-        throw new Error(await response.text());
+        // Handle specific error cases
+        if (response.status === 401) {
+          // Session expired, redirect to login
+          setLocation("/auth");
+          throw new Error("Session expired. Please login again.");
+        }
+
+        if (response.status === 403) {
+          throw new Error("You don't have permission to access this page.");
+        }
+
+        const errorText = await response.text();
+        throw new Error(errorText || `Failed to fetch users (${response.status})`);
       }
+
       return response.json();
     },
     enabled: !!user?.is_admin, // Only fetch if user is admin
@@ -78,8 +96,11 @@ export default function AdminDashboard() {
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
     refetchInterval: 4 * 60 * 1000, // Refresh every 4 minutes
     retry: (failureCount, error) => {
-      // Don't retry on 403 errors (not authorized)
-      if (error instanceof Error && error.message.includes('403')) {
+      // Don't retry on auth errors
+      if (error instanceof Error && 
+          (error.message.includes('401') || 
+           error.message.includes('403') ||
+           error.message.includes('Not authenticated'))) {
         return false;
       }
       // Retry up to 3 times for other errors
@@ -93,6 +114,8 @@ export default function AdminDashboard() {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         },
         credentials: "include",
         body: JSON.stringify({
@@ -103,6 +126,12 @@ export default function AdminDashboard() {
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          // Session expired, redirect to login
+          setLocation("/auth");
+          throw new Error("Session expired. Please login again.");
+        }
+
         const text = await response.text();
         throw new Error(text || "Failed to update user");
       }
@@ -136,12 +165,14 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="text-destructive">
               Error loading users: {error.toString()}
-              <Button
-                className="mt-4"
-                onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] })}
-              >
-                Retry
-              </Button>
+              {!error.toString().includes('401') && !error.toString().includes('403') && (
+                <Button
+                  className="mt-4"
+                  onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] })}
+                >
+                  Retry
+                </Button>
+              )}
             </div>
           </CardContent>
         </Card>

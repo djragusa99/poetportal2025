@@ -7,6 +7,14 @@ import { sql } from "drizzle-orm";
 import session from "express-session";
 import MemoryStore from "memorystore";
 
+declare module "express-session" {
+  interface SessionData {
+    passport: {
+      user: number;
+    };
+  }
+}
+
 const app = express();
 
 // Basic middleware setup
@@ -20,7 +28,7 @@ app.set('trust proxy', 1);
 const SessionStore = MemoryStore(session);
 const SECRET_KEY = process.env.REPL_ID || "development-secret-key";
 
-// Enhanced session configuration with better persistence
+// Enhanced session configuration with strict security
 app.use(
   session({
     name: 'sid',
@@ -29,15 +37,14 @@ app.use(
     saveUninitialized: false,
     store: new SessionStore({
       checkPeriod: 86400000, // prune expired entries every 24h
-      ttl: 30 * 24 * 60 * 60 * 1000 // TTL of 30 days for longer persistence
+      ttl: 30 * 24 * 60 * 60 * 1000 // TTL of 30 days
     }),
     cookie: {
       httpOnly: true,
       secure: false, // Set to false since we're not using HTTPS in development
-      sameSite: 'lax',
+      sameSite: 'lax', // Changed back to 'lax' to allow cross-site authentication
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      path: '/',
-      domain: undefined
+      path: '/'
     }
   })
 );
@@ -45,29 +52,28 @@ app.use(
 // Setup auth AFTER session middleware
 setupAuth(app);
 
-// Enhanced debug middleware to log requests and session state
+// Detailed logging middleware for debugging session state
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
 
   // Enhanced logging for authentication state
   if (path.startsWith('/api')) {
-    log(`Request ${req.method} ${path}`);
-    log(`Session ID: ${req.sessionID}`);
-    log(`Auth state: ${req.isAuthenticated()} User ID: ${req.user?.id}`);
-    log(`Session data: ${JSON.stringify({
-      ...req.session,
-      cookie: {
-        ...req.session.cookie,
-        secure: req.session.cookie.secure,
-        httpOnly: req.session.cookie.httpOnly,
-        domain: req.session.cookie.domain,
-        path: req.session.cookie.path,
-        sameSite: req.session.cookie.sameSite,
-        expires: req.session.cookie.expires,
-        maxAge: req.session.cookie.maxAge
-      }
-    })}`);
+    console.log('Request details:', {
+      method: req.method,
+      path: path,
+      sessionID: req.sessionID,
+      isAuthenticated: req.isAuthenticated(),
+      user: req.user?.id,
+      cookies: req.headers.cookie,
+    });
+
+    // Log session data for debugging
+    console.log('Session state:', {
+      id: req.sessionID,
+      cookie: req.session?.cookie,
+      passport: req.session?.passport,
+    });
   }
 
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -85,11 +91,6 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
       log(logLine);
     }
   });
