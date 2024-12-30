@@ -169,14 +169,15 @@ export function setupAuth(app: Express) {
         return res.status(401).json({ message: "Invalid username or password" });
       }
 
+      // Check if user is suspended before verifying password
+      if (user.is_suspended) {
+        return res.status(403).json({ message: "Login Failed. Your account has been suspended." });
+      }
+
       // Verify password
       const isValid = await crypto.compare(password, user.password);
       if (!isValid) {
         return res.status(401).json({ message: "Invalid username or password" });
-      }
-
-      if (user.is_suspended) {
-        return res.status(403).json({ message: "Account is suspended" });
       }
 
       // Generate JWT token
