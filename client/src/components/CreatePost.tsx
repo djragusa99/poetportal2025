@@ -27,17 +27,10 @@ export default function CreatePost({ user }: CreatePostProps) {
     }
 
     try {
-      const response = await fetch('/api/posts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ 
-          title: content.split('\n')[0].slice(0, 50), // Use first line as title
-          content 
-        }),
-      });
+      await api.posts.create(
+        content.split('\n')[0].slice(0, 50), // Use first line as title
+        content
+      );
 
       if (!response.ok) {
         throw new Error('Failed to create post');
