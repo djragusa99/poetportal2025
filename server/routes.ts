@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { users, events, pointsOfInterest, resources, comments, posts } from "@db/schema";
-import { eq, desc } from "drizzle-orm";
+import { users, events, pointsOfInterest, resources, comments, posts, followers } from "@db/schema";
+import { eq, desc, and } from "drizzle-orm";
 import { setupAuth } from "./auth";
 
 export function registerRoutes(app: Express): Server {
