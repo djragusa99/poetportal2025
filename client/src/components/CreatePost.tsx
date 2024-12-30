@@ -28,10 +28,22 @@ export default function CreatePost({ user }: CreatePostProps) {
     }
 
     try {
-      await api.posts.create(
-        content.split('\n')[0].slice(0, 50), // Use first line as title
-        content
-      );
+      const title = content.split('\n')[0].slice(0, 50);
+      const token = localStorage.getItem('auth_token');
+
+      const response = await fetch('/api/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ title, content })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to create post');
+      }
 
       await queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       setContent("");
