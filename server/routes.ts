@@ -318,6 +318,26 @@ export function registerRoutes(app: Express): Server {
 
   const httpServer = createServer(app);
   // Follow routes
+  app.get("/api/users/:userId/following", authenticateToken, async (req, res) => {
+    const followerId = req.user?.id;
+    const followingId = parseInt(req.params.userId);
+
+    try {
+      const [isFollowing] = await db.select()
+        .from(followers)
+        .where(and(
+          eq(followers.follower_id, followerId),
+          eq(followers.following_id, followingId)
+        ))
+        .limit(1);
+
+      res.json({ isFollowing: !!isFollowing });
+    } catch (error) {
+      console.error("Error checking follow status:", error);
+      res.status(500).json({ message: "Failed to check follow status" });
+    }
+  });
+
   app.post("/api/users/:userId/follow", authenticateToken, async (req, res) => {
     const followerId = req.user?.id;
     const followingId = parseInt(req.params.userId);

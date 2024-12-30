@@ -162,6 +162,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   resources: many(resources),
   sentMessages: many(messages, { relationName: "sender" }),
   participatedConversations: many(conversationParticipants),
+  followers: many(followers, { relationName: "following", references: [followers.following_id] }),
+  following: many(followers, { relationName: "followers", references: [followers.follower_id] }),
 }));
 
 export const conversationsRelations = relations(conversations, ({ many }) => ({
