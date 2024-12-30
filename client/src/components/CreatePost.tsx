@@ -33,7 +33,10 @@ export default function CreatePost({ user }: CreatePostProps) {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ 
+          title: content.split('\n')[0].slice(0, 50), // Use first line as title
+          content 
+        }),
       });
 
       if (!response.ok) {
