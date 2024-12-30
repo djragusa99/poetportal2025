@@ -238,6 +238,9 @@ export async function seed() {
     await db.insert(pointsOfInterest).values(pointsOfInterestData);
     console.log("✓ Created points of interest");
 
+    // Clear existing resources first
+    await db.delete(resources);
+
     // Create resources
     console.log("Creating poetry resources...");
     const resourcesData = [
