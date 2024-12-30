@@ -72,15 +72,9 @@ export function registerRoutes(app: Express): Server {
           created_by: events.created_by
         })
         .from(events)
-        .orderBy(events.date)
-        .limit(10); // Limit to 10 most recent events
+        .orderBy(events.date);
 
-      // Remove duplicates based on title
-      const uniqueEvents = allEvents.filter((event, index, self) =>
-        index === self.findIndex((e) => e.title === event.title)
-      );
-
-      res.json(uniqueEvents);
+      res.json(allEvents);
     } catch (error) {
       console.error("Error fetching events:", error);
       res.status(500).json({ message: "Failed to fetch events" });

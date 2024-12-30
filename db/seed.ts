@@ -55,54 +55,6 @@ export async function seed() {
         display_name: "Walt Whitman",
         bio: "American poet, essayist and journalist. A humanist, he was a part of the transition between transcendentalism and realism.",
         password: await hashPassword("poet123")
-      },
-      {
-        username: "robert_frost",
-        display_name: "Robert Frost",
-        bio: "American poet known for his realistic depictions of rural life and command of American colloquial speech.",
-        password: await hashPassword("poet123")
-      },
-      {
-        username: "maya_angelou",
-        display_name: "Maya Angelou",
-        bio: "American poet, memoirist, and civil rights activist.",
-        password: await hashPassword("poet123")
-      },
-      {
-        username: "william_wordsworth",
-        display_name: "William Wordsworth",
-        bio: "English Romantic poet who helped to launch the Romantic Age in English literature.",
-        password: await hashPassword("poet123")
-      },
-      {
-        username: "langston_hughes",
-        display_name: "Langston Hughes",
-        bio: "American poet, social activist, novelist, and playwright.",
-        password: await hashPassword("poet123")
-      },
-      {
-        username: "sylvia_plath",
-        display_name: "Sylvia Plath",
-        bio: "American poet, novelist, and short story writer.",
-        password: await hashPassword("poet123")
-      },
-      {
-        username: "william_blake",
-        display_name: "William Blake",
-        bio: "English poet, painter, and printmaker.",
-        password: await hashPassword("poet123")
-      },
-      {
-        username: "edgar_allan_poe",
-        display_name: "Edgar Allan Poe",
-        bio: "American writer, poet, editor, and literary critic.",
-        password: await hashPassword("poet123")
-      },
-      {
-        username: "pablo_neruda",
-        display_name: "Pablo Neruda",
-        bio: "Chilean poet-diplomat and politician.",
-        password: await hashPassword("poet123")
       }
     ];
 
@@ -197,7 +149,11 @@ export async function seed() {
       }
     ];
 
-    await db.insert(events).values(poetryEvents);
+    // Clear existing events first
+    await db.delete(events);
+
+    // Insert new events
+    const insertedEvents = await db.insert(events).values(poetryEvents).returning();
     console.log("✓ Created poetry events");
 
     // Create points of interest
