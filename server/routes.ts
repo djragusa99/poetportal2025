@@ -355,26 +355,6 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Cannot follow yourself" });
       }
 
-      // Check if target user exists first
-      const targetUser = await db.select().from(users).where(eq(users.id, followingId)).limit(1);
-      if (!targetUser.length) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-    try {
-      const existing = await db
-        .select()
-        .from(followers)
-        .where(and(
-          eq(followers.follower_id, followerId),
-          eq(followers.following_id, followingId)
-        ))
-        .limit(1);
-
-      if (existing.length > 0) {
-        return res.status(400).json({ message: "Already following this user" });
-      }
-
       // Check if target user exists
       const targetUser = await db
         .select()
@@ -386,19 +366,9 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Check if user exists
-      const [userExists] = await db.select()
-        .from(users)
-        .where(eq(users.id, followingId))
-        .limit(1);
-
-      if (!userExists) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      // Add follow relationship
       // Check if already following
-      const existing = await db.select()
+      const existing = await db
+        .select()
         .from(followers)
         .where(and(
           eq(followers.follower_id, followerId),
@@ -419,8 +389,9 @@ export function registerRoutes(app: Express): Server {
       res.json({ message: "Successfully followed user", following: true });
     } catch (error) {
       console.error("Error following user:", error);
-      res.status(500).json({ message: "Failed to follow user - Database error" });
+      res.status(500).json({ message: "Failed to follow user" });
     }
+  });
   });
 
   app.delete("/api/users/:userId/follow", authenticateToken, async (req, res) => {
