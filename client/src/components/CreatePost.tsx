@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,8 +33,8 @@ export default function CreatePost({ user }: CreatePostProps) {
         content
       );
 
-      if (!response.ok) {
-        throw new Error('Failed to create post');
+      await queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      setContent("");
       }
 
       setContent("");
