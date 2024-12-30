@@ -20,15 +20,28 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Edit2, Loader2 } from "lucide-react";
+import { Edit2, Loader2, Shield, ShieldOff, Trash2 } from "lucide-react";
 
 interface AdminUser extends User {
   display_name: string | null;
   bio: string | null;
   is_admin: boolean;
+  is_suspended: boolean;
 }
 
 export default function AdminDashboard() {
@@ -148,6 +161,74 @@ export default function AdminDashboard() {
     },
   });
 
+  const toggleSuspendMutation = useMutation({
+    mutationFn: async (userData: { id: number; is_suspended: boolean }) => {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/admin/users/${userData.id}/suspend`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ is_suspended: userData.is_suspended }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to update suspension status");
+      }
+
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Success",
+        description: `User ${variables.is_suspended ? "suspended" : "unsuspended"} successfully`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to delete user");
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   if (error) {
     return (
       <div className="container py-10">
@@ -193,6 +274,7 @@ export default function AdminDashboard() {
                   <TableHead>Display Name</TableHead>
                   <TableHead>Bio</TableHead>
                   <TableHead>Admin</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -205,60 +287,111 @@ export default function AdminDashboard() {
                     <TableCell>{user.bio || "-"}</TableCell>
                     <TableCell>{user.is_admin ? "Yes" : "No"}</TableCell>
                     <TableCell>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setEditingUser(user)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Edit User</DialogTitle>
-                            <DialogDescription>
-                              Make changes to user information below
-                            </DialogDescription>
-                          </DialogHeader>
-                          {editingUser && (
-                            <div className="grid gap-4 py-4">
-                              <div className="grid gap-2">
-                                <label htmlFor="display_name">Display Name</label>
-                                <Input
-                                  id="display_name"
-                                  value={editingUser.display_name || ""}
-                                  onChange={(e) =>
-                                    setEditingUser({
-                                      ...editingUser,
-                                      display_name: e.target.value,
-                                    })
-                                  }
-                                />
+                      <span className={user.is_suspended ? "text-destructive" : "text-green-600"}>
+                        {user.is_suspended ? "Suspended" : "Active"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditingUser(user)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Edit User</DialogTitle>
+                              <DialogDescription>
+                                Make changes to user information below
+                              </DialogDescription>
+                            </DialogHeader>
+                            {editingUser && (
+                              <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                  <label htmlFor="display_name">Display Name</label>
+                                  <Input
+                                    id="display_name"
+                                    value={editingUser.display_name || ""}
+                                    onChange={(e) =>
+                                      setEditingUser({
+                                        ...editingUser,
+                                        display_name: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div className="grid gap-2">
+                                  <label htmlFor="bio">Bio</label>
+                                  <Input
+                                    id="bio"
+                                    value={editingUser.bio || ""}
+                                    onChange={(e) =>
+                                      setEditingUser({
+                                        ...editingUser,
+                                        bio: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <Button
+                                  onClick={() => updateUserMutation.mutate(editingUser)}
+                                >
+                                  Save Changes
+                                </Button>
                               </div>
-                              <div className="grid gap-2">
-                                <label htmlFor="bio">Bio</label>
-                                <Input
-                                  id="bio"
-                                  value={editingUser.bio || ""}
-                                  onChange={(e) =>
-                                    setEditingUser({
-                                      ...editingUser,
-                                      bio: e.target.value,
-                                    })
-                                  }
-                                />
-                              </div>
-                              <Button
-                                onClick={() => updateUserMutation.mutate(editingUser)}
-                              >
-                                Save Changes
-                              </Button>
-                            </div>
+                            )}
+                          </DialogContent>
+                        </Dialog>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleSuspendMutation.mutate({
+                            id: user.id,
+                            is_suspended: !user.is_suspended
+                          })}
+                        >
+                          {user.is_suspended ? (
+                            <ShieldOff className="h-4 w-4 text-destructive" />
+                          ) : (
+                            <Shield className="h-4 w-4 text-green-600" />
                           )}
-                        </DialogContent>
-                      </Dialog>
+                        </Button>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete User</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this user? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteUserMutation.mutate(user.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

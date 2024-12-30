@@ -58,6 +58,71 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // New route for suspending/unsuspending users
+  app.post("/api/admin/users/:id/suspend", authenticateToken, isAdmin, async (req, res) => {
+    const userId = parseInt(req.params.id);
+    const { is_suspended } = req.body;
+
+    try {
+      // Check if user exists and is not an admin
+      const [targetUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (targetUser.is_admin) {
+        return res.status(403).json({ message: "Cannot suspend admin users" });
+      }
+
+      const [updatedUser] = await db
+        .update(users)
+        .set({ is_suspended })
+        .where(eq(users.id, userId))
+        .returning();
+
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user suspension status:", error);
+      res.status(500).json({ message: "Failed to update user suspension status" });
+    }
+  });
+
+  // New route for deleting users
+  app.delete("/api/admin/users/:id", authenticateToken, isAdmin, async (req, res) => {
+    const userId = parseInt(req.params.id);
+
+    try {
+      // Check if user exists and is not an admin
+      const [targetUser] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, userId))
+        .limit(1);
+
+      if (!targetUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (targetUser.is_admin) {
+        return res.status(403).json({ message: "Cannot delete admin users" });
+      }
+
+      await db
+        .delete(users)
+        .where(eq(users.id, userId));
+
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
   // Points of Interest routes - Removed authenticateToken to allow public access
   app.get("/api/points-of-interest", async (_req, res) => {
     try {
