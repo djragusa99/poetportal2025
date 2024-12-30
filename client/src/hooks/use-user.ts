@@ -68,6 +68,10 @@ async function fetchUser(): Promise<User | null> {
   try {
     const response = await fetch('/api/user', {
       credentials: 'include',
+      headers: {
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      }
     });
 
     if (!response.ok) {
@@ -89,13 +93,23 @@ export function useUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: user, isLoading, error } = useQuery<User | null>({
+  const { data: user, isLoading, error } = useQuery({
     queryKey: ['/api/user'],
     queryFn: fetchUser,
-    retry: 1,
-    staleTime: 30000, // Consider data fresh for 30 seconds
-    refetchInterval: 30000, // Refresh every 30 seconds
-    refetchOnWindowFocus: true, // Refresh when window regains focus
+    retry: (failureCount, error) => {
+      // Don't retry on 401 errors
+      if (error instanceof Error && error.message.includes('401')) {
+        return false;
+      }
+      // Retry up to 3 times for other errors
+      return failureCount < 3;
+    },
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    refetchInterval: 4 * 60 * 1000, // Refresh every 4 minutes
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
   });
 
   const loginMutation = useMutation({
@@ -138,6 +152,7 @@ export function useUser() {
     mutationFn: logout,
     onSuccess: () => {
       queryClient.setQueryData(['/api/user'], null);
+      queryClient.invalidateQueries();
       toast({
         title: "Success",
         description: "Logged out successfully",

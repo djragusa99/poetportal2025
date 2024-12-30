@@ -64,10 +64,27 @@ export default function AdminDashboard() {
 
   const { data: users = [], isLoading, error } = useQuery<AdminUser[]>({
     queryKey: ["/api/admin/users"],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/users', {
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+      return response.json();
+    },
     enabled: !!user?.is_admin, // Only fetch if user is admin
-    staleTime: 30000, // Consider data fresh for 30 seconds
-    refetchInterval: 30000, // Refresh every 30 seconds
-    retry: 1,
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
+    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    refetchInterval: 4 * 60 * 1000, // Refresh every 4 minutes
+    retry: (failureCount, error) => {
+      // Don't retry on 403 errors (not authorized)
+      if (error instanceof Error && error.message.includes('403')) {
+        return false;
+      }
+      // Retry up to 3 times for other errors
+      return failureCount < 3;
+    },
   });
 
   const updateUserMutation = useMutation({

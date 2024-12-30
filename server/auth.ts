@@ -45,7 +45,7 @@ export function setupAuth(app: Express) {
   app.use(passport.session());
 
   passport.serializeUser((user: Express.User, done) => {
-    console.log("Serializing user:", { id: user.id, username: user.username });
+    console.log("Serializing user:", { id: user.id, username: user.username, is_admin: user.is_admin });
     done(null, user.id);
   });
 
