@@ -60,15 +60,16 @@ const generateToken = (user: any) => {
 
 // Middleware to verify JWT token
 const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ message: "No token provided" });
-  }
-
   try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+
     const decoded = jwt.verify(token, JWT_SECRET) as any;
+
     // Fetch fresh user data from database
     const [user] = await db
       .select()
@@ -80,10 +81,21 @@ const authenticateToken = async (req: Request, res: Response, next: NextFunction
       return res.status(401).json({ message: "User not found" });
     }
 
+    // Check if user is suspended
+    if (user.is_suspended) {
+      return res.status(403).json({ message: "Account is suspended" });
+    }
+
     req.user = user;
     next();
   } catch (err) {
-    return res.status(403).json({ message: "Invalid or expired token" });
+    if (err instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({ message: "Token expired" });
+    }
+    if (err instanceof jwt.JsonWebTokenError) {
+      return res.status(403).json({ message: "Invalid token" });
+    }
+    next(err);
   }
 };
 
@@ -196,30 +208,7 @@ export function setupAuth(app: Express) {
     });
   });
 
-  // Admin routes
-  app.get("/api/admin/users", authenticateToken, isAdmin, async (_req, res) => {
-    try {
-      const allUsers = await db
-        .select({
-          id: users.id,
-          username: users.username,
-          display_name: users.display_name,
-          bio: users.bio,
-          is_admin: users.is_admin,
-          is_suspended: users.is_suspended,
-          created_at: users.created_at
-        })
-        .from(users)
-        .orderBy(users.created_at);
-
-      res.json(allUsers);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Failed to fetch users" });
-    }
-  });
-
-  // Export middlewares for use in other routes
+  // Return middlewares for use in other routes
   return {
     authenticateToken,
     isAdmin
