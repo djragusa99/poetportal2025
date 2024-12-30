@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { users } from "@db/schema";
+import { users, events } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { setupAuth } from "./auth";
 
@@ -55,6 +55,21 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Events routes
+  app.get("/api/events", authenticateToken, async (_req, res) => {
+    try {
+      const allEvents = await db
+        .select()
+        .from(events)
+        .orderBy(events.date);
+
+      res.json(allEvents);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      res.status(500).json({ message: "Failed to fetch events" });
     }
   });
 
