@@ -339,20 +339,27 @@ export function registerRoutes(app: Express): Server {
   });
 
   app.post("/api/users/:userId/follow", authenticateToken, async (req, res) => {
-    const followerId = req.user?.id;
-    const followingId = parseInt(req.params.userId);
+    try {
+      const followerId = req.user?.id;
+      const followingId = parseInt(req.params.userId);
 
-    if (!followerId) {
-      return res.status(401).json({ message: "Not authenticated" });
-    }
+      if (!followerId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
 
-    if (!followingId || isNaN(followingId)) {
-      return res.status(400).json({ message: "Invalid user ID" });
-    }
+      if (!followingId || isNaN(followingId)) {
+        return res.status(400).json({ message: "Invalid user ID" });
+      }
 
-    if (followerId === followingId) {
-      return res.status(400).json({ message: "Cannot follow yourself" });
-    }
+      if (followerId === followingId) {
+        return res.status(400).json({ message: "Cannot follow yourself" });
+      }
+
+      // Check if target user exists first
+      const targetUser = await db.select().from(users).where(eq(users.id, followingId)).limit(1);
+      if (!targetUser.length) {
+        return res.status(404).json({ message: "User not found" });
+      }
 
     try {
       const existing = await db
@@ -390,6 +397,20 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Add follow relationship
+      // Check if already following
+      const existing = await db.select()
+        .from(followers)
+        .where(and(
+          eq(followers.follower_id, followerId),
+          eq(followers.following_id, followingId)
+        ))
+        .limit(1);
+
+      if (existing.length > 0) {
+        return res.status(400).json({ message: "Already following this user" });
+      }
+
+      // Insert follow relationship
       await db.insert(followers).values({
         follower_id: followerId,
         following_id: followingId,
@@ -398,7 +419,7 @@ export function registerRoutes(app: Express): Server {
       res.json({ message: "Successfully followed user", following: true });
     } catch (error) {
       console.error("Error following user:", error);
-      res.status(500).json({ message: "Failed to follow user" });
+      res.status(500).json({ message: "Failed to follow user - Database error" });
     }
   });
 
