@@ -62,11 +62,25 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/events", authenticateToken, async (_req, res) => {
     try {
       const allEvents = await db
-        .select()
+        .select({
+          id: events.id,
+          title: events.title,
+          description: events.description,
+          location: events.location,
+          date: events.date,
+          created_at: events.created_at,
+          created_by: events.created_by
+        })
         .from(events)
-        .orderBy(events.date);
+        .orderBy(events.date)
+        .limit(10); // Limit to 10 most recent events
 
-      res.json(allEvents);
+      // Remove duplicates based on title
+      const uniqueEvents = allEvents.filter((event, index, self) =>
+        index === self.findIndex((e) => e.title === event.title)
+      );
+
+      res.json(uniqueEvents);
     } catch (error) {
       console.error("Error fetching events:", error);
       res.status(500).json({ message: "Failed to fetch events" });
