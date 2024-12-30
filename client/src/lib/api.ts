@@ -60,7 +60,7 @@ const api = {
   },
   users: {
     follow: async (userId: number) => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       if (!token) {
         throw new Error("Not authenticated");
       }
