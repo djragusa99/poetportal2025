@@ -304,15 +304,14 @@ export default function PostCard({ post }: PostCardProps) {
         <Avatar>
           <AvatarImage src={post.user?.avatar} className="object-cover" />
           <AvatarFallback>
-            {post.user?.firstName?.[0]}
-            {post.user?.lastName?.[0]}
+            {(post.user?.display_name || post.user?.username || '')[0]?.toUpperCase()}
           </AvatarFallback>
         </Avatar>
         <div className="flex flex-col flex-1">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="font-semibold">
-                {post.user?.firstName} {post.user?.lastName}
+                {post.user?.display_name || post.user?.username}
               </span>
               {post.userId !== user?.id && (
                 <Button
