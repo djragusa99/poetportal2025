@@ -363,8 +363,18 @@ export function registerRoutes(app: Express): Server {
         ))
         .limit(1);
 
-      if (existing.length > 0) {
+      if (existing) {
         return res.status(400).json({ message: "Already following this user" });
+      }
+
+      // Check if user exists
+      const [userExists] = await db.select()
+        .from(users)
+        .where(eq(users.id, followingId))
+        .limit(1);
+
+      if (!userExists) {
+        return res.status(404).json({ message: "User not found" });
       }
 
       // Add follow relationship
