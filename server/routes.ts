@@ -355,7 +355,8 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      const [existing] = await db.select()
+      const existing = await db
+        .select()
         .from(followers)
         .where(and(
           eq(followers.follower_id, followerId),
@@ -363,8 +364,19 @@ export function registerRoutes(app: Express): Server {
         ))
         .limit(1);
 
-      if (existing) {
+      if (existing.length > 0) {
         return res.status(400).json({ message: "Already following this user" });
+      }
+
+      // Check if target user exists
+      const targetUser = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, followingId))
+        .limit(1);
+
+      if (!targetUser.length) {
+        return res.status(404).json({ message: "User not found" });
       }
 
       // Check if user exists
@@ -378,14 +390,10 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Add follow relationship
-      const result = await db.insert(followers).values({
+      await db.insert(followers).values({
         follower_id: followerId,
         following_id: followingId,
-      }).returning();
-
-      if (!result.length) {
-        return res.status(500).json({ message: "Failed to follow user" });
-      }
+      });
 
       res.json({ message: "Successfully followed user", following: true });
     } catch (error) {
