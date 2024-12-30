@@ -317,26 +317,26 @@ export default function PostCard({ post }: PostCardProps) {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {post.userId !== user?.id && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() =>
-                    followStatus?.following
-                      ? unfollowMutation.mutate()
-                      : followMutation.mutate()
-                  }
-                >
-                  {followStatus?.following ? (
-                    <UserMinus className="h-4 w-4" />
-                  ) : (
-                    <UserPlus className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
-              <span className="text-sm text-muted-foreground">
-                {format(new Date(post.created_at), "PPp")}
-              </span>
-            </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      followStatus?.following
+                        ? unfollowMutation.mutate()
+                        : followMutation.mutate()
+                    }
+                  >
+                    {followStatus?.following ? (
+                      <UserMinus className="h-4 w-4" />
+                    ) : (
+                      <UserPlus className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+                <span className="text-sm text-muted-foreground">
+                  {format(new Date(post.created_at), "PPp")}
+                </span>
+              </div>
             {post.userId === user.id && (
               <DeleteConfirmDialog
                 title="Delete Post"
