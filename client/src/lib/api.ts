@@ -59,15 +59,23 @@ const api = {
       fetch("/api/resources").then(handleResponse) as Promise<Resource[]>,
   },
   users: {
-    follow: (userId: number) =>
-      fetch(`/api/users/${userId}/follow`, {
+    follow: async (userId: number) => {
+      const response = await fetch(`/api/users/${userId}/follow`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem('auth_token')}`
         },
         credentials: "include",
-      }).then(handleResponse),
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to follow user");
+      }
+      
+      return response.json();
+    },
     unfollow: (userId: number) =>
       fetch(`/api/users/${userId}/follow`, {
         method: "DELETE",
