@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { users, events, pointsOfInterest, resources } from "@db/schema";
+import { users, events, pointsOfInterest, resources, comments } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { setupAuth } from "./auth";
 
@@ -166,6 +166,63 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error fetching resources:", error);
       res.status(500).json({ message: "Failed to fetch resources" });
+    }
+  });
+
+  // Comments routes
+  app.post("/api/posts/:postId/comments", authenticateToken, async (req, res) => {
+    const postId = parseInt(req.params.postId);
+    const { content, parentId } = req.body;
+    const userId = req.user?.id;
+
+    try {
+      const [comment] = await db.insert(comments)
+        .values({
+          content,
+          post_id: postId,
+          user_id: userId,
+          parent_id: parentId || null,
+        })
+        .returning();
+
+      const commentWithUser = await db.query.comments.findFirst({
+        where: eq(comments.id, comment.id),
+        with: {
+          user: true,
+        },
+      });
+
+      res.json(commentWithUser);
+    } catch (error) {
+      console.error("Error creating comment:", error);
+      res.status(500).json({ message: "Failed to create comment" });
+    }
+  });
+
+  app.delete("/api/comments/:id", authenticateToken, async (req, res) => {
+    const commentId = parseInt(req.params.id);
+    const userId = req.user?.id;
+
+    try {
+      const [comment] = await db
+        .select()
+        .from(comments)
+        .where(eq(comments.id, commentId))
+        .limit(1);
+
+      if (!comment) {
+        return res.status(404).json({ message: "Comment not found" });
+      }
+
+      if (comment.user_id !== userId && !req.user?.is_admin) {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+
+      await db.delete(comments).where(eq(comments.id, commentId));
+      res.json({ message: "Comment deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting comment:", error);
+      res.status(500).json({ message: "Failed to delete comment" });
     }
   });
 
