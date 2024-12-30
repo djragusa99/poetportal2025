@@ -152,8 +152,8 @@ export default function PostCard({ post }: PostCardProps) {
 
   const followMutation = useMutation({
     mutationFn: async () => {
-      if (!post.userId) throw new Error("Invalid user ID");
-      return api.users.follow(post.userId);
+      if (!post.user?.id) throw new Error("Invalid user ID");
+      return api.users.follow(post.user.id);
     },
     onError: (error: Error) => {
       toast({

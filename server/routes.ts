@@ -342,8 +342,12 @@ export function registerRoutes(app: Express): Server {
     const followerId = req.user?.id;
     const followingId = parseInt(req.params.userId);
 
-    if (!followerId || !followingId) {
-      return res.status(400).json({ message: "Invalid request parameters" });
+    if (!followerId) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+
+    if (!followingId || isNaN(followingId)) {
+      return res.status(400).json({ message: "Invalid user ID" });
     }
 
     if (followerId === followingId) {
