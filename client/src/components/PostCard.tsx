@@ -1,4 +1,3 @@
-
 import { Post, Comment } from "@db/schema";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -13,7 +12,130 @@ import api from "../lib/api";
 import { useUser } from "../hooks/use-user";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
 
-// Keep all the existing interfaces and CommentComponent
+interface CommentProps {
+  comment: Comment & {
+    user: any;
+    childComments?: (Comment & { user: any })[];
+  };
+  onReply: (parentId: number) => void;
+  onDelete: (commentId: number) => void;
+  currentUserId: number;
+  depth?: number;
+}
+
+function CommentComponent({ comment, onReply, onDelete, currentUserId, depth = 0 }: CommentProps) {
+  const maxDepth = 3;
+  const { data: likeStatus } = useQuery({
+    queryKey: [`/api/likes/comment/${comment.id}`],
+  });
+
+  const queryClient = useQueryClient();
+  const likeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/likes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          targetType: 'comment',
+          targetId: comment.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/likes/comment/${comment.id}`] });
+    },
+  });
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className={`flex items-start gap-3 ${depth > 0 ? 'ml-6 pl-6 border-l' : ''}`}>
+        <Avatar className="h-6 w-6">
+          <AvatarImage src={comment.user?.avatar} className="object-cover" />
+          <AvatarFallback>
+            {comment.user?.firstName?.[0]}
+            {comment.user?.lastName?.[0]}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-semibold">
+              {comment.user?.firstName} {comment.user?.lastName}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {format(new Date(comment.createdAt || ''), "PPp")}
+            </span>
+          </div>
+          <p className="text-sm mt-1">{comment.content}</p>
+          <div className="flex gap-2 mt-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => likeMutation.mutate()}
+              disabled={comment.userId === currentUserId}
+              title={comment.userId === currentUserId ? "You cannot like your own comment" : ""}
+            >
+              <Heart 
+                className={`mr-1 h-3 w-3 ${likeStatus?.liked ? 'fill-current text-red-500' : ''}`} 
+              />
+              {likeStatus?.count || 0}
+            </Button>
+            {depth < maxDepth && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 text-xs"
+                onClick={() => onReply(comment.id)}
+              >
+                <Reply className="mr-1 h-3 w-3" />
+                Reply
+              </Button>
+            )}
+            {comment.userId === currentUserId && (
+              <DeleteConfirmDialog
+                title="Delete Comment"
+                description="Are you sure you want to delete this comment? This action cannot be undone."
+                onDelete={() => onDelete(comment.id)}
+                size="sm"
+              />
+            )}
+          </div>
+        </div>
+      </div>
+      {comment.childComments && comment.childComments.length > 0 && (
+        <div className="space-y-4">
+          {comment.childComments.map((reply) => (
+            <CommentComponent
+              key={reply.id}
+              comment={reply}
+              onReply={onReply}
+              onDelete={onDelete}
+              currentUserId={currentUserId}
+              depth={depth + 1}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface PostCardProps {
+  post: Post & {
+    user: any;
+    comments?: (Comment & {
+      user: any;
+      childComments?: (Comment & { user: any })[];
+    })[];
+  };
+}
 
 export default function PostCard({ post }: PostCardProps) {
   const [comment, setComment] = useState("");
@@ -23,74 +145,220 @@ export default function PostCard({ post }: PostCardProps) {
   const { toast } = useToast();
   const { user } = useUser();
 
-  // Keep all the existing mutations and hooks
+  const { data: followStatus } = useQuery({
+    queryKey: [`/api/users/${post.userId}/following`],
+    enabled: post.userId !== user?.id,
+  });
+
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/users/${post.userId}/follow`, {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      toast({
+        title: "Success",
+        description: `Now following ${post.user?.firstName} ${post.user?.lastName}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const unfollowMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/users/${post.userId}/follow`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      toast({
+        title: "Success",
+        description: `Unfollowed ${post.user?.firstName} ${post.user?.lastName}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const { data: likeStatus } = useQuery({
+    queryKey: [`/api/likes/post/${post.id}`],
+  });
+
+  const likeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/likes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          targetType: 'post',
+          targetId: post.id,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(await response.text());
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/likes/post/${post.id}`] });
+    },
+  });
+
+  const handleComment = async () => {
+    try {
+      await api.comments.create(post.id, comment, replyingTo);
+      setComment("");
+      setReplyingTo(null);
+      setIsCommenting(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      toast({
+        title: "Success",
+        description: "Comment added successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add comment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeletePost = async () => {
+    try {
+      await api.posts.delete(post.id);
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      toast({
+        title: "Success",
+        description: "Post deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete post",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    try {
+      await api.comments.delete(commentId);
+      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      toast({
+        title: "Success",
+        description: "Comment deleted successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete comment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleReply = (parentId: number) => {
+    setReplyingTo(parentId);
+    setIsCommenting(true);
+  };
 
   if (!user) return null;
 
   return (
     <Card className="mb-4">
-      <CardHeader className="flex flex-col gap-2">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold">
-            {post.user?.display_name || post.user?.username}
-          </span>
-        </div>
-        <div className="flex items-center gap-4">
-          <Avatar>
-            <AvatarImage src={post.user?.avatar} className="object-cover" />
-            <AvatarFallback>
-              {(post.user?.display_name || post.user?.username || '')[0]?.toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex flex-col flex-1">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {post.userId !== user?.id && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      followStatus?.following
-                        ? unfollowMutation.mutate()
-                        : followMutation.mutate()
-                    }
-                  >
-                    {followStatus?.following ? (
-                      <UserMinus className="h-4 w-4" />
-                    ) : (
-                      <UserPlus className="h-4 w-4" />
-                    )}
-                  </Button>
-                )}
-                <span className="text-sm text-muted-foreground">
-                  {format(new Date(post.created_at), "PPp")}
-                </span>
-              </div>
-              {post.userId === user.id && (
-                <DeleteConfirmDialog
-                  title="Delete Post"
-                  description="Are you sure you want to delete this post? All comments will also be deleted. This action cannot be undone."
-                  onDelete={handleDeletePost}
-                />
+      <CardHeader className="flex flex-row items-center gap-4">
+        <Avatar>
+          <AvatarImage src={post.user?.avatar} className="object-cover" />
+          <AvatarFallback>
+            {post.user?.firstName?.[0]}
+            {post.user?.lastName?.[0]}
+          </AvatarFallback>
+        </Avatar>
+        <div className="flex flex-col flex-1">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">
+                {post.user?.firstName} {post.user?.lastName}
+              </span>
+              {post.userId !== user?.id && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    followStatus?.following
+                      ? unfollowMutation.mutate()
+                      : followMutation.mutate()
+                  }
+                >
+                  {followStatus?.following ? (
+                    <UserMinus className="h-4 w-4" />
+                  ) : (
+                    <UserPlus className="h-4 w-4" />
+                  )}
+                </Button>
               )}
+              <span className="text-sm text-muted-foreground">
+                {format(new Date(post.created_at), "PPp")}
+              </span>
             </div>
+            {post.userId === user.id && (
+              <DeleteConfirmDialog
+                title="Delete Post"
+                description="Are you sure you want to delete this post? All comments will also be deleted. This action cannot be undone."
+                onDelete={handleDeletePost}
+              />
+            )}
           </div>
-        </div>
-        <p className="mt-2 text-lg font-medium">{post.title}</p>
-        <p className="mt-2 whitespace-pre-wrap">{post.content}</p>
-        <div className="flex gap-2 mt-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => likeMutation.mutate()}
-            disabled={post.userId === user?.id}
-            title={post.userId === user?.id ? "You cannot like your own post" : ""}
-          >
-            <Heart 
-              className={`mr-2 h-4 w-4 ${likeStatus?.liked ? 'fill-current text-red-500' : ''}`} 
-            />
-            {likeStatus?.count || 0} likes
-          </Button>
+          <p className="mt-2 text-lg font-medium">{post.title}</p>
+          <p className="mt-2 whitespace-pre-wrap">{post.content}</p>
+          <div className="flex gap-2 mt-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => likeMutation.mutate()}
+              disabled={post.userId === user?.id}
+              title={post.userId === user?.id ? "You cannot like your own post" : ""}
+            >
+              <Heart 
+                className={`mr-2 h-4 w-4 ${likeStatus?.liked ? 'fill-current text-red-500' : ''}`} 
+              />
+              {likeStatus?.count || 0} likes
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
