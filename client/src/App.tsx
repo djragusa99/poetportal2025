@@ -11,6 +11,7 @@ import Home from "./pages/Home";
 import Events from "./pages/Events";
 import Resources from "./pages/Resources";
 import AdminDashboard from "./pages/AdminDashboard";
+import PointsOfInterest from "./pages/PointsOfInterest";
 import { useState, useEffect } from "react";
 
 // Protected route component for admin only access
@@ -74,6 +75,7 @@ function App() {
           <Route path="/" component={Home} />
           <Route path="/events" component={Events} />
           <Route path="/resources" component={Resources} />
+          <Route path="/points-of-interest" component={PointsOfInterest} />
           <Route path="/admin" component={() => <AdminRoute component={AdminDashboard} />} />
           <Route path="/auth" component={AuthPage} />
         </Switch>

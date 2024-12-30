@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { users, events, pointsOfInterest } from "@db/schema";
+import { users, events, pointsOfInterest, resources } from "@db/schema";
 import { eq } from "drizzle-orm";
 import { setupAuth } from "./auth";
 
@@ -58,8 +58,31 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Points of Interest routes - Removed authenticateToken to allow public access
+  app.get("/api/points-of-interest", async (_req, res) => {
+    try {
+      console.log("Fetching points of interest...");
+      const points = await db
+        .select({
+          id: pointsOfInterest.id,
+          title: pointsOfInterest.title,
+          description: pointsOfInterest.description,
+          location: pointsOfInterest.location,
+          link: pointsOfInterest.link,
+        })
+        .from(pointsOfInterest)
+        .orderBy(pointsOfInterest.title);
+
+      console.log(`Found ${points.length} points of interest`);
+      res.json(points);
+    } catch (error) {
+      console.error("Error fetching points of interest:", error);
+      res.status(500).json({ message: "Failed to fetch points of interest" });
+    }
+  });
+
   // Events routes
-  app.get("/api/events", authenticateToken, async (_req, res) => {
+  app.get("/api/events", async (_req, res) => {
     try {
       const allEvents = await db
         .select({
@@ -78,27 +101,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error fetching events:", error);
       res.status(500).json({ message: "Failed to fetch events" });
-    }
-  });
-
-  // Points of Interest routes
-  app.get("/api/points-of-interest", authenticateToken, async (_req, res) => {
-    try {
-      const points = await db
-        .select({
-          id: pointsOfInterest.id,
-          title: pointsOfInterest.title,
-          description: pointsOfInterest.description,
-          location: pointsOfInterest.location,
-          link: pointsOfInterest.link
-        })
-        .from(pointsOfInterest)
-        .orderBy(pointsOfInterest.title);
-
-      res.json(points);
-    } catch (error) {
-      console.error("Error fetching points of interest:", error);
-      res.status(500).json({ message: "Failed to fetch points of interest" });
     }
   });
 
