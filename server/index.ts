@@ -20,7 +20,7 @@ app.set('trust proxy', 1);
 const SessionStore = MemoryStore(session);
 const SECRET_KEY = process.env.REPL_ID || "development-secret-key";
 
-// Setup session BEFORE auth
+// Session configuration with strict security settings and longer duration
 app.use(
   session({
     name: 'sid',
@@ -29,13 +29,15 @@ app.use(
     saveUninitialized: false,
     store: new SessionStore({
       checkPeriod: 86400000, // prune expired entries every 24h
-      ttl: 24 * 60 * 60 * 1000 // TTL of 24 hours
+      ttl: 7 * 24 * 60 * 60 * 1000 // TTL of 7 days
     }),
     cookie: {
       httpOnly: true,
       secure: false, // Set to false since we're not using HTTPS in development
       sameSite: 'lax',
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+      domain: undefined
     }
   })
 );
@@ -48,12 +50,24 @@ app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
 
-  // Log authentication state for all requests
+  // Enhanced logging for authentication state
   if (path.startsWith('/api')) {
     log(`Request ${req.method} ${path}`);
     log(`Session ID: ${req.sessionID}`);
     log(`Auth state: ${req.isAuthenticated()} User ID: ${req.user?.id}`);
-    log(`Session data: ${JSON.stringify(req.session)}`);
+    log(`Session data: ${JSON.stringify({
+      ...req.session,
+      cookie: {
+        ...req.session.cookie,
+        secure: req.session.cookie.secure,
+        httpOnly: req.session.cookie.httpOnly,
+        domain: req.session.cookie.domain,
+        path: req.session.cookie.path,
+        sameSite: req.session.cookie.sameSite,
+        expires: req.session.cookie.expires,
+        maxAge: req.session.cookie.maxAge
+      }
+    })}`);
   }
 
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -72,6 +86,10 @@ app.use((req, res, next) => {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
 
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
+
       log(logLine);
     }
   });
@@ -87,7 +105,7 @@ app.use((req, res, next) => {
 
     const server = registerRoutes(app);
 
-    // Error handling middleware
+    // Error handling middleware with detailed logging
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
       console.error("Error:", err);
       const status = err.status || err.statusCode || 500;

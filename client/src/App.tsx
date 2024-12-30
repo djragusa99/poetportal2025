@@ -15,10 +15,18 @@ import { useState, useEffect } from "react";
 
 // Protected route component for admin only access
 function AdminRoute({ component: Component }: { component: React.ComponentType }) {
-  const { user } = useUser();
+  const { user, isLoading } = useUser();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-border" />
+      </div>
+    );
+  }
 
   if (!user?.is_admin) {
-    return <Redirect to="/" />;
+    return <Redirect to="/auth" />;
   }
 
   return <Component />;
@@ -67,6 +75,7 @@ function App() {
           <Route path="/events" component={Events} />
           <Route path="/resources" component={Resources} />
           <Route path="/admin" component={() => <AdminRoute component={AdminDashboard} />} />
+          <Route path="/auth" component={AuthPage} />
         </Switch>
       </main>
       <Toaster />

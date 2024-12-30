@@ -26,7 +26,6 @@ async function verifyPassword(supplied: string, stored: string) {
   return buf.toString("hex") === hashedPassword;
 }
 
-// Declare user type for passport
 declare global {
   namespace Express {
     interface User {
@@ -45,7 +44,6 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Configure passport serialization with enhanced logging
   passport.serializeUser((user: Express.User, done) => {
     console.log("Serializing user:", { id: user.id, username: user.username });
     done(null, user.id);
@@ -55,26 +53,13 @@ export function setupAuth(app: Express) {
     try {
       console.log("Deserializing user ID:", id);
       const [user] = await db
-        .select({
-          id: users.id,
-          username: users.username,
-          display_name: users.display_name,
-          bio: users.bio,
-          is_admin: users.is_admin,
-          is_suspended: users.is_suspended,
-          created_at: users.created_at,
-        })
+        .select()
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
 
       if (!user) {
         console.log("User not found during deserialization");
-        return done(null, false);
-      }
-
-      if (user.is_suspended) {
-        console.log("User is suspended during deserialization");
         return done(null, false);
       }
 
@@ -86,7 +71,6 @@ export function setupAuth(app: Express) {
     }
   });
 
-  // Configure local strategy with detailed logging
   passport.use(
     new LocalStrategy(async (username, password, done) => {
       try {
@@ -122,9 +106,8 @@ export function setupAuth(app: Express) {
     })
   );
 
-  // Login endpoint with enhanced session handling
   app.post("/api/login", (req, res, next) => {
-    console.log("Login request received:", req.body.username);
+    console.log("Login request received for:", req.body.username);
 
     passport.authenticate("local", (err: Error | null, user: Express.User | false, info: any) => {
       if (err) {
@@ -143,7 +126,13 @@ export function setupAuth(app: Express) {
           return next(err);
         }
 
-        console.log("User logged in successfully:", { id: user.id, username: user.username, is_admin: user.is_admin });
+        console.log("User logged in successfully:", {
+          id: user.id,
+          username: user.username,
+          is_admin: user.is_admin,
+          sessionID: req.sessionID
+        });
+
         return res.json({
           user: {
             id: user.id,
@@ -156,7 +145,6 @@ export function setupAuth(app: Express) {
     })(req, res, next);
   });
 
-  // Get current user endpoint with enhanced session checks
   app.get("/api/user", (req, res) => {
     console.log("User check request:", {
       isAuthenticated: req.isAuthenticated(),
@@ -184,7 +172,6 @@ export function setupAuth(app: Express) {
     });
   });
 
-  // Logout endpoint with proper session cleanup
   app.post("/api/logout", (req, res) => {
     if (req.isAuthenticated()) {
       const userId = req.user?.id;

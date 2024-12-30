@@ -4,9 +4,15 @@ import { db } from "@db";
 import { users } from "@db/schema";
 import { eq } from "drizzle-orm";
 
-// Middleware to check if user is admin
+// Enhanced admin middleware with better error handling and logging
 const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    console.log("Admin middleware - Session state:", {
+      isAuthenticated: req.isAuthenticated(),
+      sessionID: req.sessionID,
+      user: req.user
+    });
+
     if (!req.isAuthenticated()) {
       console.log("Admin check failed - Not authenticated");
       return res.status(401).json({ message: "Not authenticated" });
@@ -21,7 +27,7 @@ const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // Verify user still exists and is admin in database
+    // Double-check admin status in database
     const [dbUser] = await db
       .select()
       .from(users)

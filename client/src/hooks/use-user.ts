@@ -25,7 +25,8 @@ async function login(data: LoginData): Promise<User> {
   });
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    const text = await response.text();
+    throw new Error(text || 'Failed to login');
   }
 
   const result = await response.json();
@@ -43,7 +44,8 @@ async function register(data: LoginData): Promise<User> {
   });
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    const text = await response.text();
+    throw new Error(text || 'Failed to register');
   }
 
   const result = await response.json();
@@ -57,7 +59,8 @@ async function logout(): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error(await response.text());
+    const text = await response.text();
+    throw new Error(text || 'Failed to logout');
   }
 }
 
@@ -71,13 +74,14 @@ async function fetchUser(): Promise<User | null> {
       if (response.status === 401) {
         return null;
       }
-      throw new Error(await response.text());
+      const text = await response.text();
+      throw new Error(text || 'Failed to fetch user');
     }
 
     return response.json();
   } catch (error) {
     console.error('Error fetching user:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -85,12 +89,13 @@ export function useUser() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: user, isLoading } = useQuery<User | null>({
+  const { data: user, isLoading, error } = useQuery<User | null>({
     queryKey: ['/api/user'],
     queryFn: fetchUser,
-    retry: false,
-    staleTime: 30000, // Cache for 30 seconds
+    retry: 1,
+    staleTime: 30000, // Consider data fresh for 30 seconds
     refetchInterval: 30000, // Refresh every 30 seconds
+    refetchOnWindowFocus: true, // Refresh when window regains focus
   });
 
   const loginMutation = useMutation({
@@ -144,12 +149,15 @@ export function useUser() {
         title: "Logout Failed",
         description: error.message,
       });
+      // Even if logout fails on server, clear local state
+      queryClient.setQueryData(['/api/user'], null);
     },
   });
 
   return {
     user,
     isLoading,
+    error,
     login: loginMutation.mutate,
     register: registerMutation.mutate,
     logout: logoutMutation.mutate,

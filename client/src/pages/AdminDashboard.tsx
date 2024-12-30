@@ -21,7 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Edit2, Loader2 } from "lucide-react";
 
@@ -38,17 +38,36 @@ export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const { user, isLoading: authLoading } = useUser();
 
-  // Redirect if user is not admin
-  useEffect(() => {
-    if (!authLoading && (!user || !user.is_admin)) {
-      setLocation("/auth");
-    }
-  }, [user, authLoading, setLocation]);
+  // If still loading auth, show loading state
+  if (authLoading) {
+    return (
+      <div className="container py-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>User Management</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-center items-center h-32">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Only redirect if we're sure the user is not an admin
+  if (!authLoading && (!user || !user.is_admin)) {
+    setLocation("/auth");
+    return null;
+  }
 
   const { data: users = [], isLoading, error } = useQuery<AdminUser[]>({
     queryKey: ["/api/admin/users"],
     enabled: !!user?.is_admin, // Only fetch if user is admin
-    retry: false,
+    staleTime: 30000, // Consider data fresh for 30 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds
+    retry: 1,
   });
 
   const updateUserMutation = useMutation({
@@ -67,7 +86,8 @@ export default function AdminDashboard() {
       });
 
       if (!response.ok) {
-        throw new Error(await response.text());
+        const text = await response.text();
+        throw new Error(text || "Failed to update user");
       }
 
       return response.json();
@@ -89,29 +109,6 @@ export default function AdminDashboard() {
     },
   });
 
-  // If still loading auth or redirecting, show loading state
-  if (authLoading || (!user && !error)) {
-    return (
-      <div className="container py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle>User Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex justify-center items-center h-32">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // If not admin, don't render anything (redirect will happen via useEffect)
-  if (!user?.is_admin) {
-    return null;
-  }
-
   if (error) {
     return (
       <div className="container py-10">
@@ -122,6 +119,12 @@ export default function AdminDashboard() {
           <CardContent>
             <div className="text-destructive">
               Error loading users: {error.toString()}
+              <Button
+                className="mt-4"
+                onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] })}
+              >
+                Retry
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -161,62 +164,60 @@ export default function AdminDashboard() {
                     <TableCell>{user.bio || "-"}</TableCell>
                     <TableCell>{user.is_admin ? "Yes" : "No"}</TableCell>
                     <TableCell>
-                      <div className="flex gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setEditingUser(user)}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent>
-                            <DialogHeader>
-                              <DialogTitle>Edit User</DialogTitle>
-                              <DialogDescription>
-                                Make changes to user information below
-                              </DialogDescription>
-                            </DialogHeader>
-                            {editingUser && (
-                              <div className="grid gap-4 py-4">
-                                <div className="grid gap-2">
-                                  <label htmlFor="display_name">Display Name</label>
-                                  <Input
-                                    id="display_name"
-                                    value={editingUser.display_name || ""}
-                                    onChange={(e) =>
-                                      setEditingUser({
-                                        ...editingUser,
-                                        display_name: e.target.value,
-                                      })
-                                    }
-                                  />
-                                </div>
-                                <div className="grid gap-2">
-                                  <label htmlFor="bio">Bio</label>
-                                  <Input
-                                    id="bio"
-                                    value={editingUser.bio || ""}
-                                    onChange={(e) =>
-                                      setEditingUser({
-                                        ...editingUser,
-                                        bio: e.target.value,
-                                      })
-                                    }
-                                  />
-                                </div>
-                                <Button
-                                  onClick={() => updateUserMutation.mutate(editingUser)}
-                                >
-                                  Save Changes
-                                </Button>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setEditingUser(user)}
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                          <DialogHeader>
+                            <DialogTitle>Edit User</DialogTitle>
+                            <DialogDescription>
+                              Make changes to user information below
+                            </DialogDescription>
+                          </DialogHeader>
+                          {editingUser && (
+                            <div className="grid gap-4 py-4">
+                              <div className="grid gap-2">
+                                <label htmlFor="display_name">Display Name</label>
+                                <Input
+                                  id="display_name"
+                                  value={editingUser.display_name || ""}
+                                  onChange={(e) =>
+                                    setEditingUser({
+                                      ...editingUser,
+                                      display_name: e.target.value,
+                                    })
+                                  }
+                                />
                               </div>
-                            )}
-                          </DialogContent>
-                        </Dialog>
-                      </div>
+                              <div className="grid gap-2">
+                                <label htmlFor="bio">Bio</label>
+                                <Input
+                                  id="bio"
+                                  value={editingUser.bio || ""}
+                                  onChange={(e) =>
+                                    setEditingUser({
+                                      ...editingUser,
+                                      bio: e.target.value,
+                                    })
+                                  }
+                                />
+                              </div>
+                              <Button
+                                onClick={() => updateUserMutation.mutate(editingUser)}
+                              >
+                                Save Changes
+                              </Button>
+                            </div>
+                          )}
+                        </DialogContent>
+                      </Dialog>
                     </TableCell>
                   </TableRow>
                 ))}
