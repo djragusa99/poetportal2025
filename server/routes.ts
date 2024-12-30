@@ -7,24 +7,13 @@ import { eq } from "drizzle-orm";
 // Middleware to check if user is admin
 const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Log detailed session state for debugging
-    console.log("Admin check - Session state:", {
-      sessionID: req.sessionID,
-      isAuthenticated: req.isAuthenticated(),
-      user: req.user
-    });
-
-    if (!req.session || !req.isAuthenticated()) {
-      console.log("Admin check failed - Not authenticated:", {
-        session: !!req.session,
-        isAuthenticated: req.isAuthenticated(),
-        sessionID: req.sessionID
-      });
+    if (!req.isAuthenticated()) {
+      console.log("Admin check failed - Not authenticated");
       return res.status(401).json({ message: "Not authenticated" });
     }
 
     const user = req.user;
-    if (!user || !user.is_admin) {
+    if (!user?.is_admin) {
       console.log("Admin check failed - Not admin:", {
         userId: user?.id,
         isAdmin: user?.is_admin
@@ -106,48 +95,6 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
-    }
-  });
-
-  app.post("/api/admin/users/:id/suspend", isAdmin, async (req, res) => {
-    const userId = parseInt(req.params.id);
-    const { suspended } = req.body;
-
-    try {
-      const [updatedUser] = await db
-        .update(users)
-        .set({ is_suspended: suspended })
-        .where(eq(users.id, userId))
-        .returning();
-
-      if (!updatedUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      res.json({ message: "User suspension status updated" });
-    } catch (error) {
-      console.error("Error updating user suspension:", error);
-      res.status(500).json({ message: "Failed to update user suspension status" });
-    }
-  });
-
-  app.delete("/api/admin/users/:id", isAdmin, async (req, res) => {
-    const userId = parseInt(req.params.id);
-
-    try {
-      const [deletedUser] = await db
-        .delete(users)
-        .where(eq(users.id, userId))
-        .returning();
-
-      if (!deletedUser) {
-        return res.status(404).json({ message: "User not found" });
-      }
-
-      res.json({ message: "User deleted successfully" });
-    } catch (error) {
-      console.error("Error deleting user:", error);
-      res.status(500).json({ message: "Failed to delete user" });
     }
   });
 

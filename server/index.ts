@@ -13,52 +13,14 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-//Added logging middleware before session
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-
-  // Log authentication state for all requests
-  if (path.startsWith('/api')) {
-    log(`Request ${req.method} ${path}`);
-    log(`Session ID: ${req.sessionID}`);
-    log(`Auth state: ${req.isAuthenticated()} User ID: ${req.user?.id}`);
-  }
-
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
-});
+// Enable trust proxy for secure cookies behind proxy
+app.set('trust proxy', 1);
 
 // Setup session store with proper configuration
 const SessionStore = MemoryStore(session);
 const SECRET_KEY = process.env.REPL_ID || "development-secret-key";
 
-// Enable trust proxy for secure cookies behind proxy
-app.set('trust proxy', 1);
-
+// Setup session BEFORE auth
 app.use(
   session({
     name: 'sid',
@@ -91,6 +53,7 @@ app.use((req, res, next) => {
     log(`Request ${req.method} ${path}`);
     log(`Session ID: ${req.sessionID}`);
     log(`Auth state: ${req.isAuthenticated()} User ID: ${req.user?.id}`);
+    log(`Session data: ${JSON.stringify(req.session)}`);
   }
 
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
@@ -107,10 +70,6 @@ app.use((req, res, next) => {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
       }
 
       log(logLine);

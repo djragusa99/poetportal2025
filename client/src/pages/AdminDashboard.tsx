@@ -1,5 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { User } from "@db/schema";
+import { useLocation } from "wouter";
+import { useUser } from "../hooks/use-user";
 import {
   Table,
   TableBody,
@@ -10,7 +12,6 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -20,32 +21,49 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Loader2 } from "lucide-react";
+
+interface AdminUser extends User {
+  display_name: string | null;
+  bio: string | null;
+  is_admin: boolean;
+}
 
 export default function AdminDashboard() {
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const { user, isLoading: authLoading } = useUser();
 
-  const { data: users = [], isLoading, error } = useQuery<User[]>({
+  // Redirect if user is not admin
+  useEffect(() => {
+    if (!authLoading && (!user || !user.is_admin)) {
+      setLocation("/auth");
+    }
+  }, [user, authLoading, setLocation]);
+
+  const { data: users = [], isLoading, error } = useQuery<AdminUser[]>({
     queryKey: ["/api/admin/users"],
+    enabled: !!user?.is_admin, // Only fetch if user is admin
+    retry: false,
   });
 
   const updateUserMutation = useMutation({
-    mutationFn: async (user: User) => {
-      const response = await fetch(`/api/admin/users/${user.id}`, {
+    mutationFn: async (userData: AdminUser) => {
+      const response = await fetch(`/api/admin/users/${userData.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          username: user.username,
-          display_name: user.display_name,
-          bio: user.bio,
-        }),
         credentials: "include",
+        body: JSON.stringify({
+          username: userData.username,
+          display_name: userData.display_name || "",
+          bio: userData.bio || "",
+        }),
       });
 
       if (!response.ok) {
@@ -71,67 +89,8 @@ export default function AdminDashboard() {
     },
   });
 
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId: number) => {
-      const response = await fetch(`/api/admin/users/${userId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({
-        title: "Success",
-        description: "User deleted successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  const toggleSuspensionMutation = useMutation({
-    mutationFn: async ({ userId, suspended }: { userId: number; suspended: boolean }) => {
-      const response = await fetch(`/api/admin/users/${userId}/suspend`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ suspended }),
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        throw new Error(await response.text());
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      toast({
-        title: "Success",
-        description: "User suspension status updated successfully",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
-
-  if (isLoading) {
+  // If still loading auth or redirecting, show loading state
+  if (authLoading || (!user && !error)) {
     return (
       <div className="container py-10">
         <Card>
@@ -140,12 +99,17 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="flex justify-center items-center h-32">
-              Loading users...
+              <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           </CardContent>
         </Card>
       </div>
     );
+  }
+
+  // If not admin, don't render anything (redirect will happen via useEffect)
+  if (!user?.is_admin) {
+    return null;
   }
 
   if (error) {
@@ -172,128 +136,93 @@ export default function AdminDashboard() {
           <CardTitle>User Management</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID</TableHead>
-                <TableHead>Username</TableHead>
-                <TableHead>Display Name</TableHead>
-                <TableHead>Bio</TableHead>
-                <TableHead>Admin</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.id}</TableCell>
-                  <TableCell>{user.username}</TableCell>
-                  <TableCell>{user.display_name || '-'}</TableCell>
-                  <TableCell>{user.bio || '-'}</TableCell>
-                  <TableCell>{user.is_admin ? 'Yes' : 'No'}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        checked={!user.is_suspended}
-                        onCheckedChange={(checked) => 
-                          toggleSuspensionMutation.mutate({
-                            userId: user.id,
-                            suspended: !checked,
-                          })
-                        }
-                      />
-                      <span className={user.is_suspended ? "text-destructive" : "text-muted-foreground"}>
-                        {user.is_suspended ? "Suspended" : "Active"}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setEditingUser(user)}
-                          >
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Edit User</DialogTitle>
-                            <DialogDescription>
-                              Make changes to user information below
-                            </DialogDescription>
-                          </DialogHeader>
-                          {editingUser && (
-                            <div className="grid gap-4 py-4">
-                              <div className="grid gap-2">
-                                <label htmlFor="display_name">Display Name</label>
-                                <Input
-                                  id="display_name"
-                                  value={editingUser.display_name || ''}
-                                  onChange={(e) =>
-                                    setEditingUser({
-                                      ...editingUser,
-                                      display_name: e.target.value,
-                                    })
-                                  }
-                                />
-                              </div>
-                              <div className="grid gap-2">
-                                <label htmlFor="bio">Bio</label>
-                                <Input
-                                  id="bio"
-                                  value={editingUser.bio || ''}
-                                  onChange={(e) =>
-                                    setEditingUser({
-                                      ...editingUser,
-                                      bio: e.target.value,
-                                    })
-                                  }
-                                />
-                              </div>
-                              <Button
-                                onClick={() => updateUserMutation.mutate(editingUser)}
-                              >
-                                Save Changes
-                              </Button>
-                            </div>
-                          )}
-                        </DialogContent>
-                      </Dialog>
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                          <DialogHeader>
-                            <DialogTitle>Delete User</DialogTitle>
-                            <DialogDescription>
-                              Are you sure you want to delete this user? This action
-                              cannot be undone.
-                            </DialogDescription>
-                          </DialogHeader>
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="destructive"
-                              onClick={() => deleteUserMutation.mutate(user.id)}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
-                    </div>
-                  </TableCell>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID</TableHead>
+                  <TableHead>Username</TableHead>
+                  <TableHead>Display Name</TableHead>
+                  <TableHead>Bio</TableHead>
+                  <TableHead>Admin</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>{user.id}</TableCell>
+                    <TableCell>{user.username}</TableCell>
+                    <TableCell>{user.display_name || "-"}</TableCell>
+                    <TableCell>{user.bio || "-"}</TableCell>
+                    <TableCell>{user.is_admin ? "Yes" : "No"}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setEditingUser(user)}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Edit User</DialogTitle>
+                              <DialogDescription>
+                                Make changes to user information below
+                              </DialogDescription>
+                            </DialogHeader>
+                            {editingUser && (
+                              <div className="grid gap-4 py-4">
+                                <div className="grid gap-2">
+                                  <label htmlFor="display_name">Display Name</label>
+                                  <Input
+                                    id="display_name"
+                                    value={editingUser.display_name || ""}
+                                    onChange={(e) =>
+                                      setEditingUser({
+                                        ...editingUser,
+                                        display_name: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <div className="grid gap-2">
+                                  <label htmlFor="bio">Bio</label>
+                                  <Input
+                                    id="bio"
+                                    value={editingUser.bio || ""}
+                                    onChange={(e) =>
+                                      setEditingUser({
+                                        ...editingUser,
+                                        bio: e.target.value,
+                                      })
+                                    }
+                                  />
+                                </div>
+                                <Button
+                                  onClick={() => updateUserMutation.mutate(editingUser)}
+                                >
+                                  Save Changes
+                                </Button>
+                              </div>
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

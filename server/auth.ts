@@ -55,7 +55,15 @@ export function setupAuth(app: Express) {
     try {
       console.log("Deserializing user ID:", id);
       const [user] = await db
-        .select()
+        .select({
+          id: users.id,
+          username: users.username,
+          display_name: users.display_name,
+          bio: users.bio,
+          is_admin: users.is_admin,
+          is_suspended: users.is_suspended,
+          created_at: users.created_at,
+        })
         .from(users)
         .where(eq(users.id, id))
         .limit(1);
@@ -70,7 +78,7 @@ export function setupAuth(app: Express) {
         return done(null, false);
       }
 
-      console.log("Successfully deserialized user:", { id: user.id, username: user.username });
+      console.log("Successfully deserialized user:", { id: user.id, username: user.username, is_admin: user.is_admin });
       done(null, user);
     } catch (err) {
       console.error("Error during deserialization:", err);
@@ -105,7 +113,7 @@ export function setupAuth(app: Express) {
           return done(null, false, { message: "Account is suspended" });
         }
 
-        console.log("Login successful for user:", { id: user.id, username: user.username });
+        console.log("Login successful for user:", { id: user.id, username: user.username, is_admin: user.is_admin });
         return done(null, user);
       } catch (err) {
         console.error("Login error:", err);
@@ -135,7 +143,7 @@ export function setupAuth(app: Express) {
           return next(err);
         }
 
-        console.log("User logged in successfully:", { id: user.id, username: user.username });
+        console.log("User logged in successfully:", { id: user.id, username: user.username, is_admin: user.is_admin });
         return res.json({
           user: {
             id: user.id,
@@ -157,10 +165,17 @@ export function setupAuth(app: Express) {
     });
 
     if (!req.isAuthenticated() || !req.user) {
+      console.log("User not authenticated");
       return res.status(401).json({ message: "Not authenticated" });
     }
 
     const user = req.user;
+    console.log("Returning user data:", {
+      id: user.id,
+      username: user.username,
+      is_admin: user.is_admin
+    });
+
     res.json({
       id: user.id,
       username: user.username,
