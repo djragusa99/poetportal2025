@@ -209,6 +209,15 @@ export const resourcesRelations = relations(resources, ({ one }) => ({
   }),
 }));
 
+export const comments = pgTable('comments', {
+  id: serial('id').primaryKey(),
+  content: text('content').notNull(),
+  user_id: integer('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  post_id: integer('post_id').references(() => posts.id, { onDelete: 'cascade' }).notNull(),
+  parent_id: integer('parent_id').references(() => comments.id, { onDelete: 'cascade' }),
+  created_at: timestamp('created_at').defaultNow(),
+});
+
 export const commentsRelations = relations(comments, ({ one }) => ({
   user: one(users, {
     fields: [comments.user_id],
