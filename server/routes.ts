@@ -249,6 +249,38 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.post("/api/posts", authenticateToken, async (req, res) => {
+    const { title, content } = req.body;
+    const userId = req.user?.id;
+
+    try {
+      const [post] = await db.insert(posts)
+        .values({
+          title,
+          content,
+          user_id: userId,
+        })
+        .returning();
+
+      const postWithUser = await db.query.posts.findFirst({
+        where: eq(posts.id, post.id),
+        with: {
+          user: true,
+          comments: {
+            with: {
+              user: true,
+            },
+          },
+        },
+      });
+
+      res.json(postWithUser);
+    } catch (error) {
+      console.error("Error creating post:", error);
+      res.status(500).json({ message: "Failed to create post" });
+    }
+  });
+
   app.get("/api/posts", authenticateToken, async (_req, res) => {
     try {
       const allPosts = await db.query.posts.findMany({

@@ -20,12 +20,12 @@ async function handleResponse(response: Response) {
 const api = {
   posts: {
     list: () => fetch("/api/posts").then(handleResponse) as Promise<Post[]>,
-    create: (content: string) =>
+    create: (title: string, content: string) =>
       fetch("/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ title, content }),
       }).then(handleResponse) as Promise<Post>,
     delete: (postId: number) =>
       fetch(`/api/posts/${postId}`, {
