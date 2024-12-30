@@ -144,6 +144,16 @@ export type InsertResource = typeof resources.$inferInsert;
 export type Post = typeof posts.$inferSelect;
 export type InsertPost = typeof posts.$inferInsert;
 
+export const followers = pgTable('followers', {
+  follower_id: integer('follower_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  following_id: integer('following_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  created_at: timestamp('created_at').notNull().defaultNow(),
+}, (table) => {
+  return {
+    pk: primaryKey({ columns: [table.follower_id, table.following_id] }),
+  }
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts),

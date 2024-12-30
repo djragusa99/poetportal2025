@@ -317,5 +317,41 @@ export function registerRoutes(app: Express): Server {
 
 
   const httpServer = createServer(app);
+  // Follow routes
+  app.post("/api/users/:userId/follow", authenticateToken, async (req, res) => {
+    const followerId = req.user?.id;
+    const followingId = parseInt(req.params.userId);
+
+    try {
+      await db.insert(followers).values({
+        follower_id: followerId,
+        following_id: followingId,
+      });
+
+      res.json({ message: "Successfully followed user" });
+    } catch (error) {
+      console.error("Error following user:", error);
+      res.status(500).json({ message: "Failed to follow user" });
+    }
+  });
+
+  app.delete("/api/users/:userId/follow", authenticateToken, async (req, res) => {
+    const followerId = req.user?.id;
+    const followingId = parseInt(req.params.userId);
+
+    try {
+      await db.delete(followers)
+        .where(and(
+          eq(followers.follower_id, followerId),
+          eq(followers.following_id, followingId)
+        ));
+
+      res.json({ message: "Successfully unfollowed user" });
+    } catch (error) {
+      console.error("Error unfollowing user:", error);
+      res.status(500).json({ message: "Failed to unfollow user" });
+    }
+  });
+
   return httpServer;
 }
