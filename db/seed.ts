@@ -161,76 +161,80 @@ export async function seed() {
     const pointsOfInterestData = [
       {
         title: "Emily Dickinson Museum",
-        description: "The poet's family home and a center for literary history.",
+        description: "Historic home and museum dedicated to the life and poetry of Emily Dickinson, featuring original artifacts, gardens, and interactive exhibits.",
         location: "280 Main St, Amherst, MA 01002",
         link: "https://www.emilydickinsonmuseum.org/",
         created_by: adminId
       },
       {
         title: "Walt Whitman Birthplace State Historic Site",
-        description: "Preserved birthplace of the renowned poet Walt Whitman.",
+        description: "Preserved birthplace and interpretive center celebrating America's 'Bard of Democracy', featuring Whitman's writings and personal effects.",
         location: "246 Old Walt Whitman Rd, Huntington Station, NY 11746",
         link: "https://www.waltwhitman.org/",
         created_by: adminId
       },
       {
         title: "The Poetry Foundation",
-        description: "Home to Poetry magazine and a world-class poetry library.",
+        description: "Modern cultural center featuring a 30,000-volume poetry library, exhibition gallery, and performance space dedicated to poetry.",
         location: "61 W Superior St, Chicago, IL 60654",
         link: "https://www.poetryfoundation.org/",
         created_by: adminId
       },
       {
-        title: "The Globe Theatre",
-        description: "Recreation of Shakespeare's famous theater.",
-        location: "21 New Globe Walk, London SE1 9DT, UK",
-        link: "https://www.shakespearesglobe.com/",
+        title: "Shakespeare and Company",
+        description: "Historic English-language bookstore in Paris, a gathering place for writers since 1919, featuring poetry readings and literary events.",
+        location: "37 Rue de la Bûcherie, 75005 Paris, France",
+        link: "https://shakespeareandcompany.com/",
         created_by: adminId
       },
       {
         title: "City Lights Bookstore",
-        description: "Historic bookstore and publisher, founded by Lawrence Ferlinghetti.",
+        description: "Iconic independent bookstore and publisher, founded by poet Lawrence Ferlinghetti, a landmark of Beat Generation literature.",
         location: "261 Columbus Ave, San Francisco, CA 94133",
         link: "https://citylights.com/",
         created_by: adminId
       },
       {
         title: "Poets House",
-        description: "National poetry library and literary center.",
+        description: "Literary center with a 70,000-volume poetry collection, offering workshops, readings, and exhibitions in a serene riverside setting.",
         location: "10 River Terrace, New York, NY 10282",
         link: "https://poetshouse.org/",
         created_by: adminId
       },
       {
-        title: "Robert Frost Farm",
-        description: "Historic home where Frost wrote many of his famous poems.",
-        location: "122 Rockingham Rd, Derry, NH 03038",
-        link: "https://www.robertfrostfarm.org/",
+        title: "The Dylan Thomas Boathouse",
+        description: "Writing studio and home of Welsh poet Dylan Thomas, offering stunning views of the Taf estuary that inspired his work.",
+        location: "Dylan's Walk, Laugharne SA33 4SD, Wales",
+        link: "https://www.dylanthomasboathouse.com/",
         created_by: adminId
       },
       {
         title: "The Poetry Cafe",
-        description: "Home of the Poetry Society, featuring readings and events.",
+        description: "Vibrant venue of The Poetry Society, hosting regular poetry readings, slams, and workshops in the heart of London's Covent Garden.",
         location: "22 Betterton St, London WC2H 9BX, UK",
         link: "https://poetrysociety.org.uk/poetry-cafe/",
         created_by: adminId
       },
       {
-        title: "The Beat Museum",
-        description: "Dedicated to the Beat Generation and its impact on American culture.",
-        location: "540 Broadway, San Francisco, CA 94133",
-        link: "https://www.kerouac.com/",
+        title: "Keats House",
+        description: "Regency villa where Romantic poet John Keats wrote some of his most famous poems, now a museum celebrating his life and work.",
+        location: "10 Keats Grove, Hampstead, London NW3 2RR, UK",
+        link: "https://www.cityoflondon.gov.uk/things-to-do/keats-house",
         created_by: adminId
       },
       {
-        title: "Keats House",
-        description: "Historic house museum where poet John Keats lived and wrote.",
-        location: "10 Keats Grove, London NW3 2RR, UK",
-        link: "https://www.cityoflondon.gov.uk/things-to-do/keats-house",
+        title: "Gwendolyn Brooks' Bronzeville",
+        description: "Historic Chicago neighborhood that inspired Pulitzer Prize-winning poet Gwendolyn Brooks, featuring literary landmarks and cultural sites.",
+        location: "Bronzeville, Chicago, IL",
+        link: "https://www.poetryfoundation.org/poets/gwendolyn-brooks",
         created_by: adminId
       }
     ];
 
+    // Clear existing points of interest first
+    await db.delete(pointsOfInterest);
+
+    // Insert new points of interest
     await db.insert(pointsOfInterest).values(pointsOfInterestData);
     console.log("✓ Created points of interest");
 
