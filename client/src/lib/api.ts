@@ -60,13 +60,17 @@ const api = {
   },
   users: {
     follow: async (userId: number) => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
+      
       const response = await fetch(`/api/users/${userId}/follow`, {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem('auth_token')}`
-        },
-        credentials: "include",
+          "Authorization": `Bearer ${token}`
+        }
       });
       
       if (!response.ok) {
