@@ -84,6 +84,16 @@ export const posts = pgTable("posts", {
   user_id: integer("user_id").references(() => users.id).notNull(),
 });
 
+// Comments table
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
+  content: text("content").notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  user_id: integer("user_id").references(() => users.id).notNull(),
+  post_id: integer("post_id").references(() => posts.id).notNull(),
+  parent_id: integer("parent_id").references(() => comments.id),
+});
+
 // Schema validation with zod
 export const insertUserSchema = createInsertSchema(users, {
   username: z.string().min(3).max(50),
