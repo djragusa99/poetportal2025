@@ -342,8 +342,7 @@ export default function PostCard({ post }: PostCardProps) {
               />
             )}
           </div>
-          <p className="mt-2 text-lg font-medium">{post.title}</p>
-          <p className="mt-2 whitespace-pre-wrap">{post.content}</p>
+          <p className="mt-2 whitespace-pre-wrap text-sm">{post.content}</p>
           <div className="flex gap-2 mt-4">
             <Button
               variant="ghost"
