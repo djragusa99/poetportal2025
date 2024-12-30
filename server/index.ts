@@ -1,19 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupAuth } from "./auth";
 import { setupVite, serveStatic, log } from "./vite";
 import { db } from "@db";
 import { sql } from "drizzle-orm";
-import session from "express-session";
-import MemoryStore from "memorystore";
-
-declare module "express-session" {
-  interface SessionData {
-    passport: {
-      user: number;
-    };
-  }
-}
 
 const app = express();
 
@@ -24,55 +13,30 @@ app.use(express.urlencoded({ extended: false }));
 // Enable trust proxy for secure cookies behind proxy
 app.set('trust proxy', 1);
 
-// Setup session store with proper configuration
-const SessionStore = MemoryStore(session);
-const SECRET_KEY = process.env.REPL_ID || "development-secret-key";
-
-// Enhanced session configuration with strict security
-app.use(
-  session({
-    name: 'sid',
-    secret: SECRET_KEY,
-    resave: false,
-    saveUninitialized: false,
-    store: new SessionStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
-      ttl: 30 * 24 * 60 * 60 * 1000 // TTL of 30 days
-    }),
-    cookie: {
-      httpOnly: true,
-      secure: false, // Set to false since we're not using HTTPS in development
-      sameSite: 'lax', // Changed back to 'lax' to allow cross-site authentication
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      path: '/'
+// CORS middleware for development
+if (app.get("env") === "development") {
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
     }
-  })
-);
+    next();
+  });
+}
 
-// Setup auth AFTER session middleware
-setupAuth(app);
-
-// Detailed logging middleware for debugging session state
+// Detailed logging middleware for API requests
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
 
-  // Enhanced logging for authentication state
+  // Enhanced logging for API requests
   if (path.startsWith('/api')) {
     console.log('Request details:', {
       method: req.method,
       path: path,
-      sessionID: req.sessionID,
-      isAuthenticated: req.isAuthenticated(),
-      user: req.user?.id,
-      cookies: req.headers.cookie,
-    });
-
-    // Log session data for debugging
-    console.log('Session state:', {
-      id: req.sessionID,
-      cookie: req.session?.cookie,
-      passport: req.session?.passport,
+      authorization: req.headers.authorization ? 'Present' : 'Not present',
     });
   }
 

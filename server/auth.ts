@@ -1,4 +1,4 @@
-import { type Express } from "express";
+import { type Express, Request, Response, NextFunction } from "express";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { users } from "@db/schema";
@@ -8,6 +8,23 @@ import jwt from 'jsonwebtoken';
 
 const scryptAsync = promisify(scrypt);
 const JWT_SECRET = process.env.REPL_ID || "your-jwt-secret-key";
+
+// Extend Express Request type to include user
+declare global {
+  namespace Express {
+    interface Request {
+      user?: {
+        id: number;
+        username: string;
+        display_name: string | null;
+        bio: string | null;
+        is_admin: boolean;
+        is_suspended: boolean;
+        created_at: Date;
+      }
+    }
+  }
+}
 
 // Crypto helper functions
 const crypto = {
@@ -42,7 +59,7 @@ const generateToken = (user: any) => {
 };
 
 // Middleware to verify JWT token
-const authenticateToken = async (req: any, res: any, next: any) => {
+const authenticateToken = async (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 
@@ -71,7 +88,7 @@ const authenticateToken = async (req: any, res: any, next: any) => {
 };
 
 // Admin middleware
-const isAdmin = async (req: any, res: any, next: any) => {
+const isAdmin = async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user?.is_admin) {
     return res.status(403).json({ message: "Not authorized" });
   }
@@ -169,18 +186,18 @@ export function setupAuth(app: Express) {
   });
 
   // Get current user endpoint
-  app.get("/api/user", authenticateToken, (req, res) => {
+  app.get("/api/user", authenticateToken, (req: Request, res: Response) => {
     const user = req.user;
     res.json({
-      id: user.id,
-      username: user.username,
-      display_name: user.display_name,
-      is_admin: user.is_admin,
+      id: user!.id,
+      username: user!.username,
+      display_name: user!.display_name,
+      is_admin: user!.is_admin,
     });
   });
 
   // Admin routes
-  app.get("/api/admin/users", authenticateToken, isAdmin, async (req, res) => {
+  app.get("/api/admin/users", authenticateToken, isAdmin, async (_req, res) => {
     try {
       const allUsers = await db
         .select({
