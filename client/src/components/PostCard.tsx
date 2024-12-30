@@ -316,7 +316,7 @@ export default function PostCard({ post }: PostCardProps) {
           <div className="flex flex-col flex-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-              {post.userId !== user?.id && (
+                {post.userId !== user?.id && (
                 <Button
                   variant="ghost"
                   size="sm"
