@@ -367,7 +367,7 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Check if already following
-      const existing = await db
+      const existingFollow = await db
         .select()
         .from(followers)
         .where(and(
@@ -376,7 +376,7 @@ export function registerRoutes(app: Express): Server {
         ))
         .limit(1);
 
-      if (existing.length > 0) {
+      if (existingFollow.length > 0) {
         return res.status(400).json({ message: "Already following this user" });
       }
 
@@ -391,7 +391,6 @@ export function registerRoutes(app: Express): Server {
       console.error("Error following user:", error);
       res.status(500).json({ message: "Failed to follow user" });
     }
-  });
   });
 
   app.delete("/api/users/:userId/follow", authenticateToken, async (req, res) => {
