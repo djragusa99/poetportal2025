@@ -81,6 +81,29 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  // Resources routes
+  app.get("/api/resources", async (_req, res) => {
+    try {
+      console.log("Fetching resources...");
+      const allResources = await db
+        .select({
+          id: resources.id,
+          title: resources.title,
+          description: resources.description,
+          type: resources.type,
+          link: resources.link,
+        })
+        .from(resources)
+        .orderBy(resources.title);
+
+      console.log(`Found ${allResources.length} resources`);
+      res.json(allResources);
+    } catch (error) {
+      console.error("Error fetching resources:", error);
+      res.status(500).json({ message: "Failed to fetch resources" });
+    }
+  });
+
   // Events routes
   app.get("/api/events", async (_req, res) => {
     try {
