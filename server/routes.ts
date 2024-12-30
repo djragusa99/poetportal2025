@@ -1,8 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { db } from "@db";
-import { users, events, pointsOfInterest, resources, comments } from "@db/schema";
-import { eq } from "drizzle-orm";
+import { users, events, pointsOfInterest, resources, comments, posts } from "@db/schema";
+import { eq, desc } from "drizzle-orm";
 import { setupAuth } from "./auth";
 
 export function registerRoutes(app: Express): Server {
@@ -248,6 +248,41 @@ export function registerRoutes(app: Express): Server {
       res.status(500).json({ message: "Failed to fetch events" });
     }
   });
+
+  app.get("/api/posts", authenticateToken, async (_req, res) => {
+    try {
+      const allPosts = await db.query.posts.findMany({
+        with: {
+          user: {
+            columns: {
+              id: true,
+              username: true,
+              display_name: true,
+            },
+          },
+          comments: {
+            with: {
+              user: {
+                columns: {
+                  id: true,
+                  username: true,
+                  display_name: true,
+                },
+              },
+            },
+            orderBy: desc(comments.created_at),
+          },
+        },
+        orderBy: desc(posts.created_at),
+      });
+
+      res.json(allPosts);
+    } catch (error) {
+      console.error("Error fetching posts:", error);
+      res.status(500).json({ message: "Failed to fetch posts" });
+    }
+  });
+
 
   const httpServer = createServer(app);
   return httpServer;

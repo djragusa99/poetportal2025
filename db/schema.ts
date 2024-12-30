@@ -180,11 +180,12 @@ export const conversationParticipantsRelations = relations(conversationParticipa
   }),
 }));
 
-export const postsRelations = relations(posts, ({ one }) => ({
+export const postsRelations = relations(posts, ({ one, many }) => ({
   user: one(users, {
     fields: [posts.user_id],
     references: [users.id],
   }),
+  comments: many(comments),
 }));
 
 export const eventsRelations = relations(events, ({ one }) => ({
@@ -205,5 +206,16 @@ export const resourcesRelations = relations(resources, ({ one }) => ({
   creator: one(users, {
     fields: [resources.created_by],
     references: [users.id],
+  }),
+}));
+
+export const commentsRelations = relations(comments, ({ one }) => ({
+  user: one(users, {
+    fields: [comments.user_id],
+    references: [users.id],
+  }),
+  post: one(posts, {
+    fields: [comments.post_id],
+    references: [posts.id],
   }),
 }));
