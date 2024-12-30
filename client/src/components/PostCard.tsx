@@ -300,20 +300,22 @@ export default function PostCard({ post }: PostCardProps) {
 
   return (
     <Card className="mb-4">
-      <CardHeader className="flex flex-row items-center gap-4">
-        <Avatar>
-          <AvatarImage src={post.user?.avatar} className="object-cover" />
-          <AvatarFallback>
-            {post.user?.firstName?.[0]}
-            {post.user?.lastName?.[0]}
-          </AvatarFallback>
-        </Avatar>
-        <div className="flex flex-col flex-1">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">
-                {post.user?.firstName} {post.user?.lastName}
-              </span>
+      <CardHeader className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold">
+            {post.user?.display_name || post.user?.username}
+          </span>
+        </div>
+        <div className="flex items-center gap-4">
+          <Avatar>
+            <AvatarImage src={post.user?.avatar} className="object-cover" />
+            <AvatarFallback>
+              {(post.user?.display_name || post.user?.username || '')[0]?.toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col flex-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
               {post.userId !== user?.id && (
                 <Button
                   variant="ghost"
