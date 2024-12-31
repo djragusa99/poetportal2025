@@ -155,13 +155,6 @@ export default function PostCard({ post }: PostCardProps) {
       if (!post.user?.id) throw new Error("Invalid user ID");
       return api.users.follow(post.user.id);
     },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
