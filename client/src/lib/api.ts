@@ -71,7 +71,10 @@ const api = {
     follow: async (userId: number) => {      
       const response = await fetch(`/api/users/${userId}/follow`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('auth_token')}`
+        },
         credentials: "include"
       });
 
