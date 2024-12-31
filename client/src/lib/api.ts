@@ -74,12 +74,12 @@ const api = {
         credentials: "include"
       });
       
-      const data = await response.json();
       if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.message || "Failed to follow user");
       }
       
-      return data;
+      return response.json();
     },
     unfollow: (userId: number) =>
       fetch(`/api/users/${userId}/follow`, {
