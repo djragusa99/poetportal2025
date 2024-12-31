@@ -59,27 +59,16 @@ const api = {
       fetch("/api/resources").then(handleResponse) as Promise<Resource[]>,
   },
   users: {
-    follow: async (userId: number) => {
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        throw new Error("Not authenticated");
-      }
-      
+    follow: async (userId: number) => {      
       const response = await fetch(`/api/users/${userId}/follow`, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include"
       });
-      
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Failed to follow user");
-      }
-      
-      return response.json();
+
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message);
+      return data;
     },
     unfollow: (userId: number) =>
       fetch(`/api/users/${userId}/follow`, {
