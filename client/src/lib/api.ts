@@ -19,11 +19,20 @@ async function handleResponse(response: Response) {
 
 const api = {
   posts: {
-    list: () => fetch("/api/posts").then(handleResponse) as Promise<Post[]>,
+    list: () => fetch("/api/posts", {
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem('auth_token')}`,
+          "Content-Type": "application/json"
+        },
+        credentials: "include"
+      }).then(handleResponse) as Promise<Post[]>,
     create: (title: string, content: string) =>
       fetch("/api/posts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Authorization": `Bearer ${localStorage.getItem('auth_token')}`,
+          "Content-Type": "application/json" 
+        },
         credentials: "include",
         body: JSON.stringify({ title, content }),
       }).then(handleResponse) as Promise<Post>,
