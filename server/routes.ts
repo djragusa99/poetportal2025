@@ -380,20 +380,6 @@ export function registerRoutes(app: Express): Server {
         return res.status(400).json({ message: "Already following this user" });
       }
 
-      // Check if already following
-      const existingFollow = await db
-        .select()
-        .from(followers)
-        .where(and(
-          eq(followers.follower_id, followerId),
-          eq(followers.following_id, followingId)
-        ))
-        .limit(1);
-
-      if (existingFollow.length > 0) {
-        return res.status(400).json({ message: "Already following this user" });
-      }
-
       // Insert follow relationship
       await db.insert(followers)
         .values({
