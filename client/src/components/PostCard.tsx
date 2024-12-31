@@ -147,26 +147,27 @@ export default function PostCard({ post }: PostCardProps) {
 
   const { data: followStatus } = useQuery({
     queryKey: [`/api/users/${post.userId}/following`],
-    enabled: post.userId !== user?.id,
+    enabled: post.userId !== user?.id && !!user,
+    retry: false
   });
 
   const followMutation = useMutation({
     mutationFn: async () => {
       if (!post.user?.id) throw new Error("Invalid user ID");
+      if (!user) throw new Error("Must be logged in to follow users");
       return api.users.follow(post.user.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
-      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
         title: "Success",
-        description: `Now following ${post.user?.firstName} ${post.user?.lastName}`,
+        description: `Successfully followed user`,
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to follow user",
         variant: "destructive",
       });
     },
