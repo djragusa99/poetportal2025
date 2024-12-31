@@ -381,10 +381,16 @@ export function registerRoutes(app: Express): Server {
       }
 
       // Insert follow relationship
-      await db.insert(followers).values({
-        follower_id: followerId,
-        following_id: followingId,
-      });
+      const [newFollow] = await db.insert(followers)
+        .values({
+          follower_id: followerId,
+          following_id: followingId,
+        })
+        .returning();
+
+      if (!newFollow) {
+        return res.status(500).json({ message: "Failed to follow user" });
+      }
 
       res.json({ message: "Successfully followed user", following: true });
     } catch (error) {
