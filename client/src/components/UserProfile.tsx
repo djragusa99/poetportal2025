@@ -105,6 +105,27 @@ export default function UserProfile({ user }: UserProfileProps) {
     }
   };
 
+  const { data: currentUser } = useQuery(['user']);
+  const [isFollowing, setIsFollowing] = useState({ isFollowing: false });
+
+  const handleFollow = async () => {
+    try {
+      const res = await fetch(`/api/users/${user.id}/follow`, {
+        method: isFollowing.isFollowing ? 'DELETE' : 'POST',
+      });
+
+      if (res.ok) {
+        setIsFollowing({ isFollowing: !isFollowing.isFollowing });
+      } else {
+        toast({ title: 'Error', description: 'Failed to update follow status' })
+      }
+
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+
   return (
     <Card>
       <CardHeader>
@@ -140,6 +161,16 @@ export default function UserProfile({ user }: UserProfileProps) {
             )}
             <p className="text-sm text-muted-foreground">{user.location}</p>
             <p className="text-sm font-medium">{user.userType}</p>
+            {currentUser?.id !== user.id && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleFollow}
+                className="mt-2"
+              >
+                {isFollowing?.isFollowing ? 'Unfollow' : 'Follow'}
+              </Button>
+            )}
           </div>
         </div>
         <div className="mt-6">
