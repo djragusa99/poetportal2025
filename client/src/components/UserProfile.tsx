@@ -106,7 +106,12 @@ export default function UserProfile({ user }: UserProfileProps) {
   };
 
   const { data: currentUser } = useQuery(['user']);
-  const [isFollowing, setIsFollowing] = useState({ isFollowing: false });
+  const { data: followStatus } = useQuery({
+    queryKey: [`/api/users/${user.id}/following`],
+    enabled: !!user.id && !!currentUser?.id && currentUser.id !== user.id,
+  });
+
+  const isFollowing = followStatus?.isFollowing || false;
 
   const handleFollow = async () => {
     try {
@@ -168,7 +173,7 @@ export default function UserProfile({ user }: UserProfileProps) {
                 onClick={handleFollow}
                 className="mt-2"
               >
-                {isFollowing?.isFollowing ? 'Unfollow' : 'Follow'}
+                {isFollowing ? 'Unfollow' : 'Follow'}
               </Button>
             )}
           </div>
