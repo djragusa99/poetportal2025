@@ -318,6 +318,18 @@ export async function seed() {
 
     await db.insert(resources).values(resourcesData);
     console.log("✓ Created resources");
+    
+    // Create followers table schema
+    console.log("Creating followers table...");
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS followers (
+        follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        following_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        PRIMARY KEY (follower_id, following_id)
+      );
+    `);
+    console.log("✓ Created followers table");
 
     console.log("✅ Database seeding completed successfully!");
   } catch (error) {
