@@ -321,6 +321,10 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/users/:userId/following", authenticateToken, async (req, res) => {
     const followerId = req.user?.id;
     const followingId = parseInt(req.params.userId);
+    
+    if (!followerId || !followingId || isNaN(followingId)) {
+      return res.status(400).json({ message: "Invalid user IDs", isFollowing: false });
+    }
 
     try {
       const [isFollowing] = await db.select()
@@ -377,7 +381,12 @@ export function registerRoutes(app: Express): Server {
         .limit(1);
 
       if (existingFollow.length > 0) {
-        return res.status(400).json({ message: "Already following this user" });
+        await db.delete(followers)
+          .where(and(
+            eq(followers.follower_id, followerId),
+            eq(followers.following_id, followingId)
+          ));
+        return res.json({ message: "Successfully unfollowed user", following: false });
       }
 
       // Insert follow relationship
