@@ -68,7 +68,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen" style={{ backgroundColor: '#f0ebe4' }}>
       <Navigation />
       <main className="container mx-auto px-4 py-8">
         <Switch>

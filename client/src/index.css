@@ -9,6 +9,13 @@
 
   body {
     @apply font-sans antialiased text-foreground;
-    background-color: #f7f3ee;
+    background-color: #f0ebe4;
+    margin: 0;
+    padding: 0;
+  }
+
+  #root {
+    background-color: #f0ebe4;
+    min-height: 100vh;
   }
 }
