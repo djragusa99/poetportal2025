@@ -167,42 +167,20 @@ export default function PostCard({ post }: PostCardProps) {
     mutationFn: async () => {
       if (!post.user?.id) throw new Error("Invalid user ID");
       if (!user) throw new Error("Must be logged in to follow users");
-      const response = await api.users.follow(post.user.id);
-      return response;
+      return api.users.follow(post.user.id);
     },
     onSuccess: (data) => {
-      queryClient.setQueryData([`/api/users/${post.userId}/following`], data);
+      queryClient.setQueryData([`/api/users/${post.userId}/following`], { isFollowing: data.isFollowing });
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
         title: "Success",
-        description: `Successfully followed user`,
+        description: data.isFollowing ? "Successfully followed user" : "Successfully unfollowed user",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message || "Failed to follow user",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const unfollowMutation = useMutation({
-    mutationFn: async () => {
-      return api.users.unfollow(post.userId);
-    },
-    onSuccess: () => {
-      refetchFollowStatus();
-      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
-      toast({
-        title: "Success",
-        description: `Unfollowed ${post.user?.firstName} ${post.user?.lastName}`,
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message,
         variant: "destructive",
       });
     },
