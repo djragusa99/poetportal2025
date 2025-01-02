@@ -145,8 +145,8 @@ export default function PostCard({ post }: PostCardProps) {
   const { toast } = useToast();
   const { user } = useUser();
 
-  const { data: followStatus, refetch: refetchFollowStatus } = useQuery({
-    queryKey: [`follow-status-${post.userId}`],
+  const { data: followStatus } = useQuery({
+    queryKey: [`users/${post.userId}/following`],
     queryFn: async () => {
       const response = await fetch(`/api/users/${post.userId}/following`, {
         headers: {
@@ -155,42 +155,40 @@ export default function PostCard({ post }: PostCardProps) {
         },
         credentials: "include"
       });
-      const data = await response.json();
-      return { isFollowing: data.isFollowing };
+      return response.json();
     },
-    initialData: { isFollowing: false },
-    enabled: post.userId !== user?.id && !!user,
-    staleTime: 30000
+    enabled: post.userId !== user?.id && !!user
   });
 
   const followMutation = useMutation({
     mutationFn: async () => {
       if (!post.user?.id) throw new Error("Invalid user ID");
       if (!user) throw new Error("Must be logged in to follow users");
-      const response = followStatus?.isFollowing 
-        ? await api.users.unfollow(post.user.id)
-        : await api.users.follow(post.user.id);
-      return response;
+      if (followStatus?.isFollowing) {
+        return api.users.unfollow(post.user.id);
+      } else {
+        return api.users.follow(post.user.id);
+      }
     },
     onMutate: async () => {
-      const queryKey = [`follow-status-${post.userId}`];
+      const queryKey = [`users/${post.userId}/following`];
       await queryClient.cancelQueries({ queryKey });
       const previousStatus = queryClient.getQueryData(queryKey);
-      const newStatus = !followStatus?.isFollowing;
-      queryClient.setQueryData(queryKey, { isFollowing: newStatus });
-      return { previousStatus, newStatus };
+      queryClient.setQueryData(queryKey, { isFollowing: !followStatus?.isFollowing });
+      return { previousStatus };
     },
-    onSuccess: (data, _, context) => {
-      const queryKey = [`follow-status-${post.userId}`];
-      const status = context?.newStatus ?? false;
-      queryClient.setQueryData(queryKey, { isFollowing: status });
+    onSuccess: () => {
+      // Invalidate specific user's follow status
       queryClient.invalidateQueries({ 
-        queryKey: [`/api/users/${user?.id}/following-list`],
-        exact: true 
+        queryKey: [`users/${post.userId}/following`]
+      });
+      
+      // Invalidate followers/following lists
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/users/${user?.id}/following-list`]
       });
       queryClient.invalidateQueries({ 
-        queryKey: [`/api/users/${post.userId}/followers`],
-        exact: true 
+        queryKey: [`/api/users/${post.userId}/followers`]
       });
       toast({
         title: "Success",

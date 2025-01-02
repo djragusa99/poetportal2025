@@ -327,15 +327,17 @@ export function registerRoutes(app: Express): Server {
     }
 
     try {
-      const [isFollowing] = await db.select()
+      const result = await db
+        .select({
+          isFollowing: db.sql<boolean>`COUNT(*) > 0`
+        })
         .from(followers)
         .where(and(
           eq(followers.follower_id, followerId),
           eq(followers.following_id, followingId)
-        ))
-        .limit(1);
+        ));
 
-      res.json({ isFollowing: !!isFollowing });
+      res.json({ isFollowing: result[0].isFollowing });
     } catch (error) {
       console.error("Error checking follow status:", error);
       res.status(500).json({ message: "Failed to check follow status" });
