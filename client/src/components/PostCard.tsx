@@ -149,13 +149,15 @@ export default function PostCard({ post }: PostCardProps) {
     queryKey: [`/api/users/${post.userId}/following`],
     queryFn: async () => {
       const response = await fetch(`/api/users/${post.userId}/following`, {
-      headers: {
-        "Authorization": `Bearer ${localStorage.getItem('auth_token')}`,
-        "Content-Type": "application/json"
-      },
-      credentials: "include"
-    }).then(res => res.json()),
-    enabled: post.userId !== user?.id && !!user,
+        headers: {
+          "Authorization": `Bearer ${localStorage.getItem('auth_token')}`,
+          "Content-Type": "application/json"
+        },
+        credentials: "include"
+      });
+      return response.json();
+    },
+    enabled: post.userId !== user?.id && !!user
   });
 
   const followMutation = useMutation({
