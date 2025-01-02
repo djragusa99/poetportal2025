@@ -117,21 +117,19 @@ export default function UserProfile({ user }: UserProfileProps) {
 
   const handleFollow = async () => {
     try {
-      const res = await fetch(`/api/users/${user.id}/follow`, {
-        method: isFollowing ? 'DELETE' : 'POST',
-        credentials: 'include'
-      });
-
-      if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/following`] });
-        toast({ 
-          title: 'Success', 
-          description: isFollowing ? 'Unfollowed user' : 'Following user' 
-        });
+      if (isFollowing) {
+        await api.users.unfollow(user.id);
       } else {
-        toast({ title: 'Error', description: 'Failed to update follow status' })
+        await api.users.follow(user.id);
       }
-
+      
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/following`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/followers`] });
+      
+      toast({ 
+        title: 'Success', 
+        description: isFollowing ? 'Successfully unfollowed user' : 'Successfully followed user' 
+      });
     } catch (error) {
       console.error(error);
       toast({ title: 'Error', description: 'Failed to update follow status' })
