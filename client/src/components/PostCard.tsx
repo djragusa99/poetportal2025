@@ -169,9 +169,22 @@ export default function PostCard({ post }: PostCardProps) {
       if (!user) throw new Error("Must be logged in to follow users");
       return api.users.follow(post.user.id);
     },
+    onMutate: async () => {
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: [`follow-status-${post.userId}`] });
+      
+      // Store previous value
+      const previousStatus = queryClient.getQueryData([`follow-status-${post.userId}`]);
+      
+      // Optimistically update the status
+      queryClient.setQueryData([`follow-status-${post.userId}`], {
+        isFollowing: !followStatus?.isFollowing
+      });
+      
+      return { previousStatus };
+    },
     onSuccess: (data) => {
       queryClient.setQueryData([`follow-status-${post.userId}`], { isFollowing: data.isFollowing });
-      queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/following-list`] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/followers`] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/followers`] });
@@ -180,10 +193,14 @@ export default function PostCard({ post }: PostCardProps) {
         description: data.isFollowing ? "Successfully followed user" : "Successfully unfollowed user",
       });
     },
-    onError: (error: Error) => {
+    onError: (error: Error, _variables, context) => {
+      // Revert optimistic update on error
+      if (context?.previousStatus) {
+        queryClient.setQueryData([`follow-status-${post.userId}`], context.previousStatus);
+      }
       toast({
         title: "Error",
-        description: error.message || "Failed to follow user",
+        description: error.message || "Failed to update follow status",
         variant: "destructive",
       });
     },
