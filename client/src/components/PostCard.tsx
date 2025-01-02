@@ -146,7 +146,7 @@ export default function PostCard({ post }: PostCardProps) {
   const { user } = useUser();
 
   const { data: followStatus, refetch: refetchFollowStatus } = useQuery({
-    queryKey: [`follow-status-${post.userId}`],
+    queryKey: [`users/${post.userId}/following`],
     queryFn: async () => {
       const response = await fetch(`/api/users/${post.userId}/following`, {
         headers: {
@@ -158,9 +158,7 @@ export default function PostCard({ post }: PostCardProps) {
       const data = await response.json();
       return { isFollowing: data.isFollowing };
     },
-    initialData: { isFollowing: false },
-    enabled: post.userId !== user?.id && !!user,
-    staleTime: 30000
+    enabled: post.userId !== user?.id && !!user
   });
 
   const followMutation = useMutation({
@@ -173,7 +171,7 @@ export default function PostCard({ post }: PostCardProps) {
       return response;
     },
     onMutate: async () => {
-      const queryKey = [`follow-status-${post.userId}`];
+      const queryKey = [`users/${post.userId}/following`];
       await queryClient.cancelQueries({ queryKey });
       const previousStatus = queryClient.getQueryData(queryKey);
       const newStatus = !followStatus?.isFollowing;
@@ -181,7 +179,7 @@ export default function PostCard({ post }: PostCardProps) {
       return { previousStatus, newStatus };
     },
     onSuccess: (data, _, context) => {
-      const queryKey = [`follow-status-${post.userId}`];
+      const queryKey = [`users/${post.userId}/following`];
       const status = context?.newStatus ?? false;
       queryClient.setQueryData(queryKey, { isFollowing: status });
       queryClient.invalidateQueries({ 
@@ -198,7 +196,7 @@ export default function PostCard({ post }: PostCardProps) {
       });
     },
     onError: (error: Error, _variables, context) => {
-      const queryKey = [`follow-status-${post.userId}`];
+      const queryKey = [`users/${post.userId}/following`];
       if (context?.previousStatus) {
         queryClient.setQueryData(queryKey, context.previousStatus);
       }
