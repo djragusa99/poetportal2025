@@ -105,7 +105,9 @@ export default function UserProfile({ user }: UserProfileProps) {
     }
   };
 
-  const { data: currentUser } = useQuery(['user']);
+  const { data: currentUser } = useQuery({
+    queryKey: ['user'],
+  });
   const { data: followStatus } = useQuery({
     queryKey: [`/api/users/${user?.id}/following`],
     enabled: Boolean(user?.id) && Boolean(currentUser?.id) && currentUser?.id !== user?.id,
