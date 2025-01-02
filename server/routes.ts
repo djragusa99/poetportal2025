@@ -386,7 +386,7 @@ export function registerRoutes(app: Express): Server {
             eq(followers.follower_id, followerId),
             eq(followers.following_id, followingId)
           ));
-        return res.json({ message: "Successfully unfollowed user", following: false });
+        return res.json({ message: "Successfully unfollowed user", isFollowing: false });
       }
 
       // Insert follow relationship
@@ -396,7 +396,7 @@ export function registerRoutes(app: Express): Server {
           following_id: followingId,
         });
 
-      res.json({ message: "Successfully followed user", following: true });
+      res.json({ message: "Successfully followed user", isFollowing: true });
     } catch (error) {
       console.error("Error following user:", error);
       res.status(500).json({ message: "Failed to follow user" });

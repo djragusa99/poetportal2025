@@ -147,7 +147,8 @@ export default function PostCard({ post }: PostCardProps) {
 
   const { data: followStatus, refetch: refetchFollowStatus } = useQuery({
     queryKey: [`/api/users/${post.userId}/following`],
-    queryFn: () => fetch(`/api/users/${post.userId}/following`, {
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${post.userId}/following`, {
       headers: {
         "Authorization": `Bearer ${localStorage.getItem('auth_token')}`,
         "Content-Type": "application/json"
