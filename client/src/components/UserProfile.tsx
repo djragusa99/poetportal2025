@@ -118,27 +118,55 @@ export default function UserProfile({ user }: UserProfileProps) {
 
   const isFollowing = Boolean(followStatus?.following);
 
-  const handleFollow = async () => {
-    try {
-      if (isFollowing) {
-        await api.users.unfollow(user.id);
-      } else {
-        await api.users.follow(user.id);
-      }
-      
-      await refetchFollowStatus();
-      await queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/followers`] });
-      await queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/following`] });
-      
-      toast({ 
-        title: 'Success', 
-        description: isFollowing ? 'Successfully unfollowed user' : 'Successfully followed user' 
+  const followMutation = useMutation({
+    mutationFn: async () => {
+      return api.users.follow(user.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/following`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/followers`] });
+      toast({
+        title: "Success",
+        description: "Successfully followed user",
       });
-    } catch (error) {
-      console.error(error);
-      toast({ title: 'Error', description: 'Failed to update follow status' })
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to follow user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const unfollowMutation = useMutation({
+    mutationFn: async () => {
+      return api.users.unfollow(user.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/following`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/followers`] });
+      toast({
+        title: "Success",
+        description: "Successfully unfollowed user",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFollow = () => {
+    if (isFollowing) {
+      unfollowMutation.mutate();
+    } else {
+      followMutation.mutate();
     }
-  }
+  };
 
 
   return (
@@ -182,7 +210,11 @@ export default function UserProfile({ user }: UserProfileProps) {
                 size="sm" 
                 onClick={handleFollow}
                 className="mt-2"
+                disabled={followMutation.isPending || unfollowMutation.isPending}
               >
+                {followMutation.isPending || unfollowMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : null}
                 {isFollowing ? 'Following' : 'Follow'}
               </Button>
             )}
