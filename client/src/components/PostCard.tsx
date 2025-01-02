@@ -322,7 +322,11 @@ export default function PostCard({ post }: PostCardProps) {
                   ) : (
                     <UserPlus className="h-4 w-4" />
                   )}
-                  {followStatus?.following ? ' Unfollow' : ' Follow'}
+                  {followMutation.isPending || unfollowMutation.isPending 
+                    ? ' Loading...'
+                    : followStatus?.following 
+                      ? ' Following' 
+                      : ' Follow'}
                 </Button>
               )}
               <span className="text-sm text-muted-foreground">
