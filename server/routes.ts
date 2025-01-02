@@ -370,7 +370,6 @@ export function registerRoutes(app: Express): Server {
         return res.status(404).json({ message: "User not found" });
       }
 
-      // Check if already following
       const existingFollow = await db
         .select()
         .from(followers)

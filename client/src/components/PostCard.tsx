@@ -164,10 +164,11 @@ export default function PostCard({ post }: PostCardProps) {
     mutationFn: async () => {
       if (!post.user?.id) throw new Error("Invalid user ID");
       if (!user) throw new Error("Must be logged in to follow users");
-      return api.users.follow(post.user.id);
+      const response = await api.users.follow(post.user.id);
+      return response;
     },
-    onSuccess: () => {
-      refetchFollowStatus();
+    onSuccess: (data) => {
+      queryClient.setQueryData([`/api/users/${post.userId}/following`], data);
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
         title: "Success",
