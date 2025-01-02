@@ -192,7 +192,7 @@ export default function PostCard({ post }: PostCardProps) {
       });
       toast({
         title: "Success",
-        description: data.isFollowing ? "Successfully followed user" : "Successfully unfollowed user",
+        description: followStatus?.isFollowing ? "Successfully unfollowed user" : "Successfully followed user",
       });
     },
     onError: (error: Error, _variables, context) => {
