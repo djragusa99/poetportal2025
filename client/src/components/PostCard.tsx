@@ -146,7 +146,7 @@ export default function PostCard({ post }: PostCardProps) {
   const { user } = useUser();
 
   const { data: followStatus, refetch: refetchFollowStatus } = useQuery({
-    queryKey: [`/api/users/${post.userId}/following`],
+    queryKey: [`follow-status-${post.userId}`],
     queryFn: async () => {
       const response = await fetch(`/api/users/${post.userId}/following`, {
         headers: {
@@ -160,7 +160,7 @@ export default function PostCard({ post }: PostCardProps) {
     },
     initialData: { isFollowing: false },
     enabled: post.userId !== user?.id && !!user,
-    staleTime: 30000 // Consider data fresh for 30 seconds
+    staleTime: 30000
   });
 
   const followMutation = useMutation({
@@ -170,8 +170,11 @@ export default function PostCard({ post }: PostCardProps) {
       return api.users.follow(post.user.id);
     },
     onSuccess: (data) => {
-      queryClient.setQueryData([`/api/users/${post.userId}/following`], { isFollowing: data.isFollowing });
+      queryClient.setQueryData([`follow-status-${post.userId}`], { isFollowing: data.isFollowing });
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/following-list`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/followers`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/followers`] });
       toast({
         title: "Success",
         description: data.isFollowing ? "Successfully followed user" : "Successfully unfollowed user",
