@@ -293,21 +293,17 @@ export default function PostCard({ post }: PostCardProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() =>
-                    followStatus?.isFollowing
-                      ? unfollowMutation.mutate()
-                      : followMutation.mutate()
-                  }
-                  disabled={followMutation.isPending || unfollowMutation.isPending}
+                  onClick={() => followMutation.mutate()}
+                  disabled={followMutation.isPending}
                 >
-                  {followMutation.isPending || unfollowMutation.isPending ? (
+                  {followMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : followStatus?.isFollowing ? (
                     <UserMinus className="h-4 w-4" />
                   ) : (
                     <UserPlus className="h-4 w-4" />
                   )}
-                  {followMutation.isPending || unfollowMutation.isPending 
+                  {followMutation.isPending 
                     ? ' Loading...'
                     : followStatus?.isFollowing 
                       ? ' Following' 
