@@ -155,9 +155,12 @@ export default function PostCard({ post }: PostCardProps) {
         },
         credentials: "include"
       });
-      return response.json();
+      const data = await response.json();
+      return { isFollowing: data.isFollowing };
     },
-    enabled: post.userId !== user?.id && !!user
+    initialData: { isFollowing: false },
+    enabled: post.userId !== user?.id && !!user,
+    staleTime: 30000 // Consider data fresh for 30 seconds
   });
 
   const followMutation = useMutation({
