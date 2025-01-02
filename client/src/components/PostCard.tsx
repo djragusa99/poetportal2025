@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { useState } from "react";
 import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Reply, UserPlus, UserMinus, Heart } from "lucide-react";
+import { Reply, UserPlus, UserMinus, Heart, Loader2 } from "lucide-react";
 import api from "../lib/api";
 import { useUser } from "../hooks/use-user";
 import DeleteConfirmDialog from "./DeleteConfirmDialog";
