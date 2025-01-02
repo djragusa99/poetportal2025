@@ -167,27 +167,31 @@ export default function PostCard({ post }: PostCardProps) {
     mutationFn: async () => {
       if (!post.user?.id) throw new Error("Invalid user ID");
       if (!user) throw new Error("Must be logged in to follow users");
-      if (followStatus?.isFollowing) {
-        return api.users.unfollow(post.user.id);
-      } else {
-        return api.users.follow(post.user.id);
-      }
+      const response = followStatus?.isFollowing 
+        ? await api.users.unfollow(post.user.id)
+        : await api.users.follow(post.user.id);
+      return response;
     },
     onMutate: async () => {
       const queryKey = [`follow-status-${post.userId}`];
       await queryClient.cancelQueries({ queryKey });
       const previousStatus = queryClient.getQueryData(queryKey);
-      queryClient.setQueryData(queryKey, {
-        isFollowing: !followStatus?.isFollowing
-      });
-      return { previousStatus };
+      const newStatus = !followStatus?.isFollowing;
+      queryClient.setQueryData(queryKey, { isFollowing: newStatus });
+      return { previousStatus, newStatus };
     },
-    onSuccess: (data) => {
+    onSuccess: (data, _, context) => {
       const queryKey = [`follow-status-${post.userId}`];
-      queryClient.setQueryData(queryKey, { isFollowing: data.isFollowing });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/following-list`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/followers`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/followers`] });
+      const status = context?.newStatus ?? false;
+      queryClient.setQueryData(queryKey, { isFollowing: status });
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/users/${user?.id}/following-list`],
+        exact: true 
+      });
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/users/${post.userId}/followers`],
+        exact: true 
+      });
       toast({
         title: "Success",
         description: data.isFollowing ? "Successfully followed user" : "Successfully unfollowed user",
@@ -317,17 +321,20 @@ export default function PostCard({ post }: PostCardProps) {
                   disabled={followMutation.isPending}
                 >
                   {followMutation.isPending ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : followStatus?.isFollowing ? (
-                    <UserMinus className="h-4 w-4" />
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      Loading...
+                    </>
                   ) : (
-                    <UserPlus className="h-4 w-4" />
+                    <>
+                      {followStatus?.isFollowing ? (
+                        <UserMinus className="h-4 w-4 mr-2" />
+                      ) : (
+                        <UserPlus className="h-4 w-4 mr-2" />
+                      )}
+                      {followStatus?.isFollowing ? 'Following' : 'Follow'}
+                    </>
                   )}
-                  {followMutation.isPending 
-                    ? ' Loading...'
-                    : followStatus?.isFollowing 
-                      ? ' Following' 
-                      : ' Follow'}
                 </Button>
               )}
               <span className="text-sm text-muted-foreground">
