@@ -312,8 +312,11 @@ export default function PostCard({ post }: PostCardProps) {
                       ? unfollowMutation.mutate()
                       : followMutation.mutate()
                   }
+                  disabled={followMutation.isPending || unfollowMutation.isPending}
                 >
-                  {followStatus?.following ? (
+                  {followMutation.isPending || unfollowMutation.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : followStatus?.following ? (
                     <UserMinus className="h-4 w-4" />
                   ) : (
                     <UserPlus className="h-4 w-4" />
