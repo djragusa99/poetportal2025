@@ -5,7 +5,7 @@ import { useUser } from "../hooks/use-user";
 import { Button } from "@/components/ui/button";
 import { LogOut, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useQueryClient, useQuery } from "@tanstack/react-query";
+import { useQueryClient, useQuery, useMutation } from "@tanstack/react-query";
 import { useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
