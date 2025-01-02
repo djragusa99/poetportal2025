@@ -107,13 +107,16 @@ export default function UserProfile({ user }: UserProfileProps) {
 
   const { data: currentUser } = useQuery({
     queryKey: ['user'],
-  });
-  const { data: followStatus } = useQuery({
-    queryKey: [`/api/users/${user?.id}/following`],
-    enabled: Boolean(user?.id) && Boolean(currentUser?.id) && currentUser?.id !== user?.id,
+    queryFn: () => fetch('/api/user', { credentials: 'include' }).then(res => res.json())
   });
 
-  const isFollowing = Boolean(followStatus?.isFollowing);
+  const { data: followStatus, refetch: refetchFollowStatus } = useQuery({
+    queryKey: [`/api/users/${user?.id}/following`] as const,
+    queryFn: () => fetch(`/api/users/${user?.id}/following`, { credentials: 'include' }).then(res => res.json()),
+    enabled: Boolean(user?.id) && Boolean(currentUser?.id) && currentUser?.id !== user?.id
+  });
+
+  const isFollowing = Boolean(followStatus?.following);
 
   const handleFollow = async () => {
     try {
@@ -123,7 +126,7 @@ export default function UserProfile({ user }: UserProfileProps) {
         await api.users.follow(user.id);
       }
       
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/following`] });
+      await refetchFollowStatus();
       queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/followers`] });
       
       toast({ 
