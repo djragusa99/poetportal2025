@@ -308,7 +308,7 @@ export default function PostCard({ post }: PostCardProps) {
                   variant="ghost"
                   size="sm"
                   onClick={() =>
-                    followStatus?.following
+                    followStatus?.isFollowing
                       ? unfollowMutation.mutate()
                       : followMutation.mutate()
                   }
