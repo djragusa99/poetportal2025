@@ -127,7 +127,8 @@ export default function UserProfile({ user }: UserProfileProps) {
       }
       
       await refetchFollowStatus();
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/followers`] });
+      await queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/followers`] });
+      await queryClient.invalidateQueries({ queryKey: [`/api/users/${user.id}/following`] });
       
       toast({ 
         title: 'Success', 
@@ -177,12 +178,12 @@ export default function UserProfile({ user }: UserProfileProps) {
             <p className="text-sm font-medium">{user.userType}</p>
             {currentUser?.id !== user.id && (
               <Button 
-                variant="outline" 
+                variant={isFollowing ? "default" : "outline"}
                 size="sm" 
                 onClick={handleFollow}
                 className="mt-2"
               >
-                {isFollowing ? 'Unfollow' : 'Follow'}
+                {isFollowing ? 'Following' : 'Follow'}
               </Button>
             )}
           </div>
