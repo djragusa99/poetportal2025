@@ -145,7 +145,7 @@ export default function PostCard({ post }: PostCardProps) {
   const { toast } = useToast();
   const { user } = useUser();
 
-  const { data: followStatus } = useQuery({
+  const { data: followStatus, refetch: refetchFollowStatus } = useQuery({
     queryKey: [`/api/users/${post.userId}/following`],
     queryFn: () => fetch(`/api/users/${post.userId}/following`, {
       headers: {
@@ -164,7 +164,7 @@ export default function PostCard({ post }: PostCardProps) {
       return api.users.follow(post.user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
+      refetchFollowStatus();
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
         title: "Success",
@@ -185,7 +185,7 @@ export default function PostCard({ post }: PostCardProps) {
       return api.users.unfollow(post.userId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
+      refetchFollowStatus();
       queryClient.invalidateQueries({ queryKey: ["/api/posts"] });
       toast({
         title: "Success",
