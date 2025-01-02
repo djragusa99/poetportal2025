@@ -190,6 +190,11 @@ export default function PostCard({ post }: PostCardProps) {
         queryKey: [`/api/users/${post.userId}/followers`],
         exact: true 
       });
+      // Invalidate only this specific user's follow status
+      queryClient.invalidateQueries({
+        queryKey: [`follow-status`, post.userId],
+        exact: true
+      });
       toast({
         title: "Success",
         description: data.isFollowing ? "Successfully followed user" : "Successfully unfollowed user",
