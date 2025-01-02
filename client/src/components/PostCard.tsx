@@ -167,24 +167,24 @@ export default function PostCard({ post }: PostCardProps) {
     mutationFn: async () => {
       if (!post.user?.id) throw new Error("Invalid user ID");
       if (!user) throw new Error("Must be logged in to follow users");
-      return api.users.follow(post.user.id);
+      if (followStatus?.isFollowing) {
+        return api.users.unfollow(post.user.id);
+      } else {
+        return api.users.follow(post.user.id);
+      }
     },
     onMutate: async () => {
-      // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: [`follow-status-${post.userId}`] });
-      
-      // Store previous value
-      const previousStatus = queryClient.getQueryData([`follow-status-${post.userId}`]);
-      
-      // Optimistically update the status
-      queryClient.setQueryData([`follow-status-${post.userId}`], {
+      const queryKey = [`follow-status-${post.userId}`];
+      await queryClient.cancelQueries({ queryKey });
+      const previousStatus = queryClient.getQueryData(queryKey);
+      queryClient.setQueryData(queryKey, {
         isFollowing: !followStatus?.isFollowing
       });
-      
       return { previousStatus };
     },
     onSuccess: (data) => {
-      queryClient.setQueryData([`follow-status-${post.userId}`], { isFollowing: data.isFollowing });
+      const queryKey = [`follow-status-${post.userId}`];
+      queryClient.setQueryData(queryKey, { isFollowing: data.isFollowing });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/following-list`] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/followers`] });
       queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/followers`] });
@@ -194,9 +194,9 @@ export default function PostCard({ post }: PostCardProps) {
       });
     },
     onError: (error: Error, _variables, context) => {
-      // Revert optimistic update on error
+      const queryKey = [`follow-status-${post.userId}`];
       if (context?.previousStatus) {
-        queryClient.setQueryData([`follow-status-${post.userId}`], context.previousStatus);
+        queryClient.setQueryData(queryKey, context.previousStatus);
       }
       toast({
         title: "Error",
