@@ -146,9 +146,9 @@ export default function PostCard({ post }: PostCardProps) {
   const { user } = useUser();
 
   const { data: followStatus, refetch: refetchFollowStatus } = useQuery({
-    queryKey: [`users/${post.userId}/following`],
+    queryKey: [`/api/users/${post.user?.id}/following`],
     queryFn: async () => {
-      const response = await fetch(`/api/users/${post.userId}/following`, {
+      const response = await fetch(`/api/users/${post.user?.id}/following`, {
         headers: {
           "Content-Type": "application/json"
         },
@@ -167,7 +167,8 @@ export default function PostCard({ post }: PostCardProps) {
       return await api.users.follow(post.user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`users/${post.userId}/following`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.user?.id}/following`] });
+      refetchFollowStatus();
       toast({
         title: "Success",
         description: "Successfully followed user",
