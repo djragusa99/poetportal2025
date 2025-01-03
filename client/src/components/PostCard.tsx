@@ -197,8 +197,9 @@ export default function PostCard({ post }: PostCardProps) {
       });
       toast({
         title: "Success",
-        description: data.isFollowing ? "Successfully followed user" : "Successfully unfollowed user",
+        description: status ? "Successfully followed user" : "Successfully unfollowed user",
       });
+      refetchFollowStatus();
     },
     onError: (error: Error, _variables, context) => {
       const queryKey = [`users/${post.userId}/following`];
