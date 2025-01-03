@@ -163,7 +163,8 @@ export default function PostCard({ post }: PostCardProps) {
   const followMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Must be logged in to follow users");
-      return await api.users.follow(post.userId);
+      if (!post.user?.id) throw new Error("Invalid user ID");
+      return await api.users.follow(post.user.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`users/${post.userId}/following`] });
@@ -184,7 +185,8 @@ export default function PostCard({ post }: PostCardProps) {
   const unfollowMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error("Must be logged in to unfollow users");
-      return await api.users.unfollow(post.userId);
+      if (!post.user?.id) throw new Error("Invalid user ID");
+      return await api.users.unfollow(post.user.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`users/${post.userId}/following`] });
