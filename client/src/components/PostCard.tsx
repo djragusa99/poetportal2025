@@ -180,6 +180,7 @@ export default function PostCard({ post }: PostCardProps) {
       return { previousStatus, newStatus };
     },
     onSuccess: async () => {
+      const newStatus = !followStatus?.isFollowing;
       await refetchFollowStatus();
       queryClient.invalidateQueries({ 
         queryKey: [`/api/users/${post.userId}/following`],
