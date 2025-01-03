@@ -146,7 +146,7 @@ export default function PostCard({ post }: PostCardProps) {
   const { user } = useUser();
 
   const { data: followStatus, refetch: refetchFollowStatus } = useQuery({
-    queryKey: [`follow-status-${post.userId}`],
+    queryKey: [`/api/users/${post.userId}/following`],
     queryFn: async () => {
       const response = await fetch(`/api/users/${post.userId}/following`, {
         headers: {
@@ -180,11 +180,9 @@ export default function PostCard({ post }: PostCardProps) {
       return { previousStatus, newStatus };
     },
     onSuccess: async () => {
-      const newStatus = !followStatus?.isFollowing;
-      queryClient.setQueryData([`follow-status-${post.userId}`], { isFollowing: newStatus });
       await refetchFollowStatus();
       queryClient.invalidateQueries({ 
-        queryKey: [`/api/users/${user?.id}/following-list`],
+        queryKey: [`/api/users/${post.userId}/following`],
         exact: true 
       });
       queryClient.invalidateQueries({ 
