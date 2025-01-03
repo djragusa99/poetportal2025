@@ -146,7 +146,7 @@ export default function PostCard({ post }: PostCardProps) {
   const { user } = useUser();
 
   const { data: followStatus, refetch: refetchFollowStatus } = useQuery({
-    queryKey: [`/api/users/${post.userId}/following`],
+    queryKey: [`users/${post.userId}/following`],
     queryFn: async () => {
       const response = await fetch(`/api/users/${post.userId}/following`, {
         headers: {
@@ -167,9 +167,10 @@ export default function PostCard({ post }: PostCardProps) {
       return await api.users.follow(post.user.id);
     },
     onSuccess: () => {
-      queryClient.setQueryData([`/api/users/${post.userId}/following`], { isFollowing: true });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/following-list`] });
+      queryClient.setQueryData([`users/${post.userId}/following`], { isFollowing: true });
+      queryClient.invalidateQueries({ queryKey: [`users/${post.userId}/following`] });
+      queryClient.invalidateQueries({ queryKey: [`users/${user?.id}/following-list`] });
+      refetchFollowStatus();
       toast({
         title: "Success",
         description: "Successfully followed user",
@@ -191,9 +192,10 @@ export default function PostCard({ post }: PostCardProps) {
       return await api.users.unfollow(post.user.id);
     },
     onSuccess: () => {
-      queryClient.setQueryData([`/api/users/${post.userId}/following`], { isFollowing: false });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/following-list`] });
+      queryClient.setQueryData([`users/${post.userId}/following`], { isFollowing: false });
+      queryClient.invalidateQueries({ queryKey: [`users/${post.userId}/following`] });
+      queryClient.invalidateQueries({ queryKey: [`users/${user?.id}/following-list`] });
+      refetchFollowStatus();
       toast({
         title: "Success",
         description: "Successfully unfollowed user",
