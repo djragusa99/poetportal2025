@@ -146,7 +146,7 @@ export default function PostCard({ post }: PostCardProps) {
   const { user } = useUser();
 
   const { data: followStatus, refetch: refetchFollowStatus } = useQuery({
-    queryKey: [`follow-status`, post.userId],
+    queryKey: [`follow-status-${post.userId}`],
     queryFn: async () => {
       const response = await fetch(`/api/users/${post.userId}/following`, {
         headers: {
@@ -155,7 +155,7 @@ export default function PostCard({ post }: PostCardProps) {
         credentials: "include"
       });
       const data = await response.json();
-      return { isFollowing: data.following };
+      return { isFollowing: !!data.isFollowing };
     },
     enabled: post.userId !== user?.id && !!user
   });
@@ -164,11 +164,12 @@ export default function PostCard({ post }: PostCardProps) {
     mutationFn: async () => {
       if (!post.user?.id) throw new Error("Invalid user ID");
       if (!user) throw new Error("Must be logged in to follow users");
-      const isCurrentlyFollowing = followStatus?.isFollowing;
-      const response = isCurrentlyFollowing
-        ? await api.users.unfollow(post.user.id)
-        : await api.users.follow(post.user.id);
-      return { response, wasFollowing: isCurrentlyFollowing };
+      const currentStatus = followStatus?.isFollowing;
+      if (currentStatus) {
+        return await api.users.unfollow(post.user.id);
+      } else {
+        return await api.users.follow(post.user.id);
+      }
     },
     onMutate: async () => {
       const queryKey = [`follow-status`, post.userId];
@@ -178,7 +179,9 @@ export default function PostCard({ post }: PostCardProps) {
       queryClient.setQueryData(queryKey, { isFollowing: newStatus });
       return { previousStatus, newStatus };
     },
-    onSuccess: async (data) => {
+    onSuccess: async () => {
+      const newStatus = !followStatus?.isFollowing;
+      queryClient.setQueryData([`follow-status-${post.userId}`], { isFollowing: newStatus });
       await refetchFollowStatus();
       queryClient.invalidateQueries({ 
         queryKey: [`/api/users/${user?.id}/following-list`],
@@ -190,7 +193,7 @@ export default function PostCard({ post }: PostCardProps) {
       });
       toast({
         title: "Success",
-        description: data.wasFollowing ? "Successfully unfollowed user" : "Successfully followed user",
+        description: newStatus ? "Successfully followed user" : "Successfully unfollowed user",
       });
     },
     onError: (error: Error, _variables, context) => {
