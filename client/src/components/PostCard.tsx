@@ -162,18 +162,11 @@ export default function PostCard({ post }: PostCardProps) {
 
   const followMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/users/${post.userId}/follow`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        throw new Error('Failed to follow user');
-      }
-      return response.json();
+      if (!user) throw new Error("Must be logged in to follow users");
+      return await api.users.follow(post.userId);
     },
     onSuccess: () => {
-      refetchFollowStatus();
+      queryClient.invalidateQueries({ queryKey: [`users/${post.userId}/following`] });
       toast({
         title: "Success",
         description: "Successfully followed user",
@@ -190,18 +183,11 @@ export default function PostCard({ post }: PostCardProps) {
 
   const unfollowMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/users/${post.userId}/follow`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        throw new Error('Failed to unfollow user');
-      }
-      return response.json();
+      if (!user) throw new Error("Must be logged in to unfollow users");
+      return await api.users.unfollow(post.userId);
     },
     onSuccess: () => {
-      refetchFollowStatus();
+      queryClient.invalidateQueries({ queryKey: [`users/${post.userId}/following`] });
       toast({
         title: "Success",
         description: "Successfully unfollowed user",
