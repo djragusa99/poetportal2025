@@ -164,10 +164,11 @@ export default function PostCard({ post }: PostCardProps) {
     mutationFn: async () => {
       if (!post.user?.id) throw new Error("Invalid user ID");
       if (!user) throw new Error("Must be logged in to follow users");
-      const response = followStatus?.isFollowing 
+      const isCurrentlyFollowing = followStatus?.isFollowing;
+      const response = isCurrentlyFollowing
         ? await api.users.unfollow(post.user.id)
         : await api.users.follow(post.user.id);
-      return response;
+      return { response, wasFollowing: isCurrentlyFollowing };
     },
     onMutate: async () => {
       const queryKey = [`follow-status`, post.userId];
@@ -177,7 +178,7 @@ export default function PostCard({ post }: PostCardProps) {
       queryClient.setQueryData(queryKey, { isFollowing: newStatus });
       return { previousStatus, newStatus };
     },
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       await refetchFollowStatus();
       queryClient.invalidateQueries({ 
         queryKey: [`/api/users/${user?.id}/following-list`],
@@ -189,7 +190,7 @@ export default function PostCard({ post }: PostCardProps) {
       });
       toast({
         title: "Success",
-        description: followStatus?.isFollowing ? "Successfully unfollowed user" : "Successfully followed user",
+        description: data.wasFollowing ? "Successfully unfollowed user" : "Successfully followed user",
       });
     },
     onError: (error: Error, _variables, context) => {
