@@ -150,13 +150,12 @@ export default function PostCard({ post }: PostCardProps) {
     queryFn: async () => {
       const response = await fetch(`/api/users/${post.userId}/following`, {
         headers: {
-          "Authorization": `Bearer ${localStorage.getItem('auth_token')}`,
           "Content-Type": "application/json"
         },
         credentials: "include"
       });
       const data = await response.json();
-      return { isFollowing: data.isFollowing };
+      return { isFollowing: data.following };
     },
     enabled: post.userId !== user?.id && !!user
   });
@@ -178,10 +177,8 @@ export default function PostCard({ post }: PostCardProps) {
       queryClient.setQueryData(queryKey, { isFollowing: newStatus });
       return { previousStatus, newStatus };
     },
-    onSuccess: (data, _, context) => {
-      const queryKey = [`follow-status`, post.userId];
-      const status = context?.newStatus ?? false;
-      queryClient.setQueryData(queryKey, { isFollowing: status });
+    onSuccess: async () => {
+      await refetchFollowStatus();
       queryClient.invalidateQueries({ 
         queryKey: [`/api/users/${user?.id}/following-list`],
         exact: true 
@@ -190,16 +187,10 @@ export default function PostCard({ post }: PostCardProps) {
         queryKey: [`/api/users/${post.userId}/followers`],
         exact: true 
       });
-      // Invalidate only this specific user's follow status
-      queryClient.invalidateQueries({
-        queryKey: [`follow-status`, post.userId],
-        exact: true
-      });
       toast({
         title: "Success",
-        description: status ? "Successfully followed user" : "Successfully unfollowed user",
+        description: followStatus?.isFollowing ? "Successfully unfollowed user" : "Successfully followed user",
       });
-      refetchFollowStatus();
     },
     onError: (error: Error, _variables, context) => {
       const queryKey = [`users/${post.userId}/following`];
