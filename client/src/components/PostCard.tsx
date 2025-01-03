@@ -164,49 +164,57 @@ export default function PostCard({ post }: PostCardProps) {
     mutationFn: async () => {
       if (!post.user?.id) throw new Error("Invalid user ID");
       if (!user) throw new Error("Must be logged in to follow users");
-      const currentStatus = followStatus?.isFollowing;
-      if (currentStatus) {
-        return await api.users.unfollow(post.user.id);
-      } else {
-        return await api.users.follow(post.user.id);
-      }
+      return await api.users.follow(post.user.id);
     },
-    onMutate: async () => {
-      const queryKey = [`follow-status`, post.userId];
-      await queryClient.cancelQueries({ queryKey });
-      const previousStatus = queryClient.getQueryData(queryKey);
-      const newStatus = !followStatus?.isFollowing;
-      queryClient.setQueryData(queryKey, { isFollowing: newStatus });
-      return { previousStatus, newStatus };
-    },
-    onSuccess: async () => {
-      const newStatus = !followStatus?.isFollowing;
-      await refetchFollowStatus();
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/users/${post.userId}/following`],
-        exact: true 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: [`/api/users/${post.userId}/followers`],
-        exact: true 
-      });
+    onSuccess: () => {
+      queryClient.setQueryData([`/api/users/${post.userId}/following`], { isFollowing: true });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/following-list`] });
       toast({
         title: "Success",
-        description: newStatus ? "Successfully followed user" : "Successfully unfollowed user",
+        description: "Successfully followed user",
       });
     },
-    onError: (error: Error, _variables, context) => {
-      const queryKey = [`users/${post.userId}/following`];
-      if (context?.previousStatus) {
-        queryClient.setQueryData(queryKey, context.previousStatus);
-      }
+    onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to update follow status",
+        description: error.message || "Failed to follow user",
         variant: "destructive",
       });
     },
   });
+
+  const unfollowMutation = useMutation({
+    mutationFn: async () => {
+      if (!post.user?.id) throw new Error("Invalid user ID");
+      if (!user) throw new Error("Must be logged in to follow users");
+      return await api.users.unfollow(post.user.id);
+    },
+    onSuccess: () => {
+      queryClient.setQueryData([`/api/users/${post.userId}/following`], { isFollowing: false });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${user?.id}/following-list`] });
+      toast({
+        title: "Success",
+        description: "Successfully unfollowed user",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to unfollow user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleFollow = () => {
+    if (followStatus?.isFollowing) {
+      unfollowMutation.mutate();
+    } else {
+      followMutation.mutate();
+    }
+  };
 
   const { data: likeStatus } = useQuery({
     queryKey: [`/api/likes/post/${post.id}`],
@@ -315,10 +323,10 @@ export default function PostCard({ post }: PostCardProps) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => followMutation.mutate()}
-                  disabled={followMutation.isPending}
+                  onClick={handleFollow}
+                  disabled={followMutation.isPending || unfollowMutation.isPending}
                 >
-                  {followMutation.isPending ? (
+                  {followMutation.isPending || unfollowMutation.isPending ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin mr-2" />
                       Loading...
