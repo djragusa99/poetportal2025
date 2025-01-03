@@ -189,7 +189,8 @@ export default function PostCard({ post }: PostCardProps) {
       return await api.users.unfollow(post.user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`users/${post.userId}/following`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
+      refetchFollowStatus();
       toast({
         title: "Success",
         description: "Successfully unfollowed user",
