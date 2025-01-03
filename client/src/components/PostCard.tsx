@@ -150,8 +150,10 @@ export default function PostCard({ post }: PostCardProps) {
     queryFn: async () => {
       const response = await fetch(`/api/users/${post.user?.id}/following`, {
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('auth_token')}`
         },
+        credentials: "include"
         credentials: "include"
       });
       const data = await response.json();
@@ -331,12 +333,12 @@ export default function PostCard({ post }: PostCardProps) {
                     </>
                   ) : (
                     <>
-                      {followStatus?.isFollowing ? (
+                      {followStatus?.data?.isFollowing ? (
                         <UserMinus className="h-4 w-4 mr-2" />
                       ) : (
                         <UserPlus className="h-4 w-4 mr-2" />
                       )}
-                      {followStatus?.isFollowing ? 'Following' : 'Follow'}
+                      {followStatus?.data?.isFollowing ? 'Following' : 'Follow'}
                     </>
                   )}
                 </Button>
