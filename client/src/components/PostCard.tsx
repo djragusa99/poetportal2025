@@ -162,14 +162,17 @@ export default function PostCard({ post }: PostCardProps) {
 
   const followMutation = useMutation({
     mutationFn: async () => {
-      if (!post.user?.id) throw new Error("Invalid user ID");
-      if (!user) throw new Error("Must be logged in to follow users");
-      return await api.users.follow(post.user.id);
+      const response = await fetch(`/api/users/${post.userId}/follow`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to follow user');
+      }
+      return response.json();
     },
     onSuccess: () => {
-      queryClient.setQueryData([`users/${post.userId}/following`], { isFollowing: true });
-      queryClient.invalidateQueries({ queryKey: [`users/${post.userId}/following`] });
-      queryClient.invalidateQueries({ queryKey: [`users/${user?.id}/following-list`] });
       refetchFollowStatus();
       toast({
         title: "Success",
@@ -179,7 +182,7 @@ export default function PostCard({ post }: PostCardProps) {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to follow user",
+        description: error.message,
         variant: "destructive",
       });
     },
@@ -187,14 +190,17 @@ export default function PostCard({ post }: PostCardProps) {
 
   const unfollowMutation = useMutation({
     mutationFn: async () => {
-      if (!post.user?.id) throw new Error("Invalid user ID");
-      if (!user) throw new Error("Must be logged in to follow users");
-      return await api.users.unfollow(post.user.id);
+      const response = await fetch(`/api/users/${post.userId}/follow`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('Failed to unfollow user');
+      }
+      return response.json();
     },
     onSuccess: () => {
-      queryClient.setQueryData([`users/${post.userId}/following`], { isFollowing: false });
-      queryClient.invalidateQueries({ queryKey: [`users/${post.userId}/following`] });
-      queryClient.invalidateQueries({ queryKey: [`users/${user?.id}/following-list`] });
       refetchFollowStatus();
       toast({
         title: "Success",
@@ -204,7 +210,7 @@ export default function PostCard({ post }: PostCardProps) {
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to unfollow user",
+        description: error.message,
         variant: "destructive",
       });
     },
