@@ -156,7 +156,7 @@ export default function PostCard({ post }: PostCardProps) {
         credentials: "include"
       });
       const data = await response.json();
-      return { isFollowing: !!data.isFollowing };
+      return data;
     },
     enabled: post.userId !== user?.id && !!user
   });
@@ -332,12 +332,12 @@ export default function PostCard({ post }: PostCardProps) {
                     </>
                   ) : (
                     <>
-                      {followStatus?.data?.isFollowing ? (
+                      {followStatus?.isFollowing ? (
                         <UserMinus className="h-4 w-4 mr-2" />
                       ) : (
                         <UserPlus className="h-4 w-4 mr-2" />
                       )}
-                      {followStatus?.data?.isFollowing ? 'Following' : 'Follow'}
+                      {followStatus?.isFollowing ? 'Following' : 'Follow'}
                     </>
                   )}
                 </Button>
