@@ -208,7 +208,7 @@ export default function PostCard({ post }: PostCardProps) {
   });
 
   const handleFollow = () => {
-    if (followStatus?.isFollowing) {
+    if (followStatus?.data?.isFollowing) {
       unfollowMutation.mutate();
     } else {
       followMutation.mutate();
