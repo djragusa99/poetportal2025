@@ -190,12 +190,12 @@ export default function PostCard({ post }: PostCardProps) {
       if (!post.user?.id) throw new Error("Invalid user ID");
       return await api.users.unfollow(post.user.id);
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${post.userId}/following`] });
       refetchFollowStatus();
       toast({
         title: "Success",
-        description: "Successfully unfollowed user",
+        description: data.message,
       });
     },
     onError: (error: Error) => {
