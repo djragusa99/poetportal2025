@@ -196,7 +196,7 @@ export default function PostCard({ post }: PostCardProps) {
       refetchFollowStatus();
       toast({
         title: "Success",
-        description: "Successfully unfollowed user",
+        description: data.message || "Successfully unfollowed user",
       });
     },
     onError: (error: Error) => {
