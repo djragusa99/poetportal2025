@@ -188,14 +188,15 @@ export default function PostCard({ post }: PostCardProps) {
     mutationFn: async () => {
       if (!user) throw new Error("Must be logged in to unfollow users");
       if (!post.user?.id) throw new Error("Invalid user ID");
-      return await api.users.unfollow(post.user.id);
+      const response = await api.users.unfollow(post.user.id);
+      return response;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: [`/api/users/${post.user?.id}/following`] });
       refetchFollowStatus();
       toast({
         title: "Success",
-        description: data.message,
+        description: "Successfully unfollowed user",
       });
     },
     onError: (error: Error) => {
