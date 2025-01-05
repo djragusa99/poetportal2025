@@ -26,6 +26,7 @@ export const queryClient = new QueryClient({
           if (res.status === 401) {
             // Clear token on authentication error
             localStorage.removeItem('auth_token');
+            window.location.href = '/auth';
             throw new Error('Not authenticated');
           }
 
