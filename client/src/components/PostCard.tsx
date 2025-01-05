@@ -154,7 +154,6 @@ export default function PostCard({ post }: PostCardProps) {
           "Authorization": `Bearer ${localStorage.getItem('auth_token')}`
         },
         credentials: "include"
-        credentials: "include"
       });
       const data = await response.json();
       return { isFollowing: !!data.isFollowing };
