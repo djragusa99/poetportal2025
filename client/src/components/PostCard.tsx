@@ -168,7 +168,10 @@ export default function PostCard({ post }: PostCardProps) {
       return await api.users.follow(post.user.id);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.user?.id}/following`] });
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/users/${post.user?.id}/following`],
+        exact: true 
+      });
       refetchFollowStatus();
       toast({
         title: "Success",
