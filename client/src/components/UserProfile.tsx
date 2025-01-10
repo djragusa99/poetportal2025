@@ -213,13 +213,13 @@ export default function UserProfile({ user }: UserProfileProps) {
             </h3>
             <p className="text-sm text-muted-foreground">@{user.username}</p>
             <div className="flex gap-4 text-sm text-muted-foreground">
-              <span>{followers.length} followers</span>
-              <span>{following.length} following</span>
+              <span>{followers?.length || 0} followers</span>
+              <span>{following?.length || 0} following</span>
             </div>
           </div>
         </div>
         
-        {user.bio && (
+        {user?.bio && (
           <div className="mt-6">
             <h4 className="text-sm font-semibold">Bio</h4>
             <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">{user.bio}</p>
