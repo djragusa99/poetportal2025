@@ -221,8 +221,6 @@ export default function UserProfile({ user }: UserProfileProps) {
             </div>
           </div>
         </div>
-          </div>
-        )}
 
         <Tabs defaultValue="followers" className="mt-6">
           <TabsList className="grid w-full grid-cols-2">
