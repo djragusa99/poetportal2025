@@ -212,9 +212,9 @@ export default function UserProfile({ user }: UserProfileProps) {
               {user.display_name || user.username}
             </h3>
             <p className="text-sm text-muted-foreground">@{user.username}</p>
-            {user?.bio && (
-              <p className="text-sm text-muted-foreground mt-2">{user.bio}</p>
-            )}
+            <p className="text-sm text-muted-foreground mt-2">
+              {user.bio || 'No bio available'}
+            </p>
             <div className="flex gap-4 text-sm text-muted-foreground mt-2">
               <span>{followers?.length || 0} followers</span>
               <span>{following?.length || 0} following</span>
