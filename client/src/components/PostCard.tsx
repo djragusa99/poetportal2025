@@ -155,8 +155,10 @@ export default function PostCard({ post }: PostCardProps) {
         },
         credentials: "include"
       });
-      const data = await response.json();
-      return data;
+      if (!response.ok) {
+        return { isFollowing: false };
+      }
+      return response.json();
     },
     enabled: post.userId !== user?.id && !!user
   });
@@ -217,7 +219,7 @@ export default function PostCard({ post }: PostCardProps) {
   });
 
   const handleFollow = () => {
-    if (followStatus?.data?.isFollowing) {
+    if (followStatus?.isFollowing) {
       unfollowMutation.mutate();
     } else {
       followMutation.mutate();
