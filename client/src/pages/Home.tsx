@@ -78,6 +78,11 @@ export default function Home() {
             <div className="flex flex-col">
               <CardTitle className="text-lg">{displayName}</CardTitle>
               <span className="text-sm text-muted-foreground">@{user.username}</span>
+              {user.bio && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  {user.bio.length > 50 ? `${user.bio.substring(0, 50)}...` : user.bio}
+                </p>
+              )}
             </div>
           </CardHeader>
         </Card>
