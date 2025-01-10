@@ -342,6 +342,29 @@ export function registerRoutes(app: Express): Server {
     }
   });
 
+  app.get("/api/users/:userId/following-list", authenticateToken, async (req, res) => {
+    const userId = parseInt(req.params.userId);
+    
+    try {
+      const followingUsers = await db
+        .select({
+          id: users.id,
+          firstName: users.first_name,
+          lastName: users.last_name,
+          username: users.username,
+          avatar: users.avatar,
+        })
+        .from(followers)
+        .innerJoin(users, eq(users.id, followers.following_id))
+        .where(eq(followers.follower_id, userId));
+
+      res.json(followingUsers);
+    } catch (error) {
+      console.error("Error fetching following list:", error);
+      res.status(500).json({ message: "Failed to fetch following list" });
+    }
+  });
+
   app.post("/api/users/:userId/follow", authenticateToken, async (req, res) => {
     try {
       const followerId = req.user?.id;

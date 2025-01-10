@@ -35,16 +35,20 @@ export default function UserProfile({ user }: UserProfileProps) {
     }).then(res => res.json()),
   });
 
-  const { data: following = [], isLoading: isLoadingFollowing } = useQuery<FollowUser[]>({
-    queryKey: [`/api/users/${user.id}/following`],
+  const { data: followingData, isLoading: isLoadingFollowing } = useQuery({
+    queryKey: [`/api/users/${user.id}/following-list`],
     queryFn: async () => {
-      const response = await fetch(`/api/users/${user.id}/following`, { 
+      const response = await fetch(`/api/users/${user.id}/following-list`, { 
         credentials: 'include' 
       });
-      const data = await response.json();
-      return Array.isArray(data) ? data : [];
+      if (!response.ok) {
+        return [];
+      }
+      return response.json();
     },
   });
+
+  const following = Array.isArray(followingData) ? followingData : [];
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
