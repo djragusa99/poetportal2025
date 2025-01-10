@@ -75,11 +75,11 @@ export default function Home() {
             <Avatar className="h-12 w-12">
               <AvatarFallback>{avatarFallback}</AvatarFallback>
             </Avatar>
-            <div className="flex flex-col">
+            <div className="flex flex-col space-y-1">
               <CardTitle className="text-lg">{displayName}</CardTitle>
               <span className="text-sm text-muted-foreground">@{user.username}</span>
-              {user?.bio && (
-                <p className="text-sm text-muted-foreground mt-2 line-clamp-2">
+              {user.bio && (
+                <p className="text-sm text-muted-foreground line-clamp-2">
                   {user.bio.length > 50 ? `${user.bio.substring(0, 50)}...` : user.bio}
                 </p>
               )}
