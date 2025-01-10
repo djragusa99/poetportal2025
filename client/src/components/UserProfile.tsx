@@ -185,10 +185,7 @@ export default function UserProfile({ user }: UserProfileProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{user.display_name || user.username}'s Profile</CardTitle>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
         <div className="flex items-center space-x-4">
           <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
             <Avatar className="h-20 w-20">
@@ -197,9 +194,11 @@ export default function UserProfile({ user }: UserProfileProps) {
                 {user.display_name?.[0] || user.username?.[0]}
               </AvatarFallback>
             </Avatar>
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-              <Upload className="h-6 w-6 text-white" />
-            </div>
+            {currentUser?.id === user.id && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                <Upload className="h-6 w-6 text-white" />
+              </div>
+            )}
           </div>
           <input
             type="file"
@@ -208,34 +207,24 @@ export default function UserProfile({ user }: UserProfileProps) {
             accept="image/*"
             onChange={handleAvatarChange}
           />
-          <div className="space-y-1">
+          <div className="space-y-2">
             <h3 className="text-2xl font-semibold">
               {user.display_name || user.username}
             </h3>
             <p className="text-sm text-muted-foreground">@{user.username}</p>
-            {user.bio && (
-              <p className="text-sm text-muted-foreground">{user.bio}</p>
-            )}
-            {currentUser?.id !== user.id && (
-              <Button 
-                variant={isFollowing ? "default" : "outline"}
-                size="sm" 
-                onClick={handleFollow}
-                className="mt-2"
-                disabled={followMutation.isPending || unfollowMutation.isPending}
-              >
-                {followMutation.isPending || unfollowMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : null}
-                {isFollowing ? 'Following' : 'Follow'}
-              </Button>
-            )}
+            <div className="flex gap-4 text-sm text-muted-foreground">
+              <span>{followers.length} followers</span>
+              <span>{following.length} following</span>
+            </div>
           </div>
         </div>
-        <div className="mt-6">
-          <h4 className="text-sm font-semibold">Bio</h4>
-          <p className="mt-2 text-sm text-muted-foreground">{user.bio}</p>
-        </div>
+        
+        {user.bio && (
+          <div className="mt-6">
+            <h4 className="text-sm font-semibold">Bio</h4>
+            <p className="mt-2 text-sm text-muted-foreground whitespace-pre-wrap">{user.bio}</p>
+          </div>
+        )}
 
         <Tabs defaultValue="followers" className="mt-6">
           <TabsList className="grid w-full grid-cols-2">
@@ -249,10 +238,14 @@ export default function UserProfile({ user }: UserProfileProps) {
           <TabsContent value="followers">
             <Card>
               <CardContent className="p-4">
-                <ScrollArea className="h-[200px] w-full">
+                <ScrollArea className="h-[300px] w-full">
                   {isLoadingFollowers ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : followers.length === 0 ? (
+                    <div className="flex items-center justify-center py-8">
+                      <p className="text-sm text-muted-foreground">No followers yet</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -261,8 +254,7 @@ export default function UserProfile({ user }: UserProfileProps) {
                           <Avatar>
                             <AvatarImage src={follower.avatar ?? undefined} />
                             <AvatarFallback>
-                              {follower.firstName?.[0]}
-                              {follower.lastName?.[0]}
+                              {follower.username[0].toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div>
@@ -275,11 +267,6 @@ export default function UserProfile({ user }: UserProfileProps) {
                           </div>
                         </div>
                       ))}
-                      {followers.length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          No followers yet
-                        </p>
-                      )}
                     </div>
                   )}
                 </ScrollArea>
@@ -289,10 +276,14 @@ export default function UserProfile({ user }: UserProfileProps) {
           <TabsContent value="following">
             <Card>
               <CardContent className="p-4">
-                <ScrollArea className="h-[200px] w-full">
+                <ScrollArea className="h-[300px] w-full">
                   {isLoadingFollowing ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : following.length === 0 ? (
+                    <div className="flex items-center justify-center py-8">
+                      <p className="text-sm text-muted-foreground">Not following anyone yet</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
@@ -301,8 +292,7 @@ export default function UserProfile({ user }: UserProfileProps) {
                           <Avatar>
                             <AvatarImage src={followed.avatar ?? undefined} />
                             <AvatarFallback>
-                              {followed.firstName?.[0]}
-                              {followed.lastName?.[0]}
+                              {followed.username[0].toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div>
@@ -315,11 +305,6 @@ export default function UserProfile({ user }: UserProfileProps) {
                           </div>
                         </div>
                       ))}
-                      {following.length === 0 && (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          Not following anyone yet
-                        </p>
-                      )}
                     </div>
                   )}
                 </ScrollArea>
