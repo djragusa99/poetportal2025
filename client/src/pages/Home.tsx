@@ -77,9 +77,8 @@ export default function Home() {
             </Avatar>
             <div className="flex flex-col space-y-1">
               <CardTitle className="text-lg">{displayName}</CardTitle>
-              <span className="text-sm text-muted-foreground">@{user.username}</span>
               <p className="text-sm text-muted-foreground mt-2">
-                {user.bio || 'No bio available'}
+                {user.bio}
               </p>
             </div>
           </CardHeader>
