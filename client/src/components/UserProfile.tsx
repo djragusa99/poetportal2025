@@ -30,10 +30,16 @@ export default function UserProfile({ user }: UserProfileProps) {
 
   const { data: followers = [], isLoading: isLoadingFollowers } = useQuery<FollowUser[]>({
     queryKey: [`/api/users/${user.id}/followers`],
+    queryFn: () => fetch(`/api/users/${user.id}/followers`, { 
+      credentials: 'include' 
+    }).then(res => res.json()),
   });
 
   const { data: following = [], isLoading: isLoadingFollowing } = useQuery<FollowUser[]>({
-    queryKey: [`/api/users/${user.id}/following-list`],
+    queryKey: [`/api/users/${user.id}/following`],
+    queryFn: () => fetch(`/api/users/${user.id}/following`, { 
+      credentials: 'include' 
+    }).then(res => res.json()),
   });
 
   const handleAvatarClick = () => {
@@ -172,7 +178,7 @@ export default function UserProfile({ user }: UserProfileProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Profile</CardTitle>
+        <CardTitle>{user.display_name || user.username}'s Profile</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="flex items-center space-x-4">
@@ -180,8 +186,7 @@ export default function UserProfile({ user }: UserProfileProps) {
             <Avatar className="h-20 w-20">
               <AvatarImage src={user.avatar ?? undefined} className="object-cover" />
               <AvatarFallback>
-                {user.firstName?.[0]}
-                {user.lastName?.[0]}
+                {user.display_name?.[0] || user.username?.[0]}
               </AvatarFallback>
             </Avatar>
             <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
@@ -197,13 +202,12 @@ export default function UserProfile({ user }: UserProfileProps) {
           />
           <div className="space-y-1">
             <h3 className="text-2xl font-semibold">
-              {user.firstName} {user.lastName}
+              {user.display_name || user.username}
             </h3>
-            {user.pronouns && (
-              <p className="text-sm text-muted-foreground">{user.pronouns}</p>
+            <p className="text-sm text-muted-foreground">@{user.username}</p>
+            {user.bio && (
+              <p className="text-sm text-muted-foreground">{user.bio}</p>
             )}
-            <p className="text-sm text-muted-foreground">{user.location}</p>
-            <p className="text-sm font-medium">{user.userType}</p>
             {currentUser?.id !== user.id && (
               <Button 
                 variant={isFollowing ? "default" : "outline"}
