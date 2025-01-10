@@ -37,9 +37,13 @@ export default function UserProfile({ user }: UserProfileProps) {
 
   const { data: following = [], isLoading: isLoadingFollowing } = useQuery<FollowUser[]>({
     queryKey: [`/api/users/${user.id}/following`],
-    queryFn: () => fetch(`/api/users/${user.id}/following`, { 
-      credentials: 'include' 
-    }).then(res => res.json()),
+    queryFn: async () => {
+      const response = await fetch(`/api/users/${user.id}/following`, { 
+        credentials: 'include' 
+      });
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    },
   });
 
   const handleAvatarClick = () => {
