@@ -170,7 +170,8 @@ export default function PostCard({ post }: PostCardProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ 
         queryKey: [`/api/users/${post.user?.id}/following`],
-        exact: true 
+        exact: true,
+        refetchType: 'none'
       });
       refetchFollowStatus();
       toast({
@@ -195,7 +196,11 @@ export default function PostCard({ post }: PostCardProps) {
       return response;
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: [`/api/users/${post.user?.id}/following`] });
+      queryClient.invalidateQueries({ 
+        queryKey: [`/api/users/${post.user?.id}/following`],
+        exact: true,
+        refetchType: 'none'
+      });
       refetchFollowStatus();
       toast({
         title: "Success",
