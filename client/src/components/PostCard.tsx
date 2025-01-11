@@ -316,8 +316,8 @@ export default function PostCard({ post }: PostCardProps) {
 
   return (
     <Card className="mb-4">
-      <CardHeader className="flex flex-row items-center gap-4">
-        <Avatar>
+      <CardHeader className="flex flex-row items-start gap-4">
+        <Avatar className="mt-1">
           <AvatarImage src={post.user?.avatar} className="object-cover" />
           <AvatarFallback>
             {post.user?.display_name?.split(' ').map(word => word[0]).join('').toUpperCase() || 
