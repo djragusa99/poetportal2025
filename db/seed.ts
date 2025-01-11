@@ -12,11 +12,9 @@ async function hashPassword(password: string) {
 }
 
 export async function seed() {
-  console.log("🌱 Starting database seeding process...");
 
   try {
     // Create admin user
-    console.log("Creating admin user...");
     const adminUser = {
       username: "admin",
       password: await hashPassword("admin123"),
@@ -32,18 +30,14 @@ export async function seed() {
         .values(adminUser)
         .returning();
       adminId = adminCreated.id;
-      console.log(`✓ Created admin user: ${adminCreated.username}`);
     } catch (error: any) {
       if (error.code === '23505') { // Unique constraint violation
-        console.log(`User ${adminUser.username} already exists, skipping...`);
       } else {
         throw error;
       }
     }
 
     // Create famous poet users
-    console.log("\n=== User Information ===");
-    console.log("Creating famous poet users...");
     const poets = [
       {
         username: "emily_dickinson",
@@ -71,10 +65,8 @@ export async function seed() {
           .insert(users)
           .values(poet)
           .returning();
-        console.log(`✓ Created poet user: ${created.username}`);
       } catch (error: any) {
         if (error.code === '23505') {
-          console.log(`User ${poet.username} already exists, skipping...`);
         } else {
           throw error;
         }
@@ -82,7 +74,6 @@ export async function seed() {
     }
 
     // Create events
-    console.log("Creating poetry events...");
     const poetryEvents = [
       {
         title: "Annual Poetry in the Park",
@@ -161,10 +152,8 @@ export async function seed() {
 
     // Insert new events
     const insertedEvents = await db.insert(events).values(poetryEvents).returning();
-    console.log("✓ Created poetry events");
 
     // Create points of interest
-    console.log("Creating points of interest...");
     const pointsOfInterestData = [
       {
         title: "Emily Dickinson Museum",
@@ -243,13 +232,11 @@ export async function seed() {
 
     // Insert new points of interest
     await db.insert(pointsOfInterest).values(pointsOfInterestData);
-    console.log("✓ Created points of interest");
 
     // Clear existing resources first
     await db.delete(resources);
 
     // Create resources
-    console.log("Creating poetry resources...");
     const resourcesData = [
       {
         title: "Academy of American Poets",
@@ -324,10 +311,8 @@ export async function seed() {
     ];
 
     await db.insert(resources).values(resourcesData);
-    console.log("✓ Created resources");
-    
+
     // Create followers table schema
-    console.log("Creating followers table...");
     await db.execute(`
       CREATE TABLE IF NOT EXISTS followers (
         follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -336,11 +321,8 @@ export async function seed() {
         PRIMARY KEY (follower_id, following_id)
       );
     `);
-    console.log("✓ Created followers table");
 
-    console.log("✅ Database seeding completed successfully!");
   } catch (error) {
-    console.error("Error during seeding:", error);
     throw error;
   }
 }
