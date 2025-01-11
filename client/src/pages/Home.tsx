@@ -75,7 +75,8 @@ export default function Home() {
             <Avatar className="h-12 w-12">
               <AvatarImage src={user.avatar ?? undefined} />
               <AvatarFallback>
-                {`${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`}
+                {user.first_name?.[0]?.toUpperCase()}
+                {user.last_name?.[0]?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col space-y-1">
