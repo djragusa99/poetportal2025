@@ -191,7 +191,8 @@ export default function UserProfile({ user }: UserProfileProps) {
             <Avatar className="h-20 w-20">
               <AvatarImage src={user.avatar ?? undefined} className="object-cover" />
               <AvatarFallback>
-                {user.display_name?.[0] || user.username?.[0]}
+                {user.display_name?.split(' ').map(word => word[0]).join('').toUpperCase() || 
+                 user.username?.[0]?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
             {currentUser?.id === user.id && (
