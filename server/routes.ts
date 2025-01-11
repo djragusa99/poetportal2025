@@ -292,6 +292,7 @@ export function registerRoutes(app: Express): Server {
               id: true,
               username: true,
               display_name: true,
+              avatar: true
             },
           },
           comments: {
