@@ -73,10 +73,10 @@ export default function Home() {
         <Card className="sticky top-4">
           <CardHeader className="flex flex-row items-center gap-4 space-y-0">
             <Avatar className="h-12 w-12">
-              <AvatarImage src={user.avatar ?? undefined} />
+              <AvatarImage src={user.avatar ?? undefined} alt={displayName} />
               <AvatarFallback>
-                {user.first_name?.[0]?.toUpperCase()}
-                {user.last_name?.[0]?.toUpperCase()}
+                {user.first_name?.charAt(0)?.toUpperCase()}
+                {user.last_name?.charAt(0)?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col space-y-1">
