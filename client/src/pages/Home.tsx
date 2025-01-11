@@ -81,7 +81,7 @@ export default function Home() {
             <div className="flex flex-col space-y-1">
               <CardTitle className="text-lg">{displayName}</CardTitle>
               <p className="text-sm text-muted-foreground text-[10px]" style={{ maxWidth: "100%" }}>
-                {user.bio 
+                {user?.bio 
                   ? user.bio.split(' ').slice(0, 50).join(' ') + (user.bio.split(' ').length > 50 ? '...' : '')
                   : "No bio available"}
               </p>
