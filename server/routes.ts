@@ -4,10 +4,12 @@ import { db } from "@db";
 import { users, events, pointsOfInterest, resources, comments, posts, followers } from "@db/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { setupAuth } from "./auth";
+import type { AuthRequest } from "./auth"; // Assuming this type is defined elsewhere
+
 
 export function registerRoutes(app: Express): Server {
   // Setup auth first
-  const { authenticateToken, isAdmin } = setupAuth(app);
+  const { authenticateToken, isAdmin, authenticate } = setupAuth(app);
 
   // Admin routes
   app.get("/api/admin/users", authenticateToken, isAdmin, async (_req, res) => {
@@ -321,7 +323,7 @@ export function registerRoutes(app: Express): Server {
   app.get("/api/users/:userId/following", authenticateToken, async (req, res) => {
     const followerId = req.user?.id;
     const followingId = parseInt(req.params.userId);
-    
+
     if (!followerId || !followingId || isNaN(followingId)) {
       return res.status(400).json({ message: "Invalid user IDs", isFollowing: false });
     }
@@ -344,7 +346,7 @@ export function registerRoutes(app: Express): Server {
 
   app.get("/api/users/:userId/following-list", authenticateToken, async (req, res) => {
     const userId = parseInt(req.params.userId);
-    
+
     try {
       const followingUsers = await db
         .select({
@@ -440,6 +442,27 @@ export function registerRoutes(app: Express): Server {
     } catch (error) {
       console.error("Error unfollowing user:", error);
       res.status(500).json({ message: "Failed to unfollow user" });
+    }
+  });
+
+  // Added /api/user endpoint
+  app.get("/api/user", authenticate, async (req: AuthRequest, res) => {
+    try {
+      const user = await db.query.users.findFirst({
+        where: eq(users.id, req.user.id),
+        columns: {
+          id: true,
+          username: true,
+          display_name: true,
+          is_admin: true,
+          bio: true,
+          location: true, // Added location
+        },
+      });
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
