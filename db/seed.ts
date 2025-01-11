@@ -42,23 +42,30 @@ export async function seed() {
     }
 
     // Create famous poet users
+    console.log("\n=== User Information ===");
     console.log("Creating famous poet users...");
     const poets = [
       {
         username: "emily_dickinson",
         display_name: "Emily Dickinson",
         bio: "American poet who lived a largely introverted life, known for her unique style of poetry.",
+        location: "Amherst, Massachusetts",
         password: await hashPassword("poet123")
       },
       {
         username: "walt_whitman",
         display_name: "Walt Whitman",
         bio: "American poet, essayist and journalist. A humanist, he was a part of the transition between transcendentalism and realism.",
+        location: "Camden, New Jersey",
         password: await hashPassword("poet123")
       }
     ];
 
     for (const poet of poets) {
+      console.log(`\nUser: ${poet.display_name}`);
+      console.log(`Username: ${poet.username}`);
+      console.log(`Location: ${poet.location}`);
+      console.log(`Bio: ${poet.bio}`);
       try {
         const [created] = await db
           .insert(users)
