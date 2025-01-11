@@ -59,8 +59,9 @@ function CommentComponent({ comment, onReply, onDelete, currentUserId, depth = 0
         <Avatar className="h-6 w-6">
           <AvatarImage src={comment.user?.avatar} className="object-cover" />
           <AvatarFallback>
-            {comment.user?.firstName?.[0]}
-            {comment.user?.lastName?.[0]}
+            {comment.user?.display_name
+              ? comment.user.display_name.split(' ').map(word => word[0]).join('').toUpperCase()
+              : comment.user?.username?.[0]?.toUpperCase()}
           </AvatarFallback>
         </Avatar>
         <div className="flex-1">
@@ -320,8 +321,8 @@ export default function PostCard({ post }: PostCardProps) {
         <Avatar className="mt-1">
           <AvatarImage src={post.user?.avatar} className="object-cover" />
           <AvatarFallback>
-            {post.user?.firstName && post.user?.lastName 
-              ? `${post.user.firstName[0]}${post.user.lastName[0]}`.toUpperCase()
+            {post.user?.display_name
+              ? post.user.display_name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase()
               : post.user?.username?.[0]?.toUpperCase()}
           </AvatarFallback>
         </Avatar>
