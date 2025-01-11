@@ -75,8 +75,7 @@ export default function Home() {
             <Avatar className="h-12 w-12">
               <AvatarImage src={user.avatar ?? undefined} alt={displayName} />
               <AvatarFallback>
-                {user.first_name?.charAt(0)?.toUpperCase()}
-                {user.last_name?.charAt(0)?.toUpperCase()}
+                {displayName.split(' ').map(word => word[0]).join('').toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div className="flex flex-col space-y-1">
