@@ -74,7 +74,9 @@ export default function Home() {
           <CardHeader className="flex flex-row items-center gap-4 space-y-0">
             <Avatar className="h-12 w-12">
               <AvatarImage src={user.avatar ?? undefined} />
-              <AvatarFallback>{avatarFallback}</AvatarFallback>
+              <AvatarFallback>
+                {`${user.first_name?.[0] || ''}${user.last_name?.[0] || ''}`}
+              </AvatarFallback>
             </Avatar>
             <div className="flex flex-col space-y-1">
               <CardTitle className="text-lg">{displayName}</CardTitle>
