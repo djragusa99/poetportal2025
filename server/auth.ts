@@ -204,7 +204,7 @@ export function setupAuth(app: Express) {
     res.json({
       id: user!.id,
       username: user!.username,
-      display_name: user!.display_name,
+      display_name: user!.display_name || user!.username,
       bio: user!.bio,
       is_admin: user!.is_admin,
     });
