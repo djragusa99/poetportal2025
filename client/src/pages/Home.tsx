@@ -9,23 +9,20 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 export default function Home() {
   const { user } = useUser();
   
-  // Query to check Walt Whitman's bio
-  const { data: waltWhitman } = useQuery({
-    queryKey: ['/api/admin/users'],
+  const { data: currentUser } = useQuery({
+    queryKey: ['/api/user'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/users', {
+      const response = await fetch('/api/user', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-        }
+        },
+        credentials: 'include'
       });
-      if (!response.ok) throw new Error('Failed to fetch users');
-      const users = await response.json();
-      return users.find((u: any) => u.username === 'walt_whitman');
+      if (!response.ok) throw new Error('Failed to fetch user data');
+      return response.json();
     },
-    enabled: !!user?.is_admin
+    enabled: !!user
   });
-
-  console.log('Walt Whitman data:', waltWhitman);
 
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: ["/api/posts"],
@@ -100,8 +97,8 @@ export default function Home() {
             <div className="flex flex-col space-y-1">
               <CardTitle className="text-lg">{displayName}</CardTitle>
               <p className="text-sm text-muted-foreground text-[10px]" style={{ maxWidth: "100%" }}>
-                  {user.bio && user.bio.length > 0 
-                  ? user.bio.split(' ').slice(0, 50).join(' ') + (user.bio.split(' ').length > 50 ? '...' : '')
+                  {currentUser?.bio && currentUser.bio.length > 0 
+                  ? currentUser.bio.split(' ').slice(0, 50).join(' ') + (currentUser.bio.split(' ').length > 50 ? '...' : '')
                   : "No bio available"}
               </p>
             </div>
