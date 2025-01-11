@@ -212,6 +212,7 @@ export function setupAuth(app: Express) {
   // Return middlewares for use in other routes
   return {
     authenticateToken,
-    isAdmin
+    isAdmin,
+    authenticate: authenticateToken // Adding authenticate alias for authenticateToken
   };
 }
