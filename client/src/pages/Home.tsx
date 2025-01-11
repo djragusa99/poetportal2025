@@ -73,15 +73,12 @@ export default function Home() {
         <Card className="sticky top-4">
           <CardHeader className="flex flex-row items-center gap-4 space-y-0">
             <Avatar className="h-12 w-12">
-              <AvatarFallback>{avatarFallback}</AvatarFallback>
-            </Avatar>
-            <Avatar className="h-12 w-12">
               <AvatarImage src={user.avatar ?? undefined} />
               <AvatarFallback>{avatarFallback}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col space-y-1">
               <CardTitle className="text-lg">{displayName}</CardTitle>
-              <p className="text-sm text-muted-foreground mt-2">
+              <p className="text-sm text-muted-foreground">
                 {user.bio || "No bio available"}
               </p>
             </div>
