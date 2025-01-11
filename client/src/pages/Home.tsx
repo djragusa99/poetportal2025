@@ -20,11 +20,6 @@ export default function Home() {
       });
       if (!response.ok) throw new Error('Failed to fetch user data');
       const userData = await response.json();
-      console.log('\nUser Information:');
-      console.log(`Name: ${userData.display_name || userData.username}`);
-      console.log(`Location: ${userData.location || 'Not specified'}`);
-      console.log(`Bio: ${userData.bio || 'No bio available'}`);
-      console.log(''); // Empty line for readability
       return userData;
     },
     enabled: !!user

@@ -26,39 +26,20 @@ if (app.get("env") === "development") {
   });
 }
 
-// Detailed logging middleware for API requests
+// Minimal logging middleware for user information only
 app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-
-  // Enhanced logging for API requests
-  if (path.startsWith('/api')) {
-    console.log('Request details:', {
-      method: req.method,
-      path: path,
-      authorization: req.headers.authorization ? 'Present' : 'Not present',
-    });
+  if (req.path === '/api/user') {
+    const originalResJson = res.json;
+    res.json = function (bodyJson, ...args) {
+      const { username, display_name, location, bio } = bodyJson;
+      console.log('\nUser Information:');
+      console.log(`Name: ${display_name || username}`);
+      console.log(`Location: ${location || 'Not specified'}`);
+      console.log(`Bio: ${bio || 'No bio available'}`);
+      console.log(''); // Empty line for readability
+      return originalResJson.apply(res, [bodyJson, ...args]);
+    };
   }
-
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-      log(logLine);
-    }
-  });
-
   next();
 });
 
