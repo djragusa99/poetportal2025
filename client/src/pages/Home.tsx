@@ -75,10 +75,14 @@ export default function Home() {
             <Avatar className="h-12 w-12">
               <AvatarFallback>{avatarFallback}</AvatarFallback>
             </Avatar>
+            <Avatar className="h-12 w-12">
+              <AvatarImage src={user.avatar ?? undefined} />
+              <AvatarFallback>{avatarFallback}</AvatarFallback>
+            </Avatar>
             <div className="flex flex-col space-y-1">
               <CardTitle className="text-lg">{displayName}</CardTitle>
               <p className="text-sm text-muted-foreground mt-2">
-                {user.bio}
+                {user.bio || "No bio available"}
               </p>
             </div>
           </CardHeader>
