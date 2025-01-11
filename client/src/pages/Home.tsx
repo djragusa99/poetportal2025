@@ -8,6 +8,25 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function Home() {
   const { user } = useUser();
+  
+  // Query to check Walt Whitman's bio
+  const { data: waltWhitman } = useQuery({
+    queryKey: ['/api/admin/users'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch users');
+      const users = await response.json();
+      return users.find((u: any) => u.username === 'walt_whitman');
+    },
+    enabled: !!user?.is_admin
+  });
+
+  console.log('Walt Whitman data:', waltWhitman);
+
   const { data: posts = [], isLoading: isLoadingPosts } = useQuery<Post[]>({
     queryKey: ["/api/posts"],
     enabled: !!user, // Only fetch posts if user is logged in
