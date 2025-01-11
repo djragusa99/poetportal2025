@@ -205,6 +205,7 @@ export function setupAuth(app: Express) {
       id: user!.id,
       username: user!.username,
       display_name: user!.display_name,
+      bio: user!.bio,
       is_admin: user!.is_admin,
     });
   });
