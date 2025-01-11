@@ -320,8 +320,8 @@ export default function PostCard({ post }: PostCardProps) {
         <Avatar className="mt-1">
           <AvatarImage src={post.user?.avatar} className="object-cover" />
           <AvatarFallback>
-            {post.user?.display_name?.split(' ').length > 1 
-              ? post.user.display_name.split(' ').slice(0, 2).map(word => word[0]).join('').toUpperCase()
+            {post.user?.firstName && post.user?.lastName 
+              ? `${post.user.firstName[0]}${post.user.lastName[0]}`.toUpperCase()
               : post.user?.username?.[0]?.toUpperCase()}
           </AvatarFallback>
         </Avatar>
