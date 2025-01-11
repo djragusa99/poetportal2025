@@ -1,0 +1,146 @@
+4:54:47 PM [express] ✓ Database connection verified
+4:54:47 PM [express] ✓ Server running on port 5000
+Request details: { method: 'GET', path: '/api/user', authorization: 'Present' }
+4:54:49 PM [express] GET /api/user 200 in 34ms :: {"id":6,"username":"walt_whitman","display_name":"Walt Whitman","is_admin":false}
+Request details: { method: 'GET', path: '/api/user', authorization: 'Present' }
+4:54:49 PM [express] GET /api/user 200 in 23ms :: {"id":6,"username":"walt_whitman","display_name":"Walt Whitman","is_admin":false}
+Request details: { method: 'GET', path: '/api/posts', authorization: 'Present' }
+Request details: { method: 'GET', path: '/api/events', authorization: 'Present' }
+Request details: { method: 'GET', path: '/api/posts', authorization: 'Present' }
+4:54:51 PM [express] GET /api/posts 200 in 51ms :: [{"id":6,"title":"HBR is my favorite poet.  Foreals","content":"HBR is my favorite poet.  Foreals","created_at":"2025-01-11T02:32:33.233Z","user_id":6,"user":{"id":6,"username":"walt_whitman","display_name":"Walt Whitman"},"comments":[]},{"id":5,"title":"It is all on my mind.","content":"It is all on my mind.","created_at":"2025-01-11T02:04:02.809Z","user_id":6,"user":{"id":6,"username":"walt_whitman","display_name":"Walt Whitman"},"comments":[]},{"id":4,"title":"I am looking for someone who can cut my grass.","content":"I am looking for someone who can cut my grass.","created_at":"2025-01-01T20:23:47.162Z","user_id":6,"user":{"id":6,"username":"walt_whitman","display_name":"Walt Whitman"},"comments":[]},{"id":3,"title":"So dope","content":"So dope","created_at":"2024-12-30T20:38:04.476Z","user_id":5,"user":{"id":5,"username":"emily_dickinson","display_name":"Emily Dickinson"},"comments":[]},{"id":2,"title":"I'm heavy on this.  Sick.","content":"I'm heavy on this.  Sick.","created_at":"2024-12-30T19:13:56.380Z","user_id":6,"user":{"id":6,"username":"walt_whitman","display_name":"Walt Whitman"},"comments":[]},{"id":1,"title":"Slam it the post hard","content":"Slam it the post hard","created_at":"2024-12-30T18:50:35.497Z","user_id":1,"user":{"id":1,"username":"admin","display_name":"Admin User"},"comments":[]}]
+Request details: { method: 'GET', path: '/api/events', authorization: 'Present' }
+4:54:51 PM [express] GET /api/events 200 in 22ms :: [{"id":1141,"title":"Annual Poetry in the Park","description":"Join us for a day of poetry readings and workshops in Central Park.","location":"Central Park, New York City","date":"2024-05-15","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1142,"title":"Poetry Slam Championship","description":"Watch poets compete in our annual poetry slam competition.","location":"Chicago Cultural Center","date":"2024-06-20","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1143,"title":"Verses & Vintages","description":"An evening of wine tasting and poetry reading.","location":"Napa Valley Vineyard","date":"2024-07-10","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1144,"title":"Haiku Workshop","description":"Learn the art of writing haikus with master poets.","location":"Seattle Public Library","date":"2024-08-05","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1145,"title":"Poetry & Jazz Festival","description":"Experience the fusion of poetry and jazz music.","location":"New Orleans Jazz Museum","date":"2024-09-15","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1146,"title":"Spoken Word Night","description":"An evening dedicated to spoken word performances.","location":"The Poetry Cafe, London","date":"2024-10-01","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1147,"title":"Children's Poetry Workshop","description":"Interactive poetry workshop for young aspiring poets.","location":"Boston Children's Museum","date":"2024-11-12","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1148,"title":"Poetry & Nature Retreat","description":"A weekend retreat combining poetry and nature appreciation.","location":"Yosemite National Park","date":"2024-12-05","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1149,"title":"Digital Poetry Exhibition","description":"Exploring the intersection of poetry and technology.","location":"San Francisco Museum of Modern Art","date":"2025-01-20","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1150,"title":"International Poetry Festival","description":"Celebrating diverse poetic traditions from around the world.","location":"Edinburgh International Book Festival","date":"2025-02-15","created_at":"2025-01-11T16:45:15.441Z","created_by":null}]
+4:54:51 PM [express] GET /api/events 200 in 97ms :: [{"id":1141,"title":"Annual Poetry in the Park","description":"Join us for a day of poetry readings and workshops in Central Park.","location":"Central Park, New York City","date":"2024-05-15","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1142,"title":"Poetry Slam Championship","description":"Watch poets compete in our annual poetry slam competition.","location":"Chicago Cultural Center","date":"2024-06-20","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1143,"title":"Verses & Vintages","description":"An evening of wine tasting and poetry reading.","location":"Napa Valley Vineyard","date":"2024-07-10","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1144,"title":"Haiku Workshop","description":"Learn the art of writing haikus with master poets.","location":"Seattle Public Library","date":"2024-08-05","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1145,"title":"Poetry & Jazz Festival","description":"Experience the fusion of poetry and jazz music.","location":"New Orleans Jazz Museum","date":"2024-09-15","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1146,"title":"Spoken Word Night","description":"An evening dedicated to spoken word performances.","location":"The Poetry Cafe, London","date":"2024-10-01","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1147,"title":"Children's Poetry Workshop","description":"Interactive poetry workshop for young aspiring poets.","location":"Boston Children's Museum","date":"2024-11-12","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1148,"title":"Poetry & Nature Retreat","description":"A weekend retreat combining poetry and nature appreciation.","location":"Yosemite National Park","date":"2024-12-05","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1149,"title":"Digital Poetry Exhibition","description":"Exploring the intersection of poetry and technology.","location":"San Francisco Museum of Modern Art","date":"2025-01-20","created_at":"2025-01-11T16:45:15.441Z","created_by":null},{"id":1150,"title":"International Poetry Festival","description":"Celebrating diverse poetic traditions from around the world.","location":"Edinburgh International Book Festival","date":"2025-02-15","created_at":"2025-01-11T16:45:15.441Z","created_by":null}]
+Request details: { method: 'GET', path: '/api/likes/post/5', authorization: 'Present' }
+4:54:52 PM [express] GET /api/likes/post/5 200 in 4ms
+Request details: {
+  method: 'GET',
+  path: '/api/users/6/following',
+  authorization: 'Present'
+}
+Request details: { method: 'GET', path: '/api/likes/post/6', authorization: 'Present' }
+4:54:52 PM [express] GET /api/likes/post/6 200 in 3ms
+Request details: { method: 'GET', path: '/api/likes/post/4', authorization: 'Present' }
+4:54:52 PM [express] GET /api/likes/post/4 200 in 2ms
+4:54:52 PM [express] GET /api/posts 200 in 115ms :: [{"id":6,"title":"HBR is my favorite poet.  Foreals","content":"HBR is my favorite poet.  Foreals","created_at":"2025-01-11T02:32:33.233Z","user_id":6,"user":{"id":6,"username":"walt_whitman","display_name":"Walt Whitman"},"comments":[]},{"id":5,"title":"It is all on my mind.","content":"It is all on my mind.","created_at":"2025-01-11T02:04:02.809Z","user_id":6,"user":{"id":6,"username":"walt_whitman","display_name":"Walt Whitman"},"comments":[]},{"id":4,"title":"I am looking for someone who can cut my grass.","content":"I am looking for someone who can cut my grass.","created_at":"2025-01-01T20:23:47.162Z","user_id":6,"user":{"id":6,"username":"walt_whitman","display_name":"Walt Whitman"},"comments":[]},{"id":3,"title":"So dope","content":"So dope","created_at":"2024-12-30T20:38:04.476Z","user_id":5,"user":{"id":5,"username":"emily_dickinson","display_name":"Emily Dickinson"},"comments":[]},{"id":2,"title":"I'm heavy on this.  Sick.","content":"I'm heavy on this.  Sick.","created_at":"2024-12-30T19:13:56.380Z","user_id":6,"user":{"id":6,"username":"walt_whitman","display_name":"Walt Whitman"},"comments":[]},{"id":1,"title":"Slam it the post hard","content":"Slam it the post hard","created_at":"2024-12-30T18:50:35.497Z","user_id":1,"user":{"id":1,"username":"admin","display_name":"Admin User"},"comments":[]}]
+Request details: {
+  method: 'GET',
+  path: '/api/users/5/following',
+  authorization: 'Present'
+}
+4:54:52 PM [express] GET /api/users/6/following 304 in 44ms :: {"isFollowing":false}
+Request details: { method: 'GET', path: '/api/likes/post/2', authorization: 'Present' }
+4:54:52 PM [express] GET /api/likes/post/2 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/3', authorization: 'Present' }
+4:54:52 PM [express] GET /api/likes/post/3 200 in 2ms
+4:54:52 PM [express] GET /api/users/5/following 304 in 42ms :: {"isFollowing":true}
+Request details: {
+  method: 'GET',
+  path: '/api/users/1/following',
+  authorization: 'Present'
+}
+Request details: { method: 'GET', path: '/api/likes/post/1', authorization: 'Present' }
+4:54:52 PM [express] GET /api/likes/post/1 200 in 4ms
+Request details: {
+  method: 'GET',
+  path: '/api/users/6/following',
+  authorization: 'Present'
+}
+Request details: { method: 'GET', path: '/api/likes/post/6', authorization: 'Present' }
+4:54:52 PM [express] GET /api/likes/post/6 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/5', authorization: 'Present' }
+4:54:52 PM [express] GET /api/users/1/following 304 in 43ms :: {"isFollowing":false}
+4:54:52 PM [express] GET /api/likes/post/5 200 in 4ms
+Request details: { method: 'GET', path: '/api/likes/post/4', authorization: 'Present' }
+Request details: { method: 'GET', path: '/api/likes/post/3', authorization: 'Present' }
+4:54:52 PM [express] GET /api/likes/post/4 200 in 2ms
+4:54:52 PM [express] GET /api/likes/post/3 200 in 3ms
+4:54:52 PM [express] GET /api/users/6/following 304 in 45ms :: {"isFollowing":false}
+Request details: { method: 'GET', path: '/api/likes/post/1', authorization: 'Present' }
+4:54:52 PM [express] GET /api/likes/post/1 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/2', authorization: 'Present' }
+4:54:52 PM [express] GET /api/likes/post/2 200 in 2ms
+Request details: {
+  method: 'GET',
+  path: '/api/users/5/following',
+  authorization: 'Present'
+}
+Request details: {
+  method: 'GET',
+  path: '/api/users/1/following',
+  authorization: 'Present'
+}
+4:54:52 PM [express] GET /api/users/1/following 304 in 41ms :: {"isFollowing":false}
+4:54:52 PM [express] GET /api/users/5/following 304 in 44ms :: {"isFollowing":true}
+Request details: { method: 'GET', path: '/api/likes/post/5', authorization: 'Present' }
+4:54:53 PM [express] GET /api/likes/post/5 200 in 3ms
+Request details: { method: 'GET', path: '/api/likes/post/6', authorization: 'Present' }
+4:54:53 PM [express] GET /api/likes/post/6 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/2', authorization: 'Present' }
+Request details: { method: 'GET', path: '/api/likes/post/4', authorization: 'Present' }
+4:54:53 PM [express] GET /api/likes/post/2 200 in 3ms
+4:54:53 PM [express] GET /api/likes/post/4 200 in 3ms
+Request details: { method: 'GET', path: '/api/likes/post/3', authorization: 'Present' }
+4:54:53 PM [express] GET /api/likes/post/3 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/1', authorization: 'Present' }
+4:54:53 PM [express] GET /api/likes/post/1 200 in 3ms
+Request details: { method: 'GET', path: '/api/likes/post/6', authorization: 'Present' }
+4:54:53 PM [express] GET /api/likes/post/6 200 in 4ms
+Request details: { method: 'GET', path: '/api/likes/post/3', authorization: 'Present' }
+4:54:53 PM [express] GET /api/likes/post/3 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/1', authorization: 'Present' }
+Request details: { method: 'GET', path: '/api/likes/post/4', authorization: 'Present' }
+Request details: { method: 'GET', path: '/api/likes/post/5', authorization: 'Present' }
+4:54:53 PM [express] GET /api/likes/post/1 200 in 5ms
+4:54:53 PM [express] GET /api/likes/post/4 200 in 7ms
+4:54:53 PM [express] GET /api/likes/post/5 200 in 6ms
+Request details: { method: 'GET', path: '/api/likes/post/2', authorization: 'Present' }
+4:54:53 PM [express] GET /api/likes/post/2 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/5', authorization: 'Present' }
+4:54:55 PM [express] GET /api/likes/post/5 200 in 3ms
+Request details: { method: 'GET', path: '/api/likes/post/6', authorization: 'Present' }
+4:54:55 PM [express] GET /api/likes/post/6 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/4', authorization: 'Present' }
+4:54:55 PM [express] GET /api/likes/post/4 200 in 3ms
+Request details: { method: 'GET', path: '/api/likes/post/3', authorization: 'Present' }
+4:54:55 PM [express] GET /api/likes/post/3 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/2', authorization: 'Present' }
+4:54:55 PM [express] GET /api/likes/post/2 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/1', authorization: 'Present' }
+4:54:55 PM [express] GET /api/likes/post/1 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/6', authorization: 'Present' }
+4:54:55 PM [express] GET /api/likes/post/6 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/3', authorization: 'Present' }
+4:54:55 PM [express] GET /api/likes/post/3 200 in 3ms
+Request details: { method: 'GET', path: '/api/likes/post/1', authorization: 'Present' }
+Request details: { method: 'GET', path: '/api/likes/post/4', authorization: 'Present' }
+Request details: { method: 'GET', path: '/api/likes/post/2', authorization: 'Present' }
+Request details: { method: 'GET', path: '/api/likes/post/5', authorization: 'Present' }
+4:54:55 PM [express] GET /api/likes/post/1 200 in 5ms
+4:54:55 PM [express] GET /api/likes/post/4 200 in 5ms
+4:54:55 PM [express] GET /api/likes/post/2 200 in 5ms
+4:54:55 PM [express] GET /api/likes/post/5 200 in 5ms
+Request details: { method: 'GET', path: '/api/likes/post/5', authorization: 'Present' }
+Request details: { method: 'GET', path: '/api/likes/post/6', authorization: 'Present' }
+4:54:59 PM [express] GET /api/likes/post/5 200 in 3ms
+4:54:59 PM [express] GET /api/likes/post/6 200 in 3ms
+Request details: { method: 'GET', path: '/api/likes/post/4', authorization: 'Present' }
+4:54:59 PM [express] GET /api/likes/post/4 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/3', authorization: 'Present' }
+4:54:59 PM [express] GET /api/likes/post/3 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/2', authorization: 'Present' }
+4:54:59 PM [express] GET /api/likes/post/2 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/1', authorization: 'Present' }
+4:54:59 PM [express] GET /api/likes/post/1 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/6', authorization: 'Present' }
+4:54:59 PM [express] GET /api/likes/post/6 200 in 2ms
+Request details: { method: 'GET', path: '/api/likes/post/1', authorization: 'Present' }
+Request details: { method: 'GET', path: '/api/likes/post/3', authorization: 'Present' }
+4:54:59 PM [express] GET /api/likes/post/1 200 in 3ms
+4:54:59 PM [express] GET /api/likes/post/3 200 in 3ms
+Request details: { method: 'GET', path: '/api/likes/post/2', authorization: 'Present' }
+Request details: { method: 'GET', path: '/api/likes/post/4', authorization: 'Present' }
+4:54:59 PM [express] GET /api/likes/post/2 200 in 3ms
+4:54:59 PM [express] GET /api/likes/post/4 200 in 3ms
+Request details: { method: 'GET', path: '/api/likes/post/5', authorization: 'Present' }
+4:54:59 PM [express] GET /api/likes/post/5 200 in 5ms
