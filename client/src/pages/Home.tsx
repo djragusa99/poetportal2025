@@ -4,7 +4,7 @@ import { Post, Event } from "@db/schema";
 import CreatePost from "../components/CreatePost";
 import PostCard from "../components/PostCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function Home() {
   const { user } = useUser();
