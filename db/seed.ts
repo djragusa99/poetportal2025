@@ -338,14 +338,6 @@ export async function seed() {
   }
 }
 
-// Create user information
-console.log('User Information:', {
-  username: userData.username,
-  id: userData.id,
-  location: userData.location,
-  bio: userData.bio
-});
-
 // Run seeding
 seed().catch((error) => {
   console.error("Error seeding database:", error);
